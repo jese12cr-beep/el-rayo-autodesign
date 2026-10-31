@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>El Rayo AutoDesign - CAD Canvas</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #070A10;
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+    }
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Industrial CAD Grid */
+    .cad-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 40px 40px, 200px 200px;
+      background-image:
+        linear-gradient(to right, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+        linear-gradient(to right, rgba(0, 242, 254, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 242, 254, 0.08) 1px, transparent 1px);
+      pointer-events: none;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* HUD Overlays */
+    .cad-hud {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      display: flex;
+      gap: 12px;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .hud-tag {
+      background: rgba(14, 20, 32, 0.85);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      border-radius: 6px;
+      padding: 4px 10px;
+      color: #00F2FE;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      backdrop-filter: blur(8px);
+    }
+    .car-silhouette {
+      position: absolute;
+      width: 82%;
+      max-width: 960px;
+      pointer-events: none;
+      opacity: 0.95;
+      filter: drop-shadow(0 20px 30px rgba(0,0,0,0.8));
+    }
+  </style>
+  <!-- Fabric.js CDN for Vector Manipulation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container">
+    <div class="cad-grid"></div>
+    <canvas id="rayoCanvas"></canvas>
+
+    <!-- Simulated Vehicle CAD SVG Wireframe/Render -->
+    <svg id="carSvg" class="car-silhouette" viewBox="0 0 1000 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bodyPaint" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#FF1744" />
+          <stop offset="50%" stop-color="#D50000" />
+          <stop offset="100%" stop-color="#B71C1C" />
+        </linearGradient>
+        <linearGradient id="specularGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+          <stop offset="35%" stop-color="#FFFFFF" stop-opacity="0.1"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.5"/>
+        </linearGradient>
+        <pattern id="metallicFlakes" width="10" height="10" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="0.75" fill="#FFFFFF" opacity="0.35"/>
+          <circle cx="7" cy="6" r="0.6" fill="#FFFFFF" opacity="0.4"/>
+        </pattern>
+      </defs>
+
+      <!-- Wheels / Rines -->
+      <g id="part-rines">
+        <circle cx="230" cy="280" r="65" fill="#15171C" stroke="#4FACFE" stroke-width="4"/>
+        <circle cx="230" cy="280" r="45" fill="#0C0D11" stroke="#E2E8F0" stroke-width="3" stroke-dasharray="10 5"/>
+        <circle cx="230" cy="280" r="16" fill="#00F2FE"/>
+
+        <circle cx="770" cy="280" r="65" fill="#15171C" stroke="#4FACFE" stroke-width="4"/>
+        <circle cx="770" cy="280" r="45" fill="#0C0D11" stroke="#E2E8F0" stroke-width="3" stroke-dasharray="10 5"/>
+        <circle cx="770" cy="280" r="16" fill="#00F2FE"/>
+      </g>
+
+      <!-- Main Car Body Shell -->
+      <path id="part-carroceria" d="M80,280 C90,230 140,210 210,210 C260,210 320,170 410,130 C500,90 620,90 710,130 C760,150 830,190 890,210 C930,225 950,260 940,290 C920,300 850,300 840,280 C820,240 720,240 700,280 C680,290 320,290 300,280 C280,240 180,240 160,280 Z"
+            fill="url(#bodyPaint)" stroke="#00F2FE" stroke-width="2"/>
+
+      <!-- Specular Highlight Layer -->
+      <path d="M80,280 C90,230 140,210 210,210 C260,210 320,170 410,130 C500,90 620,90 710,130 C760,150 830,190 890,210"
+            fill="none" stroke="url(#specularGlow)" stroke-width="8" opacity="0.75" style="mix-blend-mode: overlay;"/>
+
+      <!-- Metallic Flakes Overlay -->
+      <path id="part-flakes" d="M80,280 C90,230 140,210 210,210 C260,210 320,170 410,130 C500,90 620,90 710,130 C760,150 830,190 890,210 C930,225 950,260 940,290 C920,300 850,300 840,280 C820,240 720,240 700,280 C680,290 320,290 300,280 C280,240 180,240 160,280 Z"
+            fill="url(#metallicFlakes)" style="mix-blend-mode: color-dodge;"/>
+
+      <!-- Windows / Cristales -->
+      <path id="part-vidrios" d="M420,135 C500,100 600,100 680,135 C660,185 580,185 440,185 Z"
+            fill="rgba(20, 35, 60, 0.85)" stroke="#00F2FE" stroke-width="1.5"/>
+
+      <!-- Doors / Puertas Outline -->
+      <path id="part-puerta_del_izq" d="M370,185 L530,185 L525,275 L365,275 Z"
+            stroke="rgba(255, 255, 255, 0.45)" stroke-width="2" stroke-dasharray="4 2"/>
+      <path id="part-puerta_tras_izq" d="M535,185 L690,185 L680,275 L530,275 Z"
+            stroke="rgba(255, 255, 255, 0.45)" stroke-width="2" stroke-dasharray="4 2"/>
+    </svg>
+
+    <div class="cad-hud">
+      <div class="hud-tag">ESCALA: 1:1 [CAD mm]</div>
+      <div id="hud-shader" class="hud-tag">SHADER: METÁLICO (OVERLAY)</div>
+      <div id="hud-warp" class="hud-tag">MALLA 2.5D: 4x4 BEZIER</div>
+    </div>
+  </div>
+
+  <script src="paint_shader.js"></script>
+  <script src="mesh_warper.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# El Rayo AutoDesign Studio - Industrial CAD Suite
+# Optimized for Windows (x64 / Snapdragon ARM64)
+
+PyQt6>=6.6.0
+PyQt6-WebEngine>=6.6.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+requests>=2.31.0
