@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: el-rayo-autodesign
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app/server.py
+    envVars:
+      - key: PORT
+        value: 8080
+    plan: free

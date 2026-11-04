@@ -32,7 +32,7 @@ from app.paint_engine.blender import PaintBlender
 
 WEB_DIR = PROJECT_ROOT / "app" / "web_canvas"
 ASSETS_DIR = PROJECT_ROOT / "app" / "assets"
-PORT = 8080
+PORT = int(os.environ.get("PORT", 8080))
 
 
 class RayoStudioRequestHandler(SimpleHTTPRequestHandler):

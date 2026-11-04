@@ -2,9 +2,12 @@
 ### Suite CAD Industrial para Personalización Automotriz, Hojalatería y Pintura
 
 ![License](https://img.shields.io/badge/License-Proprietary-gold.svg)
+![Live App](https://img.shields.io/badge/Web%20Studio-Online%20en%20GitHub%20Pages-success.svg)
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![UI](https://img.shields.io/badge/Design-Chevrolet%20Studio%20Dark-red.svg)
-![Acceleration](https://img.shields.io/badge/Hardware-Snapdragon%20NPU%20Ready-emerald.svg)
+
+🌐 **Acceso Directo en Vivo (Sin Instalación ni Servidor Local)**:
+👉 **[https://jese12cr-beep.github.io/el-rayo-autodesign/](https://jese12cr-beep.github.io/el-rayo-autodesign/)**
 
 **El Rayo AutoDesign Studio** es una plataforma de grado industrial diseñada para talleres de hojalatería, centros de wrapping y talleres de personalización estética de vehículos. Combina una interfaz estilo **Photoshop CAD** con un motor de **fotogrametría 360°**, **segmentación semántica con IA (SAM)** y **colorimetría física basada en catálogos OEM**.
 

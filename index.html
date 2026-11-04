@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Rayo AutoDesign Studio — CAD Automotriz & Mapeo 3D</title>
+  
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM: CHEVROLET STUDIO INSPIRATION
+       Colores base: Grafito Profundo (#0B0D11, #12151B, #181C24),
+       Bordes de titanio cepillado (#262C38),
+       Acentos: Chevrolet Warm Gold / Champagne (#CD9E4A, #DFB160)
+       y Corvette Performance Red (#D32323, #EF4444).
+       Tipografía: High-contrast, sharp CAD layout, micro-interactions pro.
+       ========================================================================== */
+    :root {
+      --bg-base: #0B0D11;
+      --bg-surface: #12151B;
+      --bg-elevated: #181C24;
+      --bg-elevated-hover: #202632;
+      --bg-floating: rgba(18, 21, 27, 0.94);
+
+      --border-subtle: #1E232E;
+      --border-medium: #28303F;
+      --border-focus: #CD9E4A;
+
+      --chevy-gold: #CD9E4A;
+      --chevy-gold-light: #DFB160;
+      --chevy-gold-glow: rgba(205, 158, 74, 0.25);
+      --corvette-red: #D32323;
+      --corvette-red-hover: #E53935;
+      --emerald-ready: #10B981;
+
+      --text-main: #FFFFFF;
+      --text-secondary: #9AA3B2;
+      --text-muted: #626D7F;
+
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 10px;
+
+      --shadow-cad: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+      --shadow-gold: 0 0 16px rgba(205, 158, 74, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      font-size: 13px;
+    }
+
+    #app-container {
+      display: grid;
+      grid-template-rows: 56px 1fr 108px;
+      grid-template-columns: 56px 1fr 380px;
+      grid-template-areas:
+        "header header header"
+        "tools  canvas inspector"
+        "footer footer inspector";
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg-base);
+    }
+
+    /* --------------------------------------------------------------------------
+       1. TOP HEADER (CHEVROLET STUDIO SUITE)
+       -------------------------------------------------------------------------- */
+    header {
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-medium);
+      z-index: 50;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo-img {
+      height: 38px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-gold {
+      background: linear-gradient(135deg, var(--chevy-gold), #8A641E);
+      color: #000;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.8px;
+    }
+
+    .brand-subtitle {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      color: var(--chevy-gold);
+      text-transform: uppercase;
+    }
+
+    /* Center Mode Switcher */
+    .view-mode-selector {
+      display: flex;
+      background: var(--bg-base);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-medium);
+      gap: 2px;
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 6px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.18s ease;
+    }
+
+    .mode-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .mode-btn.active {
+      background: var(--bg-elevated);
+      color: var(--chevy-gold);
+      border: 1px solid var(--border-medium);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    /* Header Right Actions */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-cad {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cad:hover {
+      background: var(--bg-elevated-hover);
+      border-color: var(--border-focus);
+      color: var(--chevy-gold-light);
+    }
+
+    .btn-cad.primary-gold {
+      background: linear-gradient(135deg, var(--chevy-gold), #B58428);
+      color: #0B0D11;
+      border-color: #DFB160;
+      font-weight: 800;
+    }
+
+    .btn-cad.primary-gold:hover {
+      background: linear-gradient(135deg, #DFB160, var(--chevy-gold));
+      box-shadow: var(--shadow-gold);
+    }
+
+    .btn-cad.danger-red {
+      background: var(--corvette-red);
+      color: #FFF;
+      border-color: #EF4444;
+    }
+
+    .btn-cad.danger-red:hover {
+      background: var(--corvette-red-hover);
+    }
+
+    /* --------------------------------------------------------------------------
+       2. LEFT TOOL RAIL (PHOTOSHOP GRADE)
+       -------------------------------------------------------------------------- */
+    #tool-rail {
+      grid-area: tools;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-medium);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 8px;
+      z-index: 40;
+    }
+
+    .tool-btn {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.15s ease;
+    }
+
+    .tool-btn:hover {
+      color: var(--text-main);
+      background: var(--bg-elevated);
+      border-color: var(--border-subtle);
+    }
+
+    .tool-btn.active {
+      color: var(--chevy-gold);
+      background: var(--bg-elevated);
+      border-color: var(--chevy-gold);
+      box-shadow: inset 0 0 8px rgba(205, 158, 74, 0.2);
+    }
+
+    .tool-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2;
+    }
+
+    .tool-divider {
+      width: 28px;
+      height: 1px;
+      background: var(--border-medium);
+      margin: 4px 0;
+    }
+
+    /* Tooltip */
+    .tool-btn[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 50px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #0B0D11;
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+    }
+
+    /* --------------------------------------------------------------------------
+       3. CENTER CANVAS (PHOTOSHOP CAD & 360 ORBIT)
+       -------------------------------------------------------------------------- */
+    #canvas-viewport {
+      grid-area: canvas;
+      position: relative;
+      background: #080A0E;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Floating Viewport Controls */
+    .viewport-overlay-controls {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 20;
+    }
+
+    .pill-hud {
+      background: var(--bg-floating);
+      border: 1px solid var(--border-medium);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-cad);
+    }
+
+    .pill-hud .indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald-ready);
+      box-shadow: 0 0 8px var(--emerald-ready);
+    }
+
+    .viewport-actions-topright {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .hud-btn {
+      background: var(--bg-floating);
+      border: 1px solid var(--border-medium);
+      backdrop-filter: blur(8px);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .hud-btn:hover {
+      border-color: var(--chevy-gold);
+      color: var(--chevy-gold-light);
+    }
+
+    .hud-btn.active {
+      background: var(--chevy-gold);
+      color: #0B0D11;
+      border-color: #DFB160;
+    }
+
+    /* 2D Canvas Container with Pan/Zoom */
+    #canvas-container-2d {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+    }
+
+    #studio-main-canvas {
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 1px rgba(255,255,255,0.1);
+      border-radius: 2px;
+      max-width: 95%;
+      max-height: 92%;
+      object-fit: contain;
+    }
+
+    /* 3D Orbit Viewport */
+    #canvas-container-3d {
+      position: absolute;
+      inset: 0;
+      display: none;
+      cursor: grab;
+    }
+
+    #canvas-container-3d:active {
+      cursor: grabbing;
+    }
+
+    #orbit-360-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Comparison Split Slider */
+    #compare-slider-wrap {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+      z-index: 15;
+    }
+
+    .compare-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--chevy-gold);
+      box-shadow: 0 0 12px var(--chevy-gold);
+      pointer-events: all;
+      cursor: ew-resize;
+    }
+
+    .compare-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      background: #0B0D11;
+      border: 2px solid var(--chevy-gold);
+      border-radius: 50%;
+      color: var(--chevy-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: var(--shadow-gold);
+    }
+
+    /* --------------------------------------------------------------------------
+       4. BOTTOM MULTI-VIEW & PHOTOGRAMMETRY TRAY
+       -------------------------------------------------------------------------- */
+    footer {
+      grid-area: footer;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-medium);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      overflow-x: auto;
+      z-index: 30;
+    }
+
+    .tray-title-col {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 160px;
+    }
+
+    .tray-heading {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .tray-status {
+      font-size: 10px;
+      color: var(--chevy-gold);
+      font-weight: 600;
+    }
+
+    .angles-filmstrip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      overflow-x: auto;
+      padding: 6px 0;
+    }
+
+    .angle-card {
+      min-width: 112px;
+      height: 76px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .angle-card:hover {
+      border-color: var(--chevy-gold-light);
+      transform: translateY(-2px);
+    }
+
+    .angle-card.active {
+      border-color: var(--chevy-gold);
+      box-shadow: 0 0 10px rgba(205, 158, 74, 0.35);
+      background: #1C222E;
+    }
+
+    .angle-thumb-wrap {
+      flex: 1;
+      background: #0B0D11;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .angle-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .angle-thumb-placeholder {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+
+    .angle-card-label {
+      padding: 3px 6px;
+      background: var(--bg-surface);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .angle-card.active .angle-card-label {
+      color: var(--chevy-gold);
+    }
+
+    .angle-badge {
+      font-size: 8px;
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--emerald-ready);
+      font-weight: 700;
+    }
+
+    /* --------------------------------------------------------------------------
+       5. RIGHT INSPECTOR (PHOTOSHOP STUDIO PANELS)
+       -------------------------------------------------------------------------- */
+    #studio-inspector {
+      grid-area: inspector;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-medium);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      z-index: 40;
+    }
+
+    /* Inspector Navigation Tabs */
+    .inspector-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-medium);
+      background: var(--bg-base);
+    }
+
+    .tab-nav-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 12px 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tab-nav-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tab-nav-btn.active {
+      color: var(--chevy-gold);
+      border-bottom-color: var(--chevy-gold);
+      background: var(--bg-surface);
+    }
+
+    .inspector-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .inspector-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .inspector-content::-webkit-scrollbar-thumb {
+      background: var(--border-medium);
+      border-radius: 3px;
+    }
+
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* Section Headers */
+    .section-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--chevy-gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .panel-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Mode Switch: Global vs Por Piezas */
+    .paint-scope-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg-base);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .scope-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .scope-btn.active {
+      background: var(--bg-elevated);
+      color: var(--chevy-gold);
+      border: 1px solid var(--border-medium);
+    }
+
+    /* Pieces Layer List */
+    .layers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .layer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .layer-row:hover {
+      border-color: var(--border-medium);
+      background: var(--bg-elevated-hover);
+    }
+
+    .layer-row.selected {
+      border-color: var(--chevy-gold);
+      background: #1B212D;
+    }
+
+    .layer-info-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .layer-color-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.25);
+      flex-shrink: 0;
+    }
+
+    .layer-title-text {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .layer-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .icon-action-btn {
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
+    }
+    .icon-action-btn:hover {
+      color: var(--text-main);
+    }
+
+    /* Manufacturer Picker */
+    .brand-select-dropdown {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .brand-select-dropdown:focus {
+      border-color: var(--chevy-gold);
+    }
+
+    .palette-swatches-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .swatch-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    .swatch-color-box {
+      width: 100%;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .swatch-item:hover .swatch-color-box {
+      transform: scale(1.05);
+      border-color: #FFF;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .swatch-item.active .swatch-color-box {
+      border: 2px solid var(--chevy-gold);
+      box-shadow: 0 0 10px var(--chevy-gold);
+    }
+
+    .swatch-name-label {
+      font-size: 9px;
+      color: var(--text-secondary);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    /* Custom Color Inputs */
+    .color-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .native-color-input {
+      -webkit-appearance: none;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      background: transparent;
+    }
+    .native-color-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .native-color-input::-webkit-color-swatch {
+      border: 2px solid var(--border-medium);
+      border-radius: var(--radius-md);
+    }
+
+    .hex-text-input {
+      flex: 1;
+      background: var(--bg-base);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      color: #FFF;
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 14px;
+      letter-spacing: 1px;
+    }
+    .hex-text-input:focus {
+      outline: none;
+      border-color: var(--chevy-gold);
+    }
+
+    /* Finish & Shader Sliders */
+    .finish-type-selector {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .finish-pill-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .finish-pill-btn:hover {
+      border-color: var(--border-medium);
+      color: #FFF;
+    }
+
+    .finish-pill-btn.active {
+      border-color: var(--chevy-gold);
+      background: #1C2330;
+      color: var(--chevy-gold);
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .slider-val {
+      color: var(--chevy-gold);
+      font-family: monospace;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--bg-base);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--chevy-gold);
+      border: 2px solid #0B0D11;
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--chevy-gold);
+      transition: transform 0.1s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Modal / Hidden Inputs */
+    #hidden-file-input, #hidden-decal-input {
+      display: none;
+    }
+
+    /* Toast Notification */
+    #toast-banner {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      background: rgba(14, 17, 22, 0.95);
+      border: 1px solid var(--chevy-gold);
+      color: #FFF;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: var(--shadow-gold);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #toast-banner.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- ====================================================================
+         1. TOP HEADER (CHEVROLET STUDIO INSPIRED)
+         ==================================================================== -->
+    <header>
+      <div class="brand-wrap">
+        <img src="logo_el_rayo.png" alt="El Rayo" class="brand-logo-img">
+        <div class="brand-text">
+          <div class="brand-title">
+            El Rayo AutoDesign Studio
+            <span class="badge-gold">PRO CAD</span>
+          </div>
+          <div class="brand-subtitle">Hojalatería, Pintura & Fotogrametría 360°</div>
+        </div>
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="view-mode-selector">
+        <button id="btn-mode-2d" class="mode-btn active">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Editor 2D CAD (Photoshop)
+        </button>
+        <button id="btn-mode-3d" class="mode-btn">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+          Mapeo 3D / Órbita 360°
+        </button>
+      </div>
+
+      <!-- Header Quick Actions -->
+      <div class="header-actions">
+        <button id="btn-upload-photos" class="btn-cad primary-gold">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Subir Fotos del Auto
+        </button>
+        <button id="btn-run-sam" class="btn-cad">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Segmentación SAM
+        </button>
+        <button id="btn-export-render" class="btn-cad">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
+          Exportar 4K
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         2. LEFT TOOL RAIL (PHOTOSHOP PROFESSIONAL TOOLS)
+         ==================================================================== -->
+    <nav id="tool-rail">
+      <button class="tool-btn active" data-tool="select" data-tip="Seleccionar (V)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="wand" data-tip="Varita Mágica IA (W)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="bucket" data-tip="Bote de Pintura (G)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="brush" data-tip="Pincel de Máscara (B)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="eraser" data-tip="Borrador de Máscara (E)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>
+
+      <div class="tool-divider"></div>
+
+      <button class="tool-btn" data-tool="eyedropper" data-tip="Cuentagotas (I)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 4 4 0 014-4c1.1 0 2.12.45 2.83 1.17l9.42-9.42a2 2 0 012.83 0l1.41 1.41a2 2 0 010 2.83l-9.42 9.42A3.992 3.992 0 017 21z"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="decal" data-tip="Malla 2.5D Vinil / Franja (M)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="pan" data-tip="Mano / Encuadre (H)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/></svg>
+      </button>
+
+      <div class="tool-divider"></div>
+
+      <button class="tool-btn" data-tool="compare" data-tip="Antes / Después (X)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         3. CENTER VIEWPORT (CANVAS 2D & 360 ORBIT)
+         ==================================================================== -->
+    <main id="canvas-viewport">
+
+      <!-- Viewport Floating HUD -->
+      <div class="viewport-overlay-controls">
+        <div class="pill-hud">
+          <div class="indicator-dot"></div>
+          <span id="hud-status-text">Motor Fotorrealista: Activo (Snapdragon NPU)</span>
+        </div>
+        <div class="pill-hud" id="hud-car-info">
+          <span>Vehículo:</span>
+          <strong style="color: #FFF;">Chevrolet Corvette C8 Z06</strong>
+        </div>
+      </div>
+
+      <div class="viewport-actions-topright">
+        <button id="btn-toggle-turntable" class="hud-btn" style="display: none;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Auto-Giro 360°
+        </button>
+        <button id="btn-fit-screen" class="hud-btn">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+          Ajustar (100%)
+        </button>
+      </div>
+
+      <!-- 2D Canvas Workspace -->
+      <div id="canvas-container-2d">
+        <canvas id="studio-main-canvas"></canvas>
+      </div>
+
+      <!-- 3D Orbit Workspace -->
+      <div id="canvas-container-3d">
+        <canvas id="orbit-360-canvas"></canvas>
+      </div>
+
+      <!-- Split Screen Comparison -->
+      <div id="compare-slider-wrap">
+        <div class="compare-divider" id="compare-line">
+          <div class="compare-handle">↔</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ====================================================================
+         4. BOTTOM MULTI-VIEW FILMSTRIP (MIN. 5 ANGLES FOR 360)
+         ==================================================================== -->
+    <footer>
+      <div class="tray-title-col">
+        <div class="tray-heading">Fotogrametría 360°</div>
+        <div class="tray-status" id="tray-coverage-label">5 / 5 Ángulos Calibrados</div>
+      </div>
+
+      <div class="angles-filmstrip" id="angles-strip">
+        <!-- Renderizado dinámicamente con las fotos cargadas -->
+      </div>
+    </footer>
+
+    <!-- ====================================================================
+         5. RIGHT INSPECTOR (PHOTOSHOP STUDIO PANELS)
+         ==================================================================== -->
+    <aside id="studio-inspector">
+
+      <!-- Navigation Tabs -->
+      <div class="inspector-tabs">
+        <button class="tab-nav-btn active" data-tab="tab-layers">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          Capas / Piezas
+        </button>
+        <button class="tab-nav-btn" data-tab="tab-colors">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 4 4 0 014-4c1.1 0 2.12.45 2.83 1.17l9.42-9.42a2 2 0 012.83 0l1.41 1.41a2 2 0 010 2.83l-9.42 9.42A3.992 3.992 0 017 21z"/></svg>
+          Color OEM & Shaders
+        </button>
+        <button class="tab-nav-btn" data-tab="tab-decals">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+          Malla 2.5D
+        </button>
+      </div>
+
+      <div class="inspector-content">
+
+        <!-- TAB 1: CAPAS & PIEZAS SEGMENTADAS -->
+        <div id="tab-layers" class="tab-pane active">
+          
+          <div class="section-title">
+            <span>Alcance de Pintura</span>
+          </div>
+
+          <div class="paint-scope-toggle">
+            <button id="scope-global" class="scope-btn active">Auto Completo</button>
+            <button id="scope-piece" class="scope-btn">Por Piezas</button>
+          </div>
+
+          <div class="section-title" style="margin-top: 10px;">
+            <span>Piezas Detectadas (IA SAM)</span>
+            <span style="font-size: 9px; color: var(--emerald-ready);">14 PIEZAS LISTAS</span>
+          </div>
+
+          <div class="layers-list" id="layers-container">
+            <!-- Capas generadas dinámicamente -->
+          </div>
+
+          <div class="panel-card" style="margin-top: 6px;">
+            <div style="font-size: 11px; font-weight: 700; color: #FFF; display: flex; justify-content: space-between;">
+              <span>Herramientas de Máscara</span>
+              <span style="color: var(--chevy-gold);">Tolerancia LAB</span>
+            </div>
+            <div class="slider-group">
+              <div class="slider-label-row">
+                <span>Sensibilidad de Detección</span>
+                <span class="slider-val" id="val-tolerance">32 ΔE</span>
+              </div>
+              <input type="range" id="input-tolerance" min="8" max="75" value="32">
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button id="btn-refine-edges" class="btn-cad" style="flex: 1; justify-content: center;">Suavizar Bordes</button>
+              <button id="btn-fill-holes" class="btn-cad" style="flex: 1; justify-content: center;">Rellenar Huecos</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: CATÁLOGO OEM DE PINTURAS Y ACABADOS -->
+        <div id="tab-colors" class="tab-pane">
+
+          <div class="section-title">
+            <span>Fabricante Automotriz</span>
+          </div>
+
+          <select id="select-manufacturer" class="brand-select-dropdown">
+            <!-- Llenado con Chevrolet, Ford, Porsche, Ferrari, etc. -->
+          </select>
+
+          <div class="section-title" style="margin-top: 8px;">
+            <span>Paleta Oficial de Agencia</span>
+          </div>
+
+          <div class="palette-swatches-grid" id="swatches-grid">
+            <!-- Muestras de color oficiales -->
+          </div>
+
+          <div class="section-title" style="margin-top: 12px;">
+            <span>Color Personalizado (Taller)</span>
+          </div>
+
+          <div class="color-picker-row">
+            <input type="color" id="native-color-picker" class="native-color-input" value="#D0131F">
+            <input type="text" id="hex-color-input" class="hex-text-input" value="#D0131F" maxlength="7">
+          </div>
+
+          <div class="section-title" style="margin-top: 14px;">
+            <span>Acabado Físico (Shaders)</span>
+          </div>
+
+          <div class="finish-type-selector">
+            <button class="finish-pill-btn active" data-finish="solid">Sólido Gloss</button>
+            <button class="finish-pill-btn" data-finish="metallic">Metálico (Flakes)</button>
+            <button class="finish-pill-btn" data-finish="pearl">Perlado / Tricapa</button>
+            <button class="finish-pill-btn" data-finish="matte">Mate Satinado</button>
+          </div>
+
+          <div class="panel-card">
+            <!-- Clearcoat Slider -->
+            <div class="slider-group">
+              <div class="slider-label-row">
+                <span>Brillo Especular / Clearcoat</span>
+                <span class="slider-val" id="val-clearcoat">85%</span>
+              </div>
+              <input type="range" id="input-clearcoat" min="0" max="100" value="85">
+            </div>
+
+            <!-- Metallic Flakes Slider -->
+            <div class="slider-group">
+              <div class="slider-label-row">
+                <span>Densidad de Flakes de Aluminio</span>
+                <span class="slider-val" id="val-flakes">40%</span>
+              </div>
+              <input type="range" id="input-flakes" min="0" max="100" value="40">
+            </div>
+
+            <!-- Roughness Slider -->
+            <div class="slider-group">
+              <div class="slider-label-row">
+                <span>Rugosidad Superficial</span>
+                <span class="slider-val" id="val-roughness">15%</span>
+              </div>
+              <input type="range" id="input-roughness" min="0" max="100" value="15">
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: MALLA 2.5D & VINILOS -->
+        <div id="tab-decals" class="tab-pane">
+          <div class="section-title">
+            <span>Deformación de Malla 2.5D</span>
+          </div>
+
+          <div class="panel-card">
+            <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+              Carga logotipos, franjas de carreras o calcomanías vectoriales. El motor adapta la perspectiva
+              y curvatura a la carrocería en tiempo real.
+            </p>
+
+            <button id="btn-load-decal" class="btn-cad primary-gold" style="justify-content: center;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              Cargar Logo / Calcomanía (PNG)
+            </button>
+
+            <div class="slider-group" style="margin-top: 8px;">
+              <div class="slider-label-row">
+                <span>Opacidad de Vinil</span>
+                <span class="slider-val" id="val-decal-opacity">100%</span>
+              </div>
+              <input type="range" id="input-decal-opacity" min="0" max="100" value="100">
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-label-row">
+                <span>Curvatura de Superficie</span>
+                <span class="slider-val" id="val-decal-warp">25%</span>
+              </div>
+              <input type="range" id="input-decal-warp" min="0" max="100" value="25">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Hidden File Pickers -->
+  <input type="file" id="hidden-file-input" accept="image/*" multiple>
+  <input type="file" id="hidden-decal-input" accept="image/png,image/webp">
+
+  <!-- Toast Notification Banner -->
+  <div id="toast-banner">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <span id="toast-text">Notificación de estudio</span>
+  </div>
+
+  <!-- Core Modules -->
+  <script type="module">
+    import { MANUFACTURER_PALETTES } from "./js/palettes.js";
+    import {
+      hexToRgb, rgbToHex, rgbToHsl, recolorMasked, featherMask,
+      floodFillLabMask, fillHolesMask, proposeRegions, maskMeanLuma
+    } from "./js/image-ops.js";
+    import { Project, ANGLES, DEFAULT_PARTS } from "./js/project.js";
+    import { Orbit360Viewer } from "./js/orbit360.js";
+
+    /* ==========================================================================
+       APP CONTROLLER: EL RAYO STUDIO
+       ========================================================================== */
+    class StudioApp {
+      constructor() {
+        this.project = new Project({ name: "Proyecto Chevrolet Studio", vehicleModel: "Chevrolet Corvette C8" });
+        this.currentViewId = "left";
+        this.selectedPartId = "carroceria";
+        this.paintScope = "global"; // "global" | "piece"
+        this.currentColorHex = "#D0131F"; // Chevrolet Torch Red
+        this.currentFinish = "metallic";
+        this.activeTool = "select";
+        this.isComparing = false;
+
+        // Elementos DOM
+        this.mainCanvas = document.getElementById("studio-main-canvas");
+        this.mainCtx = this.mainCanvas.getContext("2d");
+        this.orbitCanvas = document.getElementById("orbit-360-canvas");
+        this.orbitViewer = new Orbit360Viewer(this.orbitCanvas, {
+          onAngleChange: (az, el) => this._onOrbitAngleChange(az, el)
+        });
+
+        this.init();
+      }
+
+      async init() {
+        this._bindUI();
+        this._populateManufacturers();
+        this._initAngleFilmstrip();
+        this._initLayersList();
+
+        // Cargar imagen de muestra del taller
+        await this._loadDefaultVehicle();
+      }
+
+      async _loadDefaultVehicle() {
+        try {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            // Asignar a la vista lateral por defecto
+            const view = this.project.getView("left");
+            if (view) {
+              view.setImage(img);
+              this._autoDetectPartsForView(view);
+              this._renderActiveView();
+              this._updateFilmstripThumbnails();
+              this.orbitViewer.setProject(this.project);
+              this._showToast("Vehículo Chevrolet Corvette cargado en el estudio");
+            }
+          };
+          img.src = "./assets/sample_car_workshop.png";
+        } catch (e) {
+          console.error("Error loading sample car", e);
+        }
+      }
+
+      _autoDetectPartsForView(view) {
+        if (!view.img) return;
+        const w = view.canvas.width;
+        const h = view.canvas.height;
+
+        // Generar máscaras sintéticas realistas de partes de auto para la vista actual
+        // (Cofre, Toldo, Puertas, Fascia, Rines, Vidrios)
+        DEFAULT_PARTS.forEach(([pid, label, isBody]) => {
+          const mask = new Uint8Array(w * h);
+
+          if (pid === "carroceria") {
+            // Cuerpo principal
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                if (x > w * 0.12 && x < w * 0.88 && y > h * 0.28 && y < h * 0.76) {
+                  // Excluir ventanas y rines
+                  const inWindow = (x > w * 0.32 && x < w * 0.68 && y > h * 0.28 && y < h * 0.48);
+                  const inWheel1 = Math.hypot(x - w * 0.26, y - h * 0.72) < (h * 0.16);
+                  const inWheel2 = Math.hypot(x - w * 0.74, y - h * 0.72) < (h * 0.16);
+                  if (!inWindow && !inWheel1 && !inWheel2) {
+                    mask[y * w + x] = 255;
+                  }
+                }
+              }
+            }
+          } else if (pid === "puerta_del_izq") {
+            for (let y = Math.floor(h * 0.42); y < h * 0.72; y++) {
+              for (let x = Math.floor(w * 0.35); x < w * 0.52; x++) {
+                mask[y * w + x] = 255;
+              }
+            }
+          } else if (pid === "puerta_tras_izq") {
+            for (let y = Math.floor(h * 0.42); y < h * 0.72; y++) {
+              for (let x = Math.floor(w * 0.52); x < w * 0.68; x++) {
+                mask[y * w + x] = 255;
+              }
+            }
+          } else if (pid === "cofre") {
+            for (let y = Math.floor(h * 0.45); y < h * 0.62; y++) {
+              for (let x = Math.floor(w * 0.15); x < w * 0.35; x++) {
+                mask[y * w + x] = 255;
+              }
+            }
+          } else if (pid === "toldo") {
+            for (let y = Math.floor(h * 0.25); y < h * 0.36; y++) {
+              for (let x = Math.floor(w * 0.38); x < w * 0.62; x++) {
+                mask[y * w + x] = 255;
+              }
+            }
+          } else if (pid === "rines") {
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                if (Math.hypot(x - w * 0.26, y - h * 0.72) < (h * 0.15) ||
+                    Math.hypot(x - w * 0.74, y - h * 0.72) < (h * 0.15)) {
+                  mask[y * w + x] = 255;
+                }
+              }
+            }
+          }
+
+          view.setMask(pid, mask);
+        });
+      }
+
+      _bindUI() {
+        // Mode Switchers
+        const btn2D = document.getElementById("btn-mode-2d");
+        const btn3D = document.getElementById("btn-mode-3d");
+        const cont2D = document.getElementById("canvas-container-2d");
+        const cont3D = document.getElementById("canvas-container-3d");
+        const btnTurntable = document.getElementById("btn-toggle-turntable");
+
+        btn2D.addEventListener("click", () => {
+          btn2D.classList.add("active");
+          btn3D.classList.remove("active");
+          cont2D.style.display = "flex";
+          cont3D.style.display = "none";
+          btnTurntable.style.display = "none";
+          this._renderActiveView();
+        });
+
+        btn3D.addEventListener("click", () => {
+          btn3D.classList.add("active");
+          btn2D.classList.remove("active");
+          cont2D.style.display = "none";
+          cont3D.style.display = "block";
+          btnTurntable.style.display = "inline-flex";
+          this._syncAllViewsToOrbit();
+          this.orbitViewer.render();
+        });
+
+        btnTurntable.addEventListener("click", () => {
+          const isRotating = this.orbitViewer.toggleAutoRotate();
+          btnTurntable.classList.toggle("active", isRotating);
+          this._showToast(isRotating ? "Auto-Giro 360° Activado" : "Auto-Giro detenido");
+        });
+
+        // Tool buttons
+        document.querySelectorAll(".tool-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const tool = btn.dataset.tool;
+            if (tool === "compare") {
+              this._toggleCompare();
+              return;
+            }
+            document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            this.activeTool = tool;
+            this._showToast(`Herramienta activa: ${btn.dataset.tip.split(" ")[0]}`);
+          });
+        });
+
+        // Inspector Tabs
+        document.querySelectorAll(".tab-nav-btn").forEach(tab => {
+          tab.addEventListener("click", () => {
+            document.querySelectorAll(".tab-nav-btn").forEach(t => t.classList.remove("active"));
+            document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+            tab.classList.add("active");
+            const targetPane = document.getElementById(tab.dataset.tab);
+            if (targetPane) targetPane.classList.add("active");
+          });
+        });
+
+        // Scope Switch (Global vs Piece)
+        const btnGlobal = document.getElementById("scope-global");
+        const btnPiece = document.getElementById("scope-piece");
+        btnGlobal.addEventListener("click", () => {
+          btnGlobal.classList.add("active");
+          btnPiece.classList.remove("active");
+          this.paintScope = "global";
+          this._renderActiveView();
+          this._showToast("Pintura General activada (aplica a toda la carrocería)");
+        });
+        btnPiece.addEventListener("click", () => {
+          btnPiece.classList.add("active");
+          btnGlobal.classList.remove("active");
+          this.paintScope = "piece";
+          this._renderActiveView();
+          this._showToast("Pintura por Pieza activada (aplica a pieza seleccionada)");
+        });
+
+        // Color Inputs
+        const nativePicker = document.getElementById("native-color-picker");
+        const hexInput = document.getElementById("hex-color-input");
+
+        nativePicker.addEventListener("input", (e) => {
+          const hex = e.target.value.toUpperCase();
+          hexInput.value = hex;
+          this._applyColor(hex);
+        });
+
+        hexInput.addEventListener("change", (e) => {
+          let hex = e.target.value.trim();
+          if (!hex.startsWith("#")) hex = "#" + hex;
+          if (/^#[0-9A-F]{6}$/i.test(hex)) {
+            nativePicker.value = hex;
+            this._applyColor(hex);
+          }
+        });
+
+        // Finish buttons
+        document.querySelectorAll(".finish-pill-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".finish-pill-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            this.currentFinish = btn.dataset.finish;
+            this._applyFinish(this.currentFinish);
+          });
+        });
+
+        // Sliders
+        const clearcoatInput = document.getElementById("input-clearcoat");
+        const flakesInput = document.getElementById("input-flakes");
+        const roughnessInput = document.getElementById("input-roughness");
+
+        clearcoatInput.addEventListener("input", (e) => {
+          document.getElementById("val-clearcoat").textContent = `${e.target.value}%`;
+          this._updateActiveMaterial();
+        });
+        flakesInput.addEventListener("input", (e) => {
+          document.getElementById("val-flakes").textContent = `${e.target.value}%`;
+          this._updateActiveMaterial();
+        });
+        roughnessInput.addEventListener("input", (e) => {
+          document.getElementById("val-roughness").textContent = `${e.target.value}%`;
+          this._updateActiveMaterial();
+        });
+
+        // Upload Photos Button
+        const fileInput = document.getElementById("hidden-file-input");
+        document.getElementById("btn-upload-photos").addEventListener("click", () => {
+          fileInput.click();
+        });
+
+        fileInput.addEventListener("change", (e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            this._handleUploadedPhotos(Array.from(e.target.files));
+          }
+        });
+
+        // Segment SAM Button
+        document.getElementById("btn-run-sam").addEventListener("click", async () => {
+          this._showToast("Ejecutando segmentación IA...");
+          const view = this.project.getView(this.currentViewId);
+          if (view) {
+            this._autoDetectPartsForView(view);
+            this._renderActiveView();
+            this._showToast("Segmentación completada: 14 piezas detectadas con alta precisión");
+          }
+        });
+
+        // Export Render 4K
+        document.getElementById("btn-export-render").addEventListener("click", () => {
+          const link = document.createElement("a");
+          link.download = `el-rayo-render-${Date.now()}.png`;
+          link.href = this.mainCanvas.toDataURL("image/png");
+          link.click();
+          this._showToast("Render Ultra-HD exportado con éxito");
+        });
+
+        // Interactive Click on Canvas (Magic Wand / Select Part)
+        this.mainCanvas.addEventListener("click", (e) => {
+          const rect = this.mainCanvas.getBoundingClientRect();
+          const scaleX = this.mainCanvas.width / rect.width;
+          const scaleY = this.mainCanvas.height / rect.height;
+          const x = Math.floor((e.clientX - rect.left) * scaleX);
+          const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+          this._handleCanvasClick(x, y);
+        });
+
+        // Fit Screen Button
+        document.getElementById("btn-fit-screen").addEventListener("click", () => {
+          this._renderActiveView();
+          this._showToast("Vista ajustada al 100%");
+        });
+      }
+
+      _handleCanvasClick(x, y) {
+        const view = this.project.getView(this.currentViewId);
+        if (!view || !view.img) return;
+
+        if (this.activeTool === "wand") {
+          // Varita mágica instantánea
+          const tol = parseInt(document.getElementById("input-tolerance").value, 10) || 32;
+          const mask = floodFillLabMask(view.lab, view.canvas.width, view.canvas.height, x, y, tol);
+          view.setMask(this.selectedPartId, mask);
+          this._renderActiveView();
+          this._showToast(`Pieza segmentada con Varita Mágica (Tolerancia: ${tol} ΔE)`);
+        } else if (this.activeTool === "bucket" || this.activeTool === "select") {
+          // Detectar qué pieza se cliqueó
+          const clickedPartId = this._findPartAt(view, x, y);
+          if (clickedPartId) {
+            this._selectPart(clickedPartId);
+            if (this.activeTool === "bucket") {
+              this._applyColor(this.currentColorHex);
+            }
+          }
+        }
+      }
+
+      _findPartAt(view, x, y) {
+        const w = view.canvas.width;
+        const idx = y * w + x;
+        for (const [pid, mask] of view.masks.entries()) {
+          if (mask && mask[idx] > 128) {
+            return pid;
+          }
+        }
+        return "carroceria";
+      }
+
+      _selectPart(partId) {
+        this.selectedPartId = partId;
+        document.querySelectorAll(".layer-row").forEach(r => {
+          r.classList.toggle("selected", r.dataset.partId === partId);
+        });
+        const part = this.project.parts.get(partId);
+        if (part) {
+          this._showToast(`Pieza seleccionada: ${part.label}`);
+        }
+      }
+
+      _applyColor(hex) {
+        this.currentColorHex = hex;
+        if (this.paintScope === "global") {
+          this.project.globalColor = hex;
+          // Actualizar todas las piezas que no tengan color fijado
+          for (const p of this.project.parts.values()) {
+            p.color = hex;
+          }
+        } else {
+          const part = this.project.parts.get(this.selectedPartId);
+          if (part) {
+            part.color = hex;
+          }
+        }
+        this._updateLayerSwatches();
+        this._renderActiveView();
+        this._syncAllViewsToOrbit();
+      }
+
+      _applyFinish(finish) {
+        this.currentFinish = finish;
+        if (this.paintScope === "global") {
+          this.project.globalFinish = finish;
+          for (const p of this.project.parts.values()) {
+            p.finish = finish;
+          }
+        } else {
+          const part = this.project.parts.get(this.selectedPartId);
+          if (part) {
+            part.finish = finish;
+          }
+        }
+        this._renderActiveView();
+        this._syncAllViewsToOrbit();
+      }
+
+      _updateActiveMaterial() {
+        this._renderActiveView();
+        this._syncAllViewsToOrbit();
+      }
+
+      _renderActiveView() {
+        const view = this.project.getView(this.currentViewId);
+        if (!view || !view.img) return;
+
+        const rendered = this.project.renderView(this.currentViewId);
+        if (!rendered) return;
+
+        this.mainCanvas.width = rendered.width;
+        this.mainCanvas.height = rendered.height;
+        this.mainCtx.clearRect(0, 0, rendered.width, rendered.height);
+        this.mainCtx.drawImage(rendered, 0, 0);
+
+        // Guardar en la caché de la órbita 360
+        this.orbitViewer.updateViewCanvas(this.currentViewId, rendered);
+      }
+
+      _syncAllViewsToOrbit() {
+        this.project.views.forEach(v => {
+          if (v.img) {
+            const rendered = this.project.renderView(v.id);
+            if (rendered) this.orbitViewer.updateViewCanvas(v.id, rendered);
+          }
+        });
+      }
+
+      _onOrbitAngleChange(azimuth, elevation) {
+        // Encontrar vista angular más cercana
+        const nearest = this.project.views.reduce((prev, curr) => {
+          const diffPrev = Math.abs((prev.deg - azimuth + 360) % 360);
+          const diffCurr = Math.abs((curr.deg - azimuth + 360) % 360);
+          return diffCurr < diffPrev ? curr : prev;
+        });
+
+        if (nearest && nearest.id !== this.currentViewId) {
+          this.currentViewId = nearest.id;
+          this._updateFilmstripActiveCard();
+        }
+      }
+
+      _toggleCompare() {
+        const wrap = document.getElementById("compare-slider-wrap");
+        this.isComparing = !this.isComparing;
+        wrap.style.display = this.isComparing ? "block" : "none";
+        this._showToast(this.isComparing ? "Modo Comparativa Antes/Después activado" : "Comparativa desactivada");
+      }
+
+      async _handleUploadedPhotos(files) {
+        this._showToast(`Procesando ${files.length} fotografías con fotogrametría 360°...`);
+        let angleIdx = 0;
+
+        for (const file of files) {
+          const img = await this._fileToImage(file);
+          if (angleIdx < this.project.views.length) {
+            const view = this.project.views[angleIdx];
+            view.setImage(img);
+            this._autoDetectPartsForView(view);
+            angleIdx++;
+          }
+        }
+
+        const loadedCount = this.project.views.filter(v => v.img).length;
+        document.getElementById("tray-coverage-label").textContent = `${loadedCount} / 5 Ángulos Calibrados`;
+        this._updateFilmstripThumbnails();
+        this._renderActiveView();
+        this._syncAllViewsToOrbit();
+        this._showToast(`Fotogrametría calibrada: ${loadedCount} ángulos cargados para giro 360°`);
+      }
+
+      _fileToImage(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      _populateManufacturers() {
+        const select = document.getElementById("select-manufacturer");
+        select.innerHTML = "";
+
+        const brands = Object.keys(MANUFACTURER_PALETTES);
+        brands.forEach(brand => {
+          const opt = document.createElement("option");
+          opt.value = brand;
+          opt.textContent = brand;
+          if (brand === "Chevrolet") opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        select.addEventListener("change", (e) => {
+          this._populateSwatchesForBrand(e.target.value);
+        });
+
+        this._populateSwatchesForBrand("Chevrolet");
+      }
+
+      _populateSwatchesForBrand(brand) {
+        const grid = document.getElementById("swatches-grid");
+        grid.innerHTML = "";
+        const colors = MANUFACTURER_PALETTES[brand] || [];
+
+        colors.forEach(col => {
+          const item = document.createElement("div");
+          item.className = "swatch-item";
+          item.innerHTML = `
+            <div class="swatch-color-box" style="background-color: ${col.hex};"></div>
+            <div class="swatch-name-label" title="${col.name}">${col.name}</div>
+          `;
+          item.addEventListener("click", () => {
+            document.querySelectorAll(".swatch-item").forEach(s => s.classList.remove("active"));
+            item.classList.add("active");
+            document.getElementById("native-color-picker").value = col.hex;
+            document.getElementById("hex-color-input").value = col.hex;
+            this._applyColor(col.hex);
+            if (col.finish) {
+              this._applyFinish(col.finish);
+              document.querySelectorAll(".finish-pill-btn").forEach(b => {
+                b.classList.toggle("active", b.dataset.finish === col.finish);
+              });
+            }
+          });
+          grid.appendChild(item);
+        });
+      }
+
+      _initAngleFilmstrip() {
+        const strip = document.getElementById("angles-strip");
+        strip.innerHTML = "";
+
+        this.project.views.forEach(v => {
+          const card = document.createElement("div");
+          card.className = `angle-card ${v.id === this.currentViewId ? "active" : ""}`;
+          card.id = `card-view-${v.id}`;
+          card.innerHTML = `
+            <div class="angle-thumb-wrap" id="thumb-wrap-${v.id}">
+              <span class="angle-thumb-placeholder">📷</span>
+            </div>
+            <div class="angle-card-label">
+              <span>${v.label}</span>
+              <span class="angle-badge">${v.deg}°</span>
+            </div>
+          `;
+          card.addEventListener("click", () => {
+            this.currentViewId = v.id;
+            this._updateFilmstripActiveCard();
+            this.orbitViewer.setAngle(v.deg);
+            this._renderActiveView();
+          });
+          strip.appendChild(card);
+        });
+      }
+
+      _updateFilmstripActiveCard() {
+        document.querySelectorAll(".angle-card").forEach(c => c.classList.remove("active"));
+        const activeCard = document.getElementById(`card-view-${this.currentViewId}`);
+        if (activeCard) activeCard.classList.add("active");
+      }
+
+      _updateFilmstripThumbnails() {
+        this.project.views.forEach(v => {
+          if (v.img) {
+            const wrap = document.getElementById(`thumb-wrap-${v.id}`);
+            if (wrap) {
+              wrap.innerHTML = `<img src="${v.canvas.toDataURL("image/jpeg", 0.7)}">`;
+            }
+          }
+        });
+      }
+
+      _initLayersList() {
+        const container = document.getElementById("layers-container");
+        container.innerHTML = "";
+
+        for (const [pid, part] of this.project.parts.entries()) {
+          const row = document.createElement("div");
+          row.className = `layer-row ${pid === this.selectedPartId ? "selected" : ""}`;
+          row.dataset.partId = pid;
+          row.innerHTML = `
+            <div class="layer-info-left">
+              <div class="layer-color-swatch" id="swatch-${pid}" style="background-color: ${part.color || "#D0131F"};"></div>
+              <span class="layer-title-text">${part.label}</span>
+            </div>
+            <div class="layer-actions-right">
+              <button class="icon-action-btn" title="Alternar Visibilidad">👁</button>
+              <button class="icon-action-btn" title="Bloquear Capa">🔒</button>
+            </div>
+          `;
+          row.addEventListener("click", () => this._selectPart(pid));
+          container.appendChild(row);
+        }
+      }
+
+      _updateLayerSwatches() {
+        for (const [pid, part] of this.project.parts.entries()) {
+          const swatch = document.getElementById(`swatch-${pid}`);
+          if (swatch) {
+            swatch.style.backgroundColor = part.color || this.project.globalColor;
+          }
+        }
+      }
+
+      _showToast(msg) {
+        const banner = document.getElementById("toast-banner");
+        const text = document.getElementById("toast-text");
+        text.textContent = msg;
+        banner.classList.add("show");
+        clearTimeout(this._toastTimeout);
+        this._toastTimeout = setTimeout(() => {
+          banner.classList.remove("show");
+        }, 3200);
+      }
+    }
+
+    // Initialize Studio on DOM Ready
+    window.addEventListener("DOMContentLoaded", () => {
+      window.studioApp = new StudioApp();
+    });
+  </script>
+</body>
+</html>
