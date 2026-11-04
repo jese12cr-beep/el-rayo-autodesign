@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>El Rayo AutoDesign Studio — CAD Automotriz & Mapeo 3D</title>
   
+  <!-- Three.js Engine & OrbitControls for Real-time 3D Photogrammetry & Surface Warping -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
   <style>
     /* ==========================================================================
        DESIGN SYSTEM: CHEVROLET STUDIO INSPIRATION
@@ -1018,6 +1022,16 @@
         </button>
       </div>
 
+      <!-- Vehicle Type Selector -->
+      <div class="vehicle-type-wrap" style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 11px; font-weight: 700; color: var(--chevy-gold); text-transform: uppercase;">Vehículo:</span>
+        <select id="select-vehicle-type" class="brand-select-dropdown" style="padding: 6px 12px; font-size: 11px; width: auto;">
+          <option value="pickup" selected>🛻 Camioneta Pickup (con Batea)</option>
+          <option value="coupe">🏎️ Coupé Deportivo</option>
+          <option value="sedan">🚗 Sedán Familiar</option>
+        </select>
+      </div>
+
       <!-- Header Quick Actions -->
       <div class="header-actions">
         <button id="btn-upload-photos" class="btn-cad primary-gold">
@@ -1113,9 +1127,10 @@
         <canvas id="studio-main-canvas"></canvas>
       </div>
 
-      <!-- 3D Orbit Workspace -->
+      <!-- 3D Orbit Workspace & Three.js Interactive Showroom -->
       <div id="canvas-container-3d">
-        <canvas id="orbit-360-canvas"></canvas>
+        <div id="three-viewport" style="width: 100%; height: 100%;"></div>
+        <canvas id="orbit-360-canvas" style="display: none;"></canvas>
       </div>
 
       <!-- Split Screen Comparison -->
@@ -1331,6 +1346,7 @@
     } from "./js/image-ops.js";
     import { Project, ANGLES, DEFAULT_PARTS } from "./js/project.js";
     import { Orbit360Viewer } from "./js/orbit360.js";
+    import { Car3DEngine } from "./js/car3d.js";
 
     /* ==========================================================================
        APP CONTROLLER: EL RAYO STUDIO
@@ -1353,6 +1369,21 @@
         this.orbitViewer = new Orbit360Viewer(this.orbitCanvas, {
           onAngleChange: (az, el) => this._onOrbitAngleChange(az, el)
         });
+
+        // Inicializar Motor 3D Paramétrico con Three.js
+        const threeContainer = document.getElementById("three-viewport");
+        if (window.THREE && threeContainer) {
+          this.car3d = new Car3DEngine(threeContainer, {
+            vehicleType: "pickup",
+            onPartSelected: (partId, label) => {
+              this._selectPart(partId);
+              this._showToast(`Pieza 3D seleccionada: ${label}`);
+            },
+            onPartHovered: (partId, label) => {
+              document.getElementById("hud-status-text").textContent = `Pieza 3D: ${label}`;
+            }
+          });
+        }
 
         this.init();
       }
@@ -1476,8 +1507,10 @@
           cont2D.style.display = "none";
           cont3D.style.display = "block";
           btnTurntable.style.display = "inline-flex";
+          if (this.car3d) {
+            this.car3d.onResize();
+          }
           this._syncAllViewsToOrbit();
-          this.orbitViewer.render();
         });
 
         btnTurntable.addEventListener("click", () => {
@@ -1485,6 +1518,66 @@
           btnTurntable.classList.toggle("active", isRotating);
           this._showToast(isRotating ? "Auto-Giro 360° Activado" : "Auto-Giro detenido");
         });
+
+        // Vehicle Type Selector (Camioneta Pickup vs Coupe vs Sedan)
+        const selectVehType = document.getElementById("select-vehicle-type");
+        if (selectVehType) {
+          selectVehType.addEventListener("change", (e) => {
+            const type = e.target.value;
+            if (this.car3d) {
+              this.car3d.rebuildVehicle(type, this.currentColorHex, this.currentFinish);
+            }
+            const labels = {
+              pickup: "Camioneta Pickup (con Batea)",
+              coupe: "Coupé Deportivo",
+              sedan: "Sedán Familiar"
+            };
+            document.getElementById("hud-car-info").innerHTML = `<span>Vehículo:</span> <strong style="color: #FFF;">${labels[type] || type}</strong>`;
+            this._showToast(`Geometría 3D adaptada: ${labels[type] || type}`);
+          });
+        }
+
+        // Decals / Stickers / Graphics Upload and Conformal Warping
+        const decalInput = document.getElementById("hidden-decal-input");
+        const btnLoadDecal = document.getElementById("btn-load-decal");
+        if (btnLoadDecal && decalInput) {
+          btnLoadDecal.addEventListener("click", () => decalInput.click());
+
+          decalInput.addEventListener("change", async (e) => {
+            if (e.target.files && e.target.files[0]) {
+              const file = e.target.files[0];
+              const img = await this._fileToImage(file);
+              const opacity = parseFloat(document.getElementById("input-decal-opacity").value) / 100;
+              const warpVal = parseFloat(document.getElementById("input-decal-warp").value);
+
+              if (this.car3d) {
+                this.car3d.applyDecalToPart(this.selectedPartId, img, {
+                  opacity,
+                  curvatureAdapt: warpVal * 0.002,
+                  finish: this.currentFinish
+                });
+              }
+              this._showToast(`Calcomanía adaptada a la curvatura 3D de: ${this.selectedPartId}`);
+            }
+          });
+        }
+
+        // Sliders de Calca / Vinil
+        const inputDecalOpacity = document.getElementById("input-decal-opacity");
+        if (inputDecalOpacity) {
+          inputDecalOpacity.addEventListener("input", (e) => {
+            document.getElementById("val-decal-opacity").textContent = `${e.target.value}%`;
+            if (this.car3d) this.car3d.setDecalOpacity(parseFloat(e.target.value) / 100);
+          });
+        }
+
+        const inputDecalWarp = document.getElementById("input-decal-warp");
+        if (inputDecalWarp) {
+          inputDecalWarp.addEventListener("input", (e) => {
+            document.getElementById("val-decal-warp").textContent = `${e.target.value}%`;
+            if (this.car3d) this.car3d.setDecalCurvature(parseFloat(e.target.value));
+          });
+        }
 
         // Tool buttons
         document.querySelectorAll(".tool-btn").forEach(btn => {
@@ -1680,11 +1773,13 @@
           for (const p of this.project.parts.values()) {
             p.color = hex;
           }
+          if (this.car3d) this.car3d.setPartColor("global", hex, this.currentFinish);
         } else {
           const part = this.project.parts.get(this.selectedPartId);
           if (part) {
             part.color = hex;
           }
+          if (this.car3d) this.car3d.setPartColor(this.selectedPartId, hex, this.currentFinish);
         }
         this._updateLayerSwatches();
         this._renderActiveView();
@@ -1698,11 +1793,13 @@
           for (const p of this.project.parts.values()) {
             p.finish = finish;
           }
+          if (this.car3d) this.car3d.setPartColor("global", this.currentColorHex, finish);
         } else {
           const part = this.project.parts.get(this.selectedPartId);
           if (part) {
             part.finish = finish;
           }
+          if (this.car3d) this.car3d.setPartColor(this.selectedPartId, this.currentColorHex, finish);
         }
         this._renderActiveView();
         this._syncAllViewsToOrbit();
