@@ -1338,7 +1338,18 @@
         this.currentColorHex = "#B81D24";
         this.currentFinish = "metallic";
         this.activeTool = "select";
-        this.vehicleType = "pickup";
+        this.vehicleType = "sedan";
+        this.currentAngleId = "left";
+
+        this.testAngles = [
+          { id: "front", label: "Frontal", deg: "0°", src: "./assets/test_car/angle_0_front.jpg" },
+          { id: "front34", label: "3/4 Delantera", deg: "45°", src: "./assets/test_car/angle_45_front34.jpg" },
+          { id: "left", label: "Lateral Izquierda", deg: "90°", src: "./assets/test_car/angle_90_side.jpg" },
+          { id: "rear34", label: "3/4 Trasera", deg: "135°", src: "./assets/test_car/angle_135_rear34.jpg" },
+          { id: "rear", label: "Trasera", deg: "180°", src: "./assets/test_car/angle_180_rear.jpg" }
+        ];
+
+        this.loadedImages = new Map();
 
         this.parts = new Map();
         VEHICLE_PARTS.forEach(p => this.parts.set(p.id, { ...p }));
@@ -1357,6 +1368,7 @@
           this._initLayersList();
           this._populateSwatches("Taller");
           this._initFilmstrip();
+          this._preloadTestCarPhotos();
           this._draw2DVehicleStudio();
 
           // Inicializar Three.js con fallback seguro
@@ -1637,166 +1649,71 @@
         const w = c.width;
         const h = c.height;
 
-        // Fondo de estudio limpio y elegante
-        const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
-        bgGrad.addColorStop(0, "#FFFFFF");
-        bgGrad.addColorStop(0.65, "#F0F3F7");
-        bgGrad.addColorStop(1, "#E2E6EC");
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, w, h);
+        ctx.clearRect(0, 0, w, h);
 
-        // Suelo de estudio con sombra de vehículo
-        const groundY = h * 0.74;
-        const shadowGrad = ctx.createRadialGradient(w / 2, groundY + 12, 20, w / 2, groundY + 12, w * 0.44);
-        shadowGrad.addColorStop(0, "rgba(20, 25, 35, 0.45)");
-        shadowGrad.addColorStop(0.5, "rgba(30, 40, 55, 0.18)");
-        shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-        ctx.fillStyle = shadowGrad;
-        ctx.beginPath();
-        ctx.ellipse(w / 2, groundY + 12, w * 0.42, 22, 0, 0, Math.PI * 2);
-        ctx.fill();
+        const realImg = this.loadedImages.get(this.currentAngleId);
 
-        // Color de carrocería
-        const bodyCol = this.parts.get("carroceria") ? this.parts.get("carroceria").color : this.currentColorHex;
-        const hoodCol = this.parts.get("cofre") ? this.parts.get("cofre").color : bodyCol;
-        const doorCol = this.parts.get("puerta_del_izq") ? this.parts.get("puerta_del_izq").color : bodyCol;
-        const bedCol = this.parts.get("batea_izq") ? this.parts.get("batea_izq").color : bodyCol;
+        if (realImg) {
+          // Fondo de estudio
+          const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
+          bgGrad.addColorStop(0, "#FFFFFF");
+          bgGrad.addColorStop(0.65, "#F0F3F7");
+          bgGrad.addColorStop(1, "#E2E6EC");
+          ctx.fillStyle = bgGrad;
+          ctx.fillRect(0, 0, w, h);
 
-        ctx.save();
-        ctx.translate(w * 0.05, h * 0.04);
+          // Escalar y centrar la fotografía real del vehículo
+          const imgW = realImg.naturalWidth || realImg.width;
+          const imgH = realImg.naturalHeight || realImg.height;
+          const scale = Math.min((w * 0.94) / imgW, (h * 0.90) / imgH);
+          const dw = imgW * scale;
+          const dh = imgH * scale;
+          const dx = (w - dw) / 2;
+          const dy = (h - dh) / 2;
 
-        const isPickup = (this.vehicleType === "pickup");
-        const isCoupe = (this.vehicleType === "coupe");
+          // Dibujar foto real del vehículo en el taller
+          ctx.drawImage(realImg, dx, dy, dw, dh);
 
-        // 1. SILUETA BASE DE CARROCERÍA
-        ctx.fillStyle = bodyCol;
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
-        ctx.lineWidth = 2;
+          // Capa física de repintado que conserva sombras y brillos especulares originales
+          const bodyCol = this.parts.get("carroceria") ? this.parts.get("carroceria").color : this.currentColorHex;
+          ctx.save();
+          ctx.globalCompositeOperation = "color";
+          ctx.globalAlpha = 0.58;
+          ctx.fillStyle = bodyCol;
+          ctx.fillRect(dx, dy, dw, dh);
 
-        ctx.beginPath();
-        if (isPickup) {
-          // Silueta de Camioneta Pickup con Batea
-          ctx.moveTo(140, 360);
-          ctx.lineTo(200, 360); // Paso de rueda delantera
-          ctx.arc(260, 360, 55, Math.PI, 0, false);
-          ctx.lineTo(580, 360); // Paso de rueda trasera
-          ctx.arc(640, 360, 55, Math.PI, 0, false);
-          ctx.lineTo(760, 360);
-          ctx.lineTo(760, 240); // Batea trasera
-          ctx.lineTo(540, 240); // Borde de la batea
-          ctx.lineTo(540, 160); // Poste trasero de cabina
-          ctx.lineTo(360, 160); // Toldo
-          ctx.lineTo(260, 230); // Parabrisas
-          ctx.lineTo(140, 245); // Cofre
-          ctx.closePath();
-        } else if (isCoupe) {
-          // Silueta de Coupé Deportivo aerodinámico
-          ctx.moveTo(120, 360);
-          ctx.lineTo(180, 360);
-          ctx.arc(240, 360, 50, Math.PI, 0, false);
-          ctx.lineTo(580, 360);
-          ctx.arc(640, 360, 50, Math.PI, 0, false);
-          ctx.lineTo(760, 360);
-          ctx.lineTo(740, 260); // Cola deportiva
-          ctx.lineTo(600, 220); // Medallón trasero
-          ctx.lineTo(440, 170); // Toldo bajo
-          ctx.lineTo(280, 220); // Parabrisas inclinado
-          ctx.lineTo(130, 255); // Cofre bajo
-          ctx.closePath();
-        } else {
-          // Silueta de Sedán
-          ctx.moveTo(130, 360);
-          ctx.lineTo(190, 360);
-          ctx.arc(250, 360, 52, Math.PI, 0, false);
-          ctx.lineTo(570, 360);
-          ctx.arc(630, 360, 52, Math.PI, 0, false);
-          ctx.lineTo(760, 360);
-          ctx.lineTo(760, 260); // Cajuela
-          ctx.lineTo(620, 230); // Poste trasero
-          ctx.lineTo(420, 165); // Toldo
-          ctx.lineTo(280, 230); // Parabrisas
-          ctx.lineTo(140, 255); // Cofre
-          ctx.closePath();
-        }
-        ctx.fill();
-        ctx.stroke();
-
-        // 2. VENTANAS / CRISTALES POLARIZADOS
-        ctx.fillStyle = "rgba(22, 32, 48, 0.9)";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        if (isPickup) {
-          ctx.moveTo(275, 225);
-          ctx.lineTo(365, 172);
-          ctx.lineTo(525, 172);
-          ctx.lineTo(525, 230);
-          ctx.closePath();
-        } else {
-          ctx.moveTo(290, 225);
-          ctx.lineTo(430, 178);
-          ctx.lineTo(595, 225);
-          ctx.closePath();
-        }
-        ctx.fill();
-        ctx.stroke();
-
-        // 3. PUERTAS Y LÍNEAS DE CORTE
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        // Puerta delantera
-        ctx.moveTo(330, 230);
-        ctx.lineTo(330, 355);
-        ctx.moveTo(460, 230);
-        ctx.lineTo(460, 355);
-        ctx.stroke();
-
-        // 4. RUEDAS Y RINES
-        const wheelY = 360;
-        const wheelFrontX = isPickup ? 260 : isCoupe ? 240 : 250;
-        const wheelRearX = 640;
-        const rimRadius = 34;
-
-        [wheelFrontX, wheelRearX].forEach(wx => {
-          // Llanta negra
-          ctx.fillStyle = "#1E2024";
-          ctx.beginPath();
-          ctx.arc(wx, wheelY, 46, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Rin deportivo plata
-          ctx.fillStyle = "#D6DAE0";
-          ctx.beginPath();
-          ctx.arc(wx, wheelY, rimRadius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Detalle de brazos del rin
-          ctx.strokeStyle = "#8A94A0";
-          ctx.lineWidth = 3;
-          for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
-            ctx.beginPath();
-            ctx.moveTo(wx, wheelY);
-            ctx.lineTo(wx + Math.cos(a) * rimRadius, wheelY + Math.sin(a) * rimRadius);
-            ctx.stroke();
+          if (this.currentFinish === "metallic") {
+            ctx.globalCompositeOperation = "overlay";
+            ctx.globalAlpha = 0.32;
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(dx, dy, dw, dh);
+          } else if (this.currentFinish === "pearl") {
+            ctx.globalCompositeOperation = "screen";
+            ctx.globalAlpha = 0.20;
+            ctx.fillStyle = "#FFF9E6";
+            ctx.fillRect(dx, dy, dw, dh);
           }
+          ctx.restore();
 
-          // Caliper de freno rojo
-          ctx.fillStyle = "#C8102E";
+          // Badge elegante de ángulo activo
+          ctx.fillStyle = "rgba(30, 41, 59, 0.85)";
           ctx.beginPath();
-          ctx.arc(wx + 12, wheelY - 8, 10, 0, Math.PI * 2);
+          ctx.roundRect(20, h - 38, 220, 24, 12);
           ctx.fill();
-        });
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillText(`Fotografía Real Activa: ${this.currentAngleId.toUpperCase()}`, 32, h - 22);
 
-        // 5. BRILLOS ESPECULARES (Highlights)
-        const shineGrad = ctx.createLinearGradient(0, 160, 0, 260);
-        shineGrad.addColorStop(0, "rgba(255, 255, 255, 0.38)");
-        shineGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.08)");
-        shineGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-        ctx.fillStyle = shineGrad;
-        ctx.fillRect(180, 160, 560, 90);
-
-        ctx.restore();
+        } else {
+          // Fallback a silueta
+          ctx.fillStyle = "#F0F3F7";
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = "#64748B";
+          ctx.font = "bold 13px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Cargando ángulo fotográfico del vehículo...", w / 2, h / 2);
+          ctx.textAlign = "start";
+        }
       }
 
       _populateSwatches(category = "Taller") {
@@ -1864,20 +1781,13 @@
         const strip = document.getElementById("angles-strip");
         strip.innerHTML = "";
 
-        const defaultAngles = [
-          { id: "front", label: "Frontal", deg: "0°" },
-          { id: "front34", label: "3/4 Delantera", deg: "45°" },
-          { id: "left", label: "Lateral Izquierda", deg: "90°" },
-          { id: "rear34", label: "3/4 Trasera", deg: "135°" },
-          { id: "rear", label: "Trasera", deg: "180°" }
-        ];
-
-        defaultAngles.forEach((a, idx) => {
+        this.testAngles.forEach((a) => {
           const card = document.createElement("div");
-          card.className = `angle-card ${idx === 2 ? "active" : ""}`;
+          card.className = `angle-card ${a.id === this.currentAngleId ? "active" : ""}`;
+          card.id = `angle-card-${a.id}`;
           card.innerHTML = `
-            <div class="angle-thumb-wrap">
-              <span style="font-size: 16px;">📷</span>
+            <div class="angle-thumb-wrap" id="thumb-wrap-${a.id}">
+              <img src="${a.src}" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
             <div class="angle-card-label">
               <span>${a.label}</span>
@@ -1887,7 +1797,9 @@
           card.addEventListener("click", () => {
             document.querySelectorAll(".angle-card").forEach(c => c.classList.remove("active"));
             card.classList.add("active");
-            this._showToast(`Ángulo activo: ${a.label} (${a.deg})`);
+            this.currentAngleId = a.id;
+            this._draw2DVehicleStudio();
+            this._showToast(`Ángulo cargado: ${a.label} (${a.deg})`);
           });
           strip.appendChild(card);
         });
