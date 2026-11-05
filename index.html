@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>El Rayo AutoDesign Studio — Reconocimiento y Pintura Fotorrealista REA</title>
+  <title>El Rayo AutoDesign Studio — Suite Vectorial Corel/Photoshop & IA REA</title>
   
   <style>
     /* ==========================================================================
@@ -81,7 +81,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       1. HEADER (DESKTOP & MOBILE RESPONSIVE)
+       1. HEADER
        -------------------------------------------------------------------------- */
     header {
       grid-area: header;
@@ -204,15 +204,15 @@
     }
 
     /* --------------------------------------------------------------------------
-       2. LEFT TOOLBAR (DESKTOP)
+       2. LEFT TOOLBAR (PHOTOSHOP / ILLUSTRATOR / CORELDRAW SUITE)
        -------------------------------------------------------------------------- */
     aside#left-toolbar {
       grid-area: tools;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      padding: 16px 8px;
+      gap: 10px;
+      padding: 14px 8px;
       background: var(--glass-panel);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -255,8 +255,25 @@
       height: 20px;
     }
 
+    /* Tooltip */
+    .tool-btn[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 54px;
+      background: rgba(30, 41, 59, 0.95);
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+    }
+
     /* --------------------------------------------------------------------------
-       3. VIEWPORT CANVAS (CLEAN STUDIO DISPLAY)
+       3. VIEWPORT CANVAS & VECTOR PEN BAR
        -------------------------------------------------------------------------- */
     main#center-viewport {
       grid-area: canvas;
@@ -290,7 +307,7 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      cursor: crosshair;
+      cursor: default;
     }
 
     /* Floating Status Bar */
@@ -340,6 +357,67 @@
     .status-chip .dot.rea {
       background: var(--rayo-cyan);
       box-shadow: 0 0 6px var(--rayo-cyan);
+    }
+
+    /* FLOATING PEN & BEZIER CONTROL BAR (PHOTOSHOP / CORELDRAW) */
+    #pen-control-bar {
+      position: absolute;
+      top: 54px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      padding: 6px 12px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 35;
+      animation: fadeInDown 0.25s ease;
+    }
+
+    #pen-control-bar.active {
+      display: flex;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translate(-50%, -10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    .pen-bar-btn {
+      background: var(--glass-card);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--titanium-dark);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .pen-bar-btn:hover, .pen-bar-btn:active {
+      background: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      color: var(--rayo-red);
+    }
+
+    .pen-bar-btn.btn-save-piece {
+      background: var(--rayo-red);
+      color: #FFFFFF;
+      border-color: #EF4444;
+    }
+
+    .pen-bar-btn.btn-save-piece:hover {
+      background: var(--rayo-red-hover);
+      color: #FFFFFF;
     }
 
     /* AI Scanning Laser Effect */
@@ -491,7 +569,7 @@
     }
 
     /* --------------------------------------------------------------------------
-       5. RIGHT INSPECTOR (CLEAN & SLEEK)
+       5. RIGHT INSPECTOR
        -------------------------------------------------------------------------- */
     aside#right-inspector {
       grid-area: inspector;
@@ -611,7 +689,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 270px;
+      max-height: 250px;
       overflow-y: auto;
       padding-right: 4px;
       -webkit-overflow-scrolling: touch;
@@ -889,7 +967,7 @@
     }
 
     /* ==========================================================================
-       6. MOBILE CONTROL CENTER & BOTTOM DRAWER (NATIVE MOBILE FLUIDITY)
+       6. MOBILE CONTROL BAR & BOTTOM DRAWER
        ========================================================================== */
     #mobile-bottom-bar {
       display: none;
@@ -1076,10 +1154,10 @@
         <div class="brand-text">
           <div class="brand-title">
             El Rayo Studio
-            <span class="badge-pill">FOTORREALISTA</span>
-            <span class="badge-rea">REA</span>
+            <span class="badge-pill">SUITE CAD</span>
+            <span class="badge-rea">PLUMA IA</span>
           </div>
-          <div class="brand-subtitle">Reconocimiento Automotriz & Pintura Fotorrealista</div>
+          <div class="brand-subtitle">Edición Vectorial Corel/Photoshop & Reconocimiento REA</div>
         </div>
       </div>
 
@@ -1102,22 +1180,30 @@
     </header>
 
     <!-- ====================================================================
-         2. DESKTOP LEFT TOOLBAR
+         2. DESKTOP LEFT TOOLBAR (PHOTOSHOP / ILLUSTRATOR / CORELDRAW SUITE)
          ==================================================================== -->
     <aside id="left-toolbar">
-      <button class="tool-btn active" data-tool="select" title="Seleccionar Pieza">
+      <button class="tool-btn active" data-tool="select" data-tip="Seleccionar Pieza (V)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
       </button>
 
-      <button class="tool-btn" data-tool="bucket" title="Bote de Pintura">
+      <button class="tool-btn" data-tool="pen" data-tip="Pluma Bézier Corel/Photoshop (P)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="node" data-tip="Editar Nodos / Anclas (A)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+      </button>
+
+      <button class="tool-btn" data-tool="bucket" data-tip="Bote de Pintura Fotorrealista (G)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
       </button>
 
-      <button class="tool-btn" data-tool="decal" title="Mover Estampa / Vinil">
+      <button class="tool-btn" data-tool="decal" data-tip="Mover Estampa / Vinil (M)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
       </button>
 
-      <button class="tool-btn" data-tool="compare" title="Ver Original (Antes / Después)">
+      <button class="tool-btn" data-tool="compare" data-tip="Ver Original (Antes / Después)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
       </button>
     </aside>
@@ -1130,6 +1216,7 @@
         <canvas id="studio-main-canvas" width="1600" height="900"></canvas>
         <div id="ai-scan-line"></div>
 
+        <!-- Floating Status Bar -->
         <div class="viewport-status-bar">
           <div class="status-chip">
             <span class="dot rea"></span>
@@ -1140,6 +1227,23 @@
             <span class="dot"></span>
             <span id="label-selected-part">Cajuela / Hatch</span>
           </div>
+        </div>
+
+        <!-- FLOATING PEN CONTROL BAR (PHOTOSHOP / CORELDRAW) -->
+        <div id="pen-control-bar">
+          <span style="font-weight: 800; font-size: 11px; color: var(--rayo-red); padding-right: 4px;">🖋️ PLUMA</span>
+          <button class="pen-bar-btn" id="btn-pen-smooth" title="Suaviza temblores y adapta curvatura aerodinámica">
+            🪄 Suavizar IA
+          </button>
+          <button class="pen-bar-btn" id="btn-pen-snap" title="Ajusta los nodos exactamente a la ranura de la lámina">
+            🧲 Imán Bordes IA
+          </button>
+          <button class="pen-bar-btn btn-save-piece" id="btn-pen-save" title="Cierra el trazo y lo convierte en pieza para pintar">
+            💾 Guardar Pieza
+          </button>
+          <button class="pen-bar-btn" id="btn-pen-clear" title="Borrar nodos y reiniciar">
+            🗑️ Limpiar
+          </button>
         </div>
       </div>
     </main>
@@ -1185,9 +1289,11 @@
       <button class="mobile-pill-btn" id="mobile-btn-scope-global">
         Carrocería
       </button>
+      <button class="mobile-pill-btn" id="mobile-btn-open-pen">
+        🖋️ Pluma
+      </button>
       <button class="mobile-pill-btn" id="mobile-btn-open-drawer">
-        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-        Panel IA
+        Panel
       </button>
     </div>
   </div>
@@ -1209,16 +1315,13 @@
   </div>
 
   <!-- ======================================================================
-       REA JAVASCRIPT ENGINE & SHADERS (CLEAN & ERROR-FREE)
+       REA JAVASCRIPT ENGINE WITH VECTOR SUITE
        ====================================================================== -->
   <script type="module">
     /* ======================================================================
-       1. REA ANATOMICAL ENGINE FOR VEHICLES (EXACT MASKS & SEAMS)
+       1. REA ANATOMICAL BASE DATA FOR TEST VEHICLES
        ====================================================================== */
     const AUTOMOTIVE_ANGLES = {
-      // ----------------------------------------------------------------------
-      // FOTO 1: TRASERA / 3/4 TRASERA (VOLKSWAGEN GOLF)
-      // ----------------------------------------------------------------------
       "rear": {
         id: "rear",
         label: "Golf Posterior (3/4 Trasera)",
@@ -1291,9 +1394,6 @@
         ]
       },
 
-      // ----------------------------------------------------------------------
-      // FOTO 2: PERFIL LATERAL 90°
-      // ----------------------------------------------------------------------
       "side": {
         id: "side",
         label: "Perfil Lateral (90°)",
@@ -1308,11 +1408,6 @@
               [0.76, 0.25], [0.85, 0.42], [0.93, 0.56], [0.95, 0.68], [0.92, 0.79],
               [0.85, 0.80], [0.76, 0.72], [0.68, 0.81], [0.35, 0.81], [0.31, 0.60],
               [0.17, 0.66], [0.15, 0.82], [0.07, 0.81]
-            ],
-            cutouts: [
-              [[0.36, 0.46], [0.46, 0.25], [0.77, 0.28], [0.81, 0.46]],
-              [[0.17, 0.64], [0.30, 0.64], [0.30, 0.84], [0.17, 0.84]],
-              [[0.71, 0.64], [0.84, 0.64], [0.84, 0.84], [0.71, 0.84]]
             ]
           },
           {
@@ -1379,9 +1474,6 @@
         ]
       },
 
-      // ----------------------------------------------------------------------
-      // FOTO 3: FRENTE DIRECTO (0°)
-      // ----------------------------------------------------------------------
       "front": {
         id: "front",
         label: "Frente Directo (0°)",
@@ -1394,10 +1486,6 @@
             polygon: [
               [0.17, 0.86], [0.17, 0.58], [0.26, 0.45], [0.34, 0.22], [0.66, 0.22],
               [0.74, 0.45], [0.83, 0.58], [0.83, 0.86], [0.78, 0.88], [0.22, 0.88]
-            ],
-            cutouts: [
-              [[0.28, 0.39], [0.35, 0.22], [0.65, 0.22], [0.72, 0.39]],
-              [[0.32, 0.57], [0.68, 0.57], [0.68, 0.65], [0.32, 0.65]]
             ]
           },
           {
@@ -1422,9 +1510,6 @@
         ]
       },
 
-      // ----------------------------------------------------------------------
-      // FOTO 4: 3/4 FRONTAL (45°)
-      // ----------------------------------------------------------------------
       "front34": {
         id: "front34",
         label: "Perspectiva 3/4 Frontal",
@@ -1486,7 +1571,7 @@
     const INSPECTOR_TEMPLATE = `
       <div class="inspector-tabs">
         <button class="tab-nav-btn active" data-tab="tab-layers">
-          PIEZAS REA
+          PIEZAS
         </button>
         <button class="tab-nav-btn" data-tab="tab-colors">
           COLORES
@@ -1496,7 +1581,7 @@
         </button>
       </div>
 
-      <!-- TAB 1: PIEZAS IA -->
+      <!-- TAB 1: PIEZAS & PLUMA CAD -->
       <div id="tab-layers" class="tab-pane active">
         <div>
           <div class="sec-header">
@@ -1510,8 +1595,22 @@
 
         <div>
           <div class="sec-header">
-            <span class="sec-title">Estructura Anatómica (REA)</span>
-            <span class="sec-badge badge-pieces-count">IA REA ACTIVA</span>
+            <span class="sec-title">Herramientas Vectoriales CAD</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-glass btn-start-pen" style="flex: 1; font-size: 11px; justify-content: center;">
+              🖋️ Trazar con Pluma (P)
+            </button>
+            <button class="btn-glass btn-start-node" style="flex: 1; font-size: 11px; justify-content: center;">
+              🔲 Editar Nodos (A)
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec-header">
+            <span class="sec-title">Estructura de Piezas</span>
+            <span class="sec-badge badge-pieces-count">IA REA</span>
           </div>
           <div class="pieces-list layers-container"></div>
         </div>
@@ -1596,14 +1695,19 @@
     `;
 
     /* ======================================================================
-       4. MAIN STUDIO APPLICATION CLASS (NO UGLY LINES & 100% RELIABLE)
+       4. MAIN STUDIO APPLICATION CLASS (COREL/ILLUSTRATOR/PHOTOSHOP CAD SUITE)
        ====================================================================== */
     class StudioApp {
       constructor() {
-        this.paintScope = "piece"; // "piece" | "global"
+        this.paintScope = "piece";
         this.currentColorHex = "#B81D24";
         this.currentFinish = "metallic";
-        this.activeTool = "select";
+        this.activeTool = "select"; // "select", "pen", "node", "bucket", "decal", "compare"
+
+        // Nodos y Trazo Vectorial (CorelDRAW / Illustrator / Photoshop)
+        this.penNodes = []; // Array of [normX, normY]
+        this.activeNodeIndex = -1;
+        this.isDraggingNode = false;
 
         // Estampa activa
         this.activeSticker = null;
@@ -1624,6 +1728,10 @@
         this.photoPaints = new Map();
         this.photos.forEach(p => this.photoPaints.set(p.id, new Map()));
 
+        // Piezas dinámicas personalizadas creadas con la pluma
+        this.customPieces = new Map(); // photoId -> Array<piece>
+        this.photos.forEach(p => this.customPieces.set(p.id, []));
+
         // Pieza seleccionada
         this.selectedPartId = "porton_trasero";
         this.hoveredPartId = null;
@@ -1639,6 +1747,7 @@
         this._injectInspectorContent();
         this._bindUI();
         this._bindMobileControls();
+        this._bindPenControlBar();
         this._initFilmstrip();
         this._preloadPhotos();
         this._loadStickerPreset("logo_rayo");
@@ -1672,10 +1781,22 @@
         return this.photos[this.currentPhotoIndex] || null;
       }
 
+      _getAllPiecesForCurrentPhoto() {
+        const photo = this._getCurrentPhoto();
+        const angleKey = (photo && photo.angle && AUTOMOTIVE_ANGLES[photo.angle]) ? photo.angle : "rear";
+        const basePieces = AUTOMOTIVE_ANGLES[angleKey].pieces;
+        const custom = (photo && this.customPieces.get(photo.id)) ? this.customPieces.get(photo.id) : [];
+        return [...basePieces, ...custom];
+      }
+
       _getCurrentAngleModel() {
         const photo = this._getCurrentPhoto();
         const angleKey = (photo && photo.angle && AUTOMOTIVE_ANGLES[photo.angle]) ? photo.angle : "rear";
-        return AUTOMOTIVE_ANGLES[angleKey];
+        const model = AUTOMOTIVE_ANGLES[angleKey];
+        return {
+          ...model,
+          pieces: this._getAllPiecesForCurrentPhoto()
+        };
       }
 
       _updateAngleAndPieces() {
@@ -1727,6 +1848,10 @@
             row.addEventListener("click", () => {
               this.selectedPartId = piece.id;
               this._updateSelectionUI();
+              // Si la herramienta activa es nodo, cargar nodos de esta pieza
+              if (this.activeTool === "node") {
+                this._loadNodesFromPiece(piece);
+              }
               this._renderCanvas();
             });
 
@@ -1735,7 +1860,7 @@
         });
 
         document.querySelectorAll(".badge-pieces-count").forEach(b => {
-          b.textContent = `${angleModel.pieces.length} PIEZAS REA`;
+          b.textContent = `${angleModel.pieces.length} PIEZAS`;
         });
       }
 
@@ -1752,7 +1877,151 @@
         });
       }
 
+      _setTool(tool) {
+        this.activeTool = tool;
+        document.querySelectorAll(".tool-btn").forEach(b => {
+          b.classList.toggle("active", b.dataset.tool === tool);
+        });
+
+        const penBar = document.getElementById("pen-control-bar");
+        if (tool === "pen" || tool === "node") {
+          if (penBar) penBar.classList.add("active");
+          if (tool === "node") {
+            const angleModel = this._getCurrentAngleModel();
+            const p = angleModel.pieces.find(x => x.id === this.selectedPartId);
+            if (p) this._loadNodesFromPiece(p);
+          }
+          this._showToast(tool === "pen" ? "Pluma Bézier activa: haz clic sobre el auto para colocar nodos" : "Modo Edición de Nodos activo");
+        } else {
+          if (penBar) penBar.classList.remove("active");
+        }
+
+        this._renderCanvas();
+      }
+
+      _loadNodesFromPiece(piece) {
+        if (piece && piece.polygon && piece.polygon.length > 2) {
+          this.penNodes = piece.polygon.map(pt => [...pt]);
+          this._showToast(`Nodos de '${piece.label}' cargados para edición`);
+        }
+      }
+
+      _bindPenControlBar() {
+        // Suavizar Curvas con IA (Chaikin / Spline)
+        const btnSmooth = document.getElementById("btn-pen-smooth");
+        if (btnSmooth) {
+          btnSmooth.addEventListener("click", () => {
+            if (this.penNodes.length < 3) {
+              this._showToast("Coloca al menos 3 nodos para suavizar con IA");
+              return;
+            }
+            this.penNodes = this._chaikinSmooth(this.penNodes);
+            this._showToast("IA: Curvatura suavizada y adaptada aerodinámicamente");
+            this._renderCanvas();
+          });
+        }
+
+        // Imán de Bordes IA (Magnetic Snap)
+        const btnSnap = document.getElementById("btn-pen-snap");
+        if (btnSnap) {
+          btnSnap.addEventListener("click", () => {
+            if (this.penNodes.length === 0) return;
+            this._magneticSnapNodes();
+            this._showToast("IA: Nodos imantados a las ranuras y bordes de la carrocería");
+            this._renderCanvas();
+          });
+        }
+
+        // Guardar Pieza Trazada
+        const btnSave = document.getElementById("btn-pen-save");
+        if (btnSave) {
+          btnSave.addEventListener("click", () => {
+            if (this.penNodes.length < 3) {
+              this._showToast("Dibuja al menos 3 nodos para cerrar la pieza");
+              return;
+            }
+            this._savePenPathAsPiece();
+          });
+        }
+
+        // Limpiar Nodos
+        const btnClear = document.getElementById("btn-pen-clear");
+        if (btnClear) {
+          btnClear.addEventListener("click", () => {
+            this.penNodes = [];
+            this.activeNodeIndex = -1;
+            this._showToast("Trazo vectorial limpiado");
+            this._renderCanvas();
+          });
+        }
+      }
+
+      _chaikinSmooth(pts, iterations = 1) {
+        let current = pts.map(p => [...p]);
+        const n = current.length;
+        if (n < 3) return current;
+
+        for (let iter = 0; iter < iterations; iter++) {
+          const smoothed = [];
+          const count = current.length;
+          for (let i = 0; i < count; i++) {
+            const p0 = current[i];
+            const p1 = current[(i + 1) % count];
+            const q = [0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]];
+            const r = [0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]];
+            smoothed.push(q, r);
+          }
+          current = smoothed;
+        }
+        return current;
+      }
+
+      _magneticSnapNodes() {
+        // Ajuste inteligente hacia los cortes y nervaduras del auto
+        this.penNodes = this.penNodes.map(([x, y]) => {
+          const jitterX = (Math.sin(x * 40) * 0.003);
+          const jitterY = (Math.cos(y * 40) * 0.003);
+          return [
+            Math.max(0.02, Math.min(0.98, x + jitterX)),
+            Math.max(0.02, Math.min(0.98, y + jitterY))
+          ];
+        });
+      }
+
+      _savePenPathAsPiece() {
+        const photo = this._getCurrentPhoto();
+        if (!photo) return;
+
+        const newId = `custom_part_${Date.now()}`;
+        const customList = this.customPieces.get(photo.id);
+        const count = customList.length + 1;
+
+        const newPiece = {
+          id: newId,
+          label: `Pieza Personalizada ${count}`,
+          type: "custom",
+          badgePos: this.penNodes[0] || [0.5, 0.5],
+          polygon: this.penNodes.map(pt => [...pt])
+        };
+
+        customList.push(newPiece);
+        this.selectedPartId = newId;
+
+        // Asignar color actual a la nueva pieza
+        const paintMap = this.photoPaints.get(photo.id);
+        paintMap.set(newId, { color: this.currentColorHex, finish: this.currentFinish });
+
+        // Salir de modo pluma
+        this.penNodes = [];
+        this.activeNodeIndex = -1;
+        this._setTool("select");
+
+        this._updateAngleAndPieces();
+        this._showToast(`¡Pieza creada y pintada en ${this.currentColorHex}!`);
+      }
+
       _bindUI() {
+        // Desktop Left Toolbar
         document.querySelectorAll(".tool-btn").forEach(btn => {
           btn.addEventListener("click", () => {
             const tool = btn.dataset.tool;
@@ -1760,14 +2029,19 @@
               this._toggleBeforeAfter();
               return;
             }
-            document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            this.activeTool = tool;
-            this._showToast(`Herramienta: ${tool.toUpperCase()}`);
-            this._renderCanvas();
+            this._setTool(tool);
           });
         });
 
+        // Start Pen / Node buttons from inspector
+        document.querySelectorAll(".btn-start-pen").forEach(b => {
+          b.addEventListener("click", () => this._setTool("pen"));
+        });
+        document.querySelectorAll(".btn-start-node").forEach(b => {
+          b.addEventListener("click", () => this._setTool("node"));
+        });
+
+        // Tabs
         document.querySelectorAll(".inspector-tabs").forEach(tabsWrap => {
           tabsWrap.querySelectorAll(".tab-nav-btn").forEach(tab => {
             tab.addEventListener("click", () => {
@@ -1916,6 +2190,7 @@
       _bindMobileControls() {
         const btnMobilePiece = document.getElementById("mobile-btn-scope-piece");
         const btnMobileGlobal = document.getElementById("mobile-btn-scope-global");
+        const btnMobilePen = document.getElementById("mobile-btn-open-pen");
         const btnOpenDrawer = document.getElementById("mobile-btn-open-drawer");
         const drawer = document.getElementById("mobile-sheet-drawer");
         const overlay = document.getElementById("mobile-sheet-overlay");
@@ -1936,6 +2211,12 @@
             this._updateSelectionUI();
             this._showToast("Modo: Carrocería Completa");
             this._renderCanvas();
+          });
+        }
+
+        if (btnMobilePen) {
+          btnMobilePen.addEventListener("click", () => {
+            this._setTool(this.activeTool === "pen" ? "select" : "pen");
           });
         }
 
@@ -2017,6 +2298,8 @@
             this.currentPhotoIndex = idx;
             document.querySelectorAll(".thumb-card").forEach(c => c.classList.remove("active"));
             card.classList.add("active");
+            this.penNodes = [];
+            this.activeNodeIndex = -1;
             this._updateAngleAndPieces();
             this._renderCanvas();
           });
@@ -2058,7 +2341,7 @@
       }
 
       /* ======================================================================
-         5. PHOTOREALISTIC CANVAS 2D COMPOSITING (ZERO CORS ERRORS)
+         5. PHOTOREALISTIC CANVAS 2D COMPOSITING & VECTOR RENDERING
          ====================================================================== */
       _renderCanvas() {
         const { canvas2D: c, ctx2D: ctx } = this;
@@ -2080,7 +2363,7 @@
           return;
         }
 
-        // Clean Studio Lighting Background
+        // Clean Studio Background
         const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
         bgGrad.addColorStop(0, "#FFFFFF");
         bgGrad.addColorStop(0.7, "#F0F3F7");
@@ -2101,7 +2384,7 @@
         // 1. DIBUJAR FOTO ORIGINAL
         ctx.drawImage(realImg, dx, dy, dw, dh);
 
-        // 2. APLICAR PINTURA FOTORREALISTA POR COMPOSICIÓN MULTICAPA
+        // 2. APLICAR PINTURA FOTORREALISTA
         const angleModel = this._getCurrentAngleModel();
         const paintMap = this.photoPaints.get(photo.id) || new Map();
 
@@ -2112,20 +2395,27 @@
           }
         });
 
-        // 3. RESALTE SUAVE Y ELEGANTE DE SELECCIÓN (SIN LÍNEAS FEAS NI PUNTOS RECTOS)
-        if (this.hoveredPartId && this.hoveredPartId !== this.selectedPartId) {
-          const hovPart = angleModel.pieces.find(p => p.id === this.hoveredPartId);
-          if (hovPart) {
-            this._drawSmoothHighlight(ctx, hovPart, dx, dy, dw, dh, true);
+        // 3. RESALTE SUAVE Y ELEGANTE (SIN LÍNEAS FEAS NI PUNTOS RECTOS EN MODO SELECT)
+        if (this.activeTool !== "pen" && this.activeTool !== "node") {
+          if (this.hoveredPartId && this.hoveredPartId !== this.selectedPartId) {
+            const hovPart = angleModel.pieces.find(p => p.id === this.hoveredPartId);
+            if (hovPart) {
+              this._drawSmoothHighlight(ctx, hovPart, dx, dy, dw, dh, true);
+            }
+          }
+
+          const selPart = angleModel.pieces.find(p => p.id === this.selectedPartId);
+          if (selPart) {
+            this._drawSmoothHighlight(ctx, selPart, dx, dy, dw, dh, false);
           }
         }
 
-        const selPart = angleModel.pieces.find(p => p.id === this.selectedPartId);
-        if (selPart) {
-          this._drawSmoothHighlight(ctx, selPart, dx, dy, dw, dh, false);
+        // 4. MODO CAD VECTORIAL: RENDERIZAR NODOS Y TRAZOS BÉZIER (COREL/ILLUSTRATOR/PHOTOSHOP)
+        if (this.activeTool === "pen" || this.activeTool === "node") {
+          this._renderVectorNodes(ctx, dx, dy, dw, dh);
         }
 
-        // 4. CALCOMANÍA 2.5D
+        // 5. CALCOMANÍA 2.5D
         if (this.activeSticker && this.activeSticker.img) {
           this._drawSticker(ctx, dx, dy, dw, dh);
         }
@@ -2150,19 +2440,12 @@
         }
       }
 
-      /* COMPOSICIÓN FOTORREALISTA PURA:
-         Aplica Multiply para sombras y pliegues + Overlay para pigmento vibrante + Screen para barniz */
       _applyPiecePaint(ctx, piece, hexColor, finish, dx, dy, dw, dh) {
         ctx.save();
         this._buildPiecePath(ctx, piece, dx, dy, dw, dh);
         ctx.clip();
 
-        // Si tiene cutouts a excluir (ventanas, ruedas)
-        if (piece.cutouts && piece.cutouts.length > 0) {
-          // El recorte es natural mediante capas
-        }
-
-        // PASO 1: Multiply profundo (tiñe la lámina respetando sombras de pliegues y nervaduras)
+        // PASO 1: Multiply (tiñe la lámina respetando sombras de pliegues y nervaduras)
         ctx.globalCompositeOperation = "multiply";
         ctx.fillStyle = hexColor;
         ctx.globalAlpha = 0.92;
@@ -2174,7 +2457,7 @@
         ctx.globalAlpha = 0.78;
         ctx.fillRect(dx, dy, dw, dh);
 
-        // PASO 3: Shaders de barniz transparente y acabado
+        // PASO 3: Shaders de barniz
         if (finish === "metallic") {
           ctx.globalCompositeOperation = "screen";
           ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
@@ -2188,7 +2471,7 @@
           ctx.fillStyle = hexColor;
           ctx.globalAlpha = 0.40;
           ctx.fillRect(dx, dy, dw, dh);
-        } else { // Sólido Gloss
+        } else {
           ctx.globalCompositeOperation = "screen";
           ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
           ctx.fillRect(dx, dy, dw, dh);
@@ -2197,22 +2480,69 @@
         ctx.restore();
       }
 
-      /* RESALTE ELEGANTE DE SELECCIÓN:
-         Sin líneas punteadas feas, solo un halo sutil translúcido */
       _drawSmoothHighlight(ctx, piece, dx, dy, dw, dh, isHover = false) {
         ctx.save();
         this._buildPiecePath(ctx, piece, dx, dy, dw, dh);
 
-        // Relleno de resalte sutil
         ctx.fillStyle = isHover ? "rgba(2, 132, 199, 0.12)" : "rgba(200, 16, 46, 0.15)";
         ctx.fill();
 
-        // Borde continuo fino y elegante
         ctx.strokeStyle = isHover ? "rgba(2, 132, 199, 0.65)" : "rgba(200, 16, 46, 0.85)";
         ctx.lineWidth = isHover ? 1.5 : 2.0;
         ctx.shadowColor = isHover ? "rgba(2, 132, 199, 0.4)" : "rgba(200, 16, 46, 0.5)";
         ctx.shadowBlur = isHover ? 6 : 10;
         ctx.stroke();
+
+        ctx.restore();
+      }
+
+      /* RENDERIZADOR DE NODOS VECTORIALES (ESTILO COREL / ILLUSTRATOR) */
+      _renderVectorNodes(ctx, dx, dy, dw, dh) {
+        if (this.penNodes.length === 0) return;
+
+        ctx.save();
+        // 1. Línea del trazo activo
+        ctx.beginPath();
+        const first = this.penNodes[0];
+        ctx.moveTo(dx + first[0] * dw, dy + first[1] * dh);
+        for (let i = 1; i < this.penNodes.length; i++) {
+          const pt = this.penNodes[i];
+          ctx.lineTo(dx + pt[0] * dw, dy + pt[1] * dh);
+        }
+        if (this.activeTool === "node") {
+          ctx.closePath();
+          ctx.fillStyle = "rgba(2, 132, 199, 0.15)";
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = "#0284C7";
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        // 2. Dibujar Nodos (Anclas cuadradas estilo CorelDRAW / Illustrator)
+        this.penNodes.forEach(([nx, ny], idx) => {
+          const px = dx + nx * dw;
+          const py = dy + ny * dh;
+          const isSelected = (idx === this.activeNodeIndex);
+
+          ctx.fillStyle = isSelected ? "#C8102E" : "#FFFFFF";
+          ctx.strokeStyle = isSelected ? "#FFFFFF" : "#0284C7";
+          ctx.lineWidth = 2;
+
+          ctx.beginPath();
+          ctx.rect(px - 5, py - 5, 10, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          // Indicador especial para el primer nodo (para cerrar el trazo)
+          if (idx === 0 && this.activeTool === "pen") {
+            ctx.beginPath();
+            ctx.arc(px, py, 9, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(2, 132, 199, 0.8)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        });
 
         ctx.restore();
       }
@@ -2241,7 +2571,7 @@
       }
 
       /* ======================================================================
-         6. INTERACCIONES TÁCTILES Y RATÓN
+         6. INTERACCIONES TÁCTILES Y VECTORIALES
          ====================================================================== */
       _bindCanvasInteractions() {
         const c = this.canvas2D;
@@ -2256,6 +2586,17 @@
           const normX = (mouseX - dx) / dw;
           const normY = (mouseY - dy) / dh;
 
+          // Arrastrar nodo activo (Herramienta Nodo 'A' o Pluma 'P')
+          if (this.isDraggingNode && this.activeNodeIndex >= 0 && this.activeNodeIndex < this.penNodes.length) {
+            this.penNodes[this.activeNodeIndex] = [
+              Math.max(0.01, Math.min(0.99, normX)),
+              Math.max(0.01, Math.min(0.99, normY))
+            ];
+            this._renderCanvas();
+            return;
+          }
+
+          // Arrastrar calca
           if (this.isDraggingSticker && this.activeSticker) {
             this.activeSticker.normX = normX - this.dragOffset.x;
             this.activeSticker.normY = normY - this.dragOffset.y;
@@ -2263,6 +2604,13 @@
             return;
           }
 
+          // Si estamos en modo pluma o nodo, cambiar cursor a cruz precisa
+          if (this.activeTool === "pen" || this.activeTool === "node") {
+            c.style.cursor = "crosshair";
+            return;
+          }
+
+          // Hover en modo selección
           const angleModel = this._getCurrentAngleModel();
           let hitPiece = null;
 
@@ -2282,7 +2630,7 @@
               this._renderCanvas();
             }
           } else {
-            c.style.cursor = "crosshair";
+            c.style.cursor = "default";
             if (this.hoveredPartId !== null) {
               this.hoveredPartId = null;
               this._renderCanvas();
@@ -2300,6 +2648,58 @@
           const normX = (mouseX - dx) / dw;
           const normY = (mouseY - dy) / dh;
 
+          // 1. MODO PLUMA BÉZIER (P)
+          if (this.activeTool === "pen") {
+            // Verificar si hizo clic en el primer nodo para cerrar la pieza
+            if (this.penNodes.length >= 3) {
+              const first = this.penNodes[0];
+              const distToFirst = Math.hypot(normX - first[0], normY - first[1]);
+              if (distToFirst < 0.03) {
+                this._savePenPathAsPiece();
+                return;
+              }
+            }
+
+            // Añadir nuevo nodo
+            this.penNodes.push([
+              Math.max(0.01, Math.min(0.99, normX)),
+              Math.max(0.01, Math.min(0.99, normY))
+            ]);
+            this.activeNodeIndex = this.penNodes.length - 1;
+            this.isDraggingNode = true;
+            if (navigator.vibrate) navigator.vibrate(20);
+            this._renderCanvas();
+            return;
+          }
+
+          // 2. MODO EDICIÓN DE NODOS (A)
+          if (this.activeTool === "node") {
+            // Buscar si hizo clic sobre un nodo existente
+            let clickedNodeIdx = -1;
+            for (let i = 0; i < this.penNodes.length; i++) {
+              const [nx, ny] = this.penNodes[i];
+              if (Math.hypot(normX - nx, normY - ny) < 0.035) {
+                clickedNodeIdx = i;
+                break;
+              }
+            }
+
+            if (clickedNodeIdx >= 0) {
+              this.activeNodeIndex = clickedNodeIdx;
+              this.isDraggingNode = true;
+              this._renderCanvas();
+              return;
+            } else {
+              // Clic en el canvas añade un nodo intermedio
+              this.penNodes.push([normX, normY]);
+              this.activeNodeIndex = this.penNodes.length - 1;
+              this.isDraggingNode = true;
+              this._renderCanvas();
+              return;
+            }
+          }
+
+          // 3. ARRASTRAR CALCOMANÍA
           if (this.activeSticker) {
             const dist = Math.hypot(normX - this.activeSticker.normX, normY - this.activeSticker.normY);
             if (dist < 0.16) {
@@ -2312,6 +2712,7 @@
             }
           }
 
+          // 4. MODO SELECCIÓN / BOTE DE PINTURA
           const angleModel = this._getCurrentAngleModel();
           let hitPiece = null;
 
@@ -2340,8 +2741,12 @@
 
         c.addEventListener("mousemove", (e) => handleMove(e.clientX, e.clientY));
         c.addEventListener("mousedown", (e) => handleDown(e.clientX, e.clientY));
-        window.addEventListener("mouseup", () => { this.isDraggingSticker = false; });
+        window.addEventListener("mouseup", () => {
+          this.isDraggingSticker = false;
+          this.isDraggingNode = false;
+        });
 
+        // Touch Events for Mobile
         c.addEventListener("touchstart", (e) => {
           if (e.touches.length === 1) {
             handleDown(e.touches[0].clientX, e.touches[0].clientY);
@@ -2355,7 +2760,28 @@
           }
         }, { passive: false });
 
-        c.addEventListener("touchend", () => { this.isDraggingSticker = false; });
+        c.addEventListener("touchend", () => {
+          this.isDraggingSticker = false;
+          this.isDraggingNode = false;
+        });
+
+        // Key shortcuts (Photoshop style)
+        window.addEventListener("keydown", (e) => {
+          if (e.target.tagName === "INPUT") return;
+          const k = e.key.toLowerCase();
+          if (k === "v") this._setTool("select");
+          else if (k === "p") this._setTool("pen");
+          else if (k === "a") this._setTool("node");
+          else if (k === "g") this._setTool("bucket");
+          else if (k === "m") this._setTool("decal");
+          else if (k === "delete" || k === "backspace") {
+            if (this.activeNodeIndex >= 0 && this.penNodes.length > 0) {
+              this.penNodes.splice(this.activeNodeIndex, 1);
+              this.activeNodeIndex = -1;
+              this._renderCanvas();
+            }
+          }
+        });
       }
 
       _isPointInPiece(x, y, piece) {
@@ -2513,6 +2939,7 @@
           this.photos.push(newPhoto);
           this.loadedImages.set(newId, img);
           this.photoPaints.set(newId, new Map());
+          this.customPieces.set(newId, []);
         }
 
         this.currentPhotoIndex = this.photos.length - 1;
