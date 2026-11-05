@@ -1,317 +1,271 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>El Rayo AutoDesign Studio — Suite Vectorial Corel/Photoshop & IA REA</title>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>El Rayo AutoDesign Studio — Suite Vectorial CAD & Pintura IA</title>
+  <link rel="icon" type="image/png" href="./logo_el_rayo.png" />
   <style>
-    /* ==========================================================================
-       DESIGN SYSTEM: MINIMALIST LIGHT STUDIO GRAY & GLASSMORPHISM
-       Base: Gris arquitectónico suave (#E8EBF0, #F4F6F9)
-       Superficies: Cristal líquido translúcido con desenfoque de fondo
-       Acentos: Rojo El Rayo (#C8102E) y Titanio (#1E293B, #475569)
-       ========================================================================== */
+    /* ======================================================================
+       1. VARIABLES & RESET INDUSTRIAL LIGHT GLASSMORPHISM
+       ====================================================================== */
     :root {
-      --bg-studio: #E8EBF0;
-      --bg-gradient: radial-gradient(circle at 50% 25%, #F8FAFC 0%, #E2E6EC 100%);
-      
-      --glass-panel: rgba(255, 255, 255, 0.88);
-      --glass-card: rgba(255, 255, 255, 0.75);
-      --glass-card-hover: rgba(255, 255, 255, 0.95);
-      --glass-border: rgba(255, 255, 255, 0.95);
-      --glass-border-subtle: rgba(215, 222, 232, 0.85);
-
-      --rayo-red: #C8102E;
-      --rayo-red-soft: rgba(200, 16, 46, 0.12);
-      --rayo-red-hover: #A00C24;
-      --rayo-cyan: #0284C7;
-      --rayo-cyan-soft: rgba(2, 132, 199, 0.15);
-
-      --titanium-dark: #1E293B;
-      --titanium-medium: #475569;
-      --titanium-muted: #94A3B8;
-
-      --shadow-glass: 0 10px 28px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-      --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.09), 0 2px 6px rgba(0, 0, 0, 0.04);
-      --shadow-active: 0 0 0 2px var(--rayo-red), 0 6px 20px rgba(200, 16, 46, 0.2);
-
-      --radius-sm: 6px;
-      --radius-md: 10px;
+      --bg-studio: #EEF1F5;
+      --bg-panel: rgba(255, 255, 255, 0.90);
+      --bg-panel-solid: #FFFFFF;
+      --border-glass: rgba(226, 232, 240, 0.90);
+      --border-focus: #0284C7;
+      --text-main: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --accent-red: #C8102E;
+      --accent-red-hover: #A00C24;
+      --accent-blue: #0284C7;
+      --accent-blue-hover: #0369A1;
+      --accent-green: #10B981;
+      --shadow-subtle: 0 4px 16px rgba(15, 23, 42, 0.05);
+      --shadow-float: 0 10px 30px rgba(15, 23, 42, 0.10);
+      --radius-sm: 8px;
+      --radius-md: 12px;
       --radius-lg: 16px;
-      --radius-xl: 24px;
-
-      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-top: env(safe-area-inset-top, 0px);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg-gradient);
-      color: var(--titanium-dark);
-      font-family: var(--font-stack);
-      font-size: 13px;
-      touch-action: manipulation;
-    }
-
-    #app-container {
-      display: grid;
-      grid-template-rows: 64px 1fr 100px;
-      grid-template-columns: 60px 1fr 390px;
-      grid-template-areas:
-        "header header header"
-        "tools  canvas inspector"
-        "footer footer inspector";
-      width: 100vw;
+    body {
+      background-color: var(--bg-studio);
+      color: var(--text-main);
       height: 100vh;
-      background: var(--bg-gradient);
-      position: relative;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* --------------------------------------------------------------------------
-       1. HEADER
-       -------------------------------------------------------------------------- */
-    header {
-      grid-area: header;
+    /* ======================================================================
+       2. HEADER SUPERIOR ELEGANTE
+       ====================================================================== */
+    header#studio-header {
+      height: 56px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-glass);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
-      background: var(--glass-panel);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--glass-border);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      padding: 0 16px;
       z-index: 50;
-      padding-top: var(--safe-top);
+      flex-shrink: 0;
     }
 
-    .brand-wrap {
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo-pill {
+      background: var(--accent-red);
+      color: #fff;
+      font-weight: 900;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .brand-titles h1 {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-main);
+      line-height: 1.1;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .header-center-controls {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    .brand-logo-img {
-      height: 38px;
-      max-width: 130px;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.08));
-    }
-
-    .brand-text {
+    .scope-toggle-group {
       display: flex;
-      flex-direction: column;
-      gap: 1px;
+      background: #E2E8F0;
+      padding: 3px;
+      border-radius: 8px;
+      gap: 2px;
     }
 
-    .brand-title {
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      color: var(--titanium-dark);
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .scope-btn {
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
 
-    .badge-pill {
-      background: var(--rayo-red);
-      color: #FFF;
-      font-size: 8px;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 10px;
-      letter-spacing: 0.5px;
-    }
-
-    .badge-rea {
-      background: var(--rayo-cyan);
-      color: #FFF;
-      font-size: 8px;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 10px;
-      letter-spacing: 0.5px;
-    }
-
-    .brand-subtitle {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--titanium-medium);
+    .scope-btn.active {
+      background: #FFFFFF;
+      color: var(--text-main);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
     }
 
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .btn-glass {
-      background: var(--glass-card);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      color: var(--titanium-dark);
-      font-size: 12px;
-      font-weight: 700;
-      padding: 8px 14px;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      display: inline-flex;
+    .btn-action {
+      display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: var(--shadow-glass);
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .btn-glass:hover, .btn-glass:active {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-glass);
       background: #FFFFFF;
-      box-shadow: var(--shadow-hover);
-      transform: translateY(-1px);
+      color: var(--text-main);
+      transition: all 0.15s ease;
     }
 
-    .btn-glass.btn-primary {
-      background: var(--rayo-red);
+    .btn-action:hover {
+      background: #F1F5F9;
+    }
+
+    .btn-action.primary {
+      background: var(--accent-red);
       color: #FFFFFF;
-      border-color: #EF4444;
-      box-shadow: 0 4px 14px rgba(200, 16, 46, 0.25);
+      border: none;
     }
 
-    .btn-glass.btn-primary:hover, .btn-glass.btn-primary:active {
-      background: var(--rayo-red-hover);
+    .btn-action.primary:hover {
+      background: var(--accent-red-hover);
     }
 
-    .btn-glass.btn-ai-scan {
-      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
-      color: #FFFFFF;
-      border-color: #38BDF8;
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+    /* ======================================================================
+       3. CONTENEDOR PRINCIPAL
+       ====================================================================== */
+    main#studio-main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
     }
 
-    /* --------------------------------------------------------------------------
-       2. LEFT TOOLBAR (PHOTOSHOP / ILLUSTRATOR / CORELDRAW SUITE)
-       -------------------------------------------------------------------------- */
+    /* ======================================================================
+       4. TOOLBAR LATERAL IZQUIERDA (SUITE PHOTOSHOP / CORELDRAW)
+       ====================================================================== */
     aside#left-toolbar {
-      grid-area: tools;
+      width: 50px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-right: 1px solid var(--border-glass);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
-      padding: 14px 8px;
-      background: var(--glass-panel);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-right: 1px solid var(--glass-border);
-      box-shadow: 2px 0 12px rgba(0,0,0,0.02);
+      padding: 12px 0;
+      gap: 6px;
       z-index: 40;
+      flex-shrink: 0;
     }
 
     .tool-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-md);
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border);
-      color: var(--titanium-medium);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: var(--shadow-glass);
-      transition: all 0.2s ease;
       position: relative;
+      transition: all 0.15s ease;
     }
 
-    .tool-btn:hover, .tool-btn:active {
-      background: #FFFFFF;
-      color: var(--titanium-dark);
-      transform: scale(1.05);
+    .tool-btn:hover {
+      background: #F1F5F9;
+      color: var(--text-main);
     }
 
     .tool-btn.active {
       background: #FFFFFF;
-      border-color: var(--rayo-red);
-      color: var(--rayo-red);
-      box-shadow: 0 0 0 2px var(--rayo-red-soft), 0 4px 12px rgba(200, 16, 46, 0.15);
+      border-color: var(--border-focus);
+      color: var(--accent-blue);
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);
     }
 
     .tool-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
-    /* Tooltip */
-    .tool-btn[data-tip]:hover::after {
-      content: attr(data-tip);
+    .tool-btn .tooltip {
+      display: none;
       position: absolute;
-      left: 54px;
-      background: rgba(30, 41, 59, 0.95);
-      color: #FFFFFF;
+      left: 46px;
+      background: #0F172A;
+      color: #FFF;
       font-size: 11px;
       font-weight: 600;
-      padding: 5px 10px;
-      border-radius: 6px;
+      padding: 4px 8px;
+      border-radius: 4px;
       white-space: nowrap;
       pointer-events: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       z-index: 100;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     }
 
-    /* --------------------------------------------------------------------------
-       3. VIEWPORT CANVAS & VECTOR PEN BAR
-       -------------------------------------------------------------------------- */
-    main#center-viewport {
-      grid-area: canvas;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      padding: 12px 16px 6px 16px;
-    }
-
-    .canvas-card-wrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-glass);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      touch-action: none;
-    }
-
-    #studio-main-canvas {
+    .tool-btn:hover .tooltip {
       display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      cursor: default;
     }
 
-    /* Floating Status Bar */
-    .viewport-status-bar {
+    .tool-separator {
+      width: 24px;
+      height: 1px;
+      background: var(--border-glass);
+      margin: 4px 0;
+    }
+
+    /* ======================================================================
+       5. ÁREA CENTRAL DEL CANVAS
+       ====================================================================== */
+    #canvas-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #FFFFFF 0%, #F1F4F8 60%, #E2E6EC 100%);
+    }
+
+    /* Barra flotante de información de pieza */
+    .canvas-status-bar {
       position: absolute;
       top: 12px;
       left: 14px;
@@ -320,1089 +274,754 @@
       align-items: center;
       justify-content: space-between;
       pointer-events: none;
-      z-index: 20;
-      gap: 8px;
+      z-index: 30;
     }
 
-    .status-chip {
+    .status-pill {
       pointer-events: auto;
       background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid var(--glass-border);
-      padding: 6px 14px;
+      border: 1px solid var(--border-glass);
       border-radius: 20px;
+      padding: 4px 12px;
       font-size: 11px;
       font-weight: 700;
-      color: var(--titanium-dark);
-      display: inline-flex;
+      color: var(--text-secondary);
+      display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: var(--shadow-glass);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 60%;
+      box-shadow: var(--shadow-subtle);
     }
 
-    .status-chip .dot {
-      width: 8px;
-      height: 8px;
+    .status-pill.active {
+      color: var(--accent-red);
+      border-color: rgba(200, 16, 46, 0.3);
+    }
+
+    .status-pill .indicator-dot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 6px #10B981;
-      flex-shrink: 0;
+      background: var(--accent-green);
     }
 
-    .status-chip .dot.rea {
-      background: var(--rayo-cyan);
-      box-shadow: 0 0 6px var(--rayo-cyan);
-    }
-
-    /* FLOATING PEN & BEZIER CONTROL BAR (PHOTOSHOP / CORELDRAW) */
-    #pen-control-bar {
+    /* Barra flotante de ingeniería vectorial (Pluma) */
+    .pen-engineering-bar {
       position: absolute;
-      top: 54px;
+      top: 50px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
       border-radius: 30px;
-      padding: 6px 12px;
-      display: none;
+      padding: 6px 14px;
+      display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      box-shadow: var(--shadow-float);
       z-index: 35;
-      animation: fadeInDown 0.25s ease;
+      transition: all 0.2s ease;
     }
 
-    #pen-control-bar.active {
-      display: flex;
-    }
-
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translate(-50%, -10px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
+    .pen-engineering-bar.hidden {
+      display: none;
     }
 
     .pen-bar-btn {
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border-subtle);
+      border: none;
+      background: #F1F5F9;
+      color: var(--text-main);
+      padding: 6px 12px;
       border-radius: 20px;
-      padding: 5px 12px;
       font-size: 11px;
       font-weight: 700;
-      color: var(--titanium-dark);
       cursor: pointer;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       gap: 5px;
       transition: all 0.15s ease;
     }
 
-    .pen-bar-btn:hover, .pen-bar-btn:active {
-      background: #FFFFFF;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-      color: var(--rayo-red);
+    .pen-bar-btn:hover {
+      background: #E2E8F0;
     }
 
-    .pen-bar-btn.btn-save-piece {
-      background: var(--rayo-red);
-      color: #FFFFFF;
-      border-color: #EF4444;
+    .pen-bar-btn.primary {
+      background: var(--accent-blue);
+      color: #FFF;
     }
 
-    .pen-bar-btn.btn-save-piece:hover {
-      background: var(--rayo-red-hover);
-      color: #FFFFFF;
+    .pen-bar-btn.primary:hover {
+      background: var(--accent-blue-hover);
     }
 
-    /* AI Scanning Laser Effect */
-    #ai-scan-line {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, #0284C7, #38BDF8, #0284C7, transparent);
-      box-shadow: 0 0 16px #38BDF8, 0 0 32px #0284C7;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 25;
-      transition: opacity 0.2s ease;
+    .pen-bar-btn.save-btn {
+      background: var(--accent-green);
+      color: #FFF;
     }
 
-    #ai-scan-line.scanning {
-      opacity: 1;
-      animation: scanSweep 2s ease-in-out infinite;
-    }
-
-    @keyframes scanSweep {
-      0% { top: 0%; }
-      50% { top: 100%; }
-      100% { top: 0%; }
-    }
-
-    /* --------------------------------------------------------------------------
-       4. FOOTER FILMSTRIP
-       -------------------------------------------------------------------------- */
-    footer#bottom-strip {
-      grid-area: footer;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      background: var(--glass-panel);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid var(--glass-border);
-      box-shadow: 0 -2px 12px rgba(0,0,0,0.03);
-      z-index: 40;
-    }
-
-    .strip-container {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      width: 100%;
-      overflow-x: auto;
-      padding: 6px 0;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .strip-label-box {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 130px;
-    }
-
-    .strip-title {
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--titanium-dark);
-    }
-
-    .strip-subtitle {
-      font-size: 9px;
-      color: var(--titanium-muted);
-      font-weight: 600;
-    }
-
-    .filmstrip-thumbnails {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    /* El Canvas HTML5 */
+    .canvas-viewport {
       flex: 1;
-      overflow-x: auto;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
     }
 
-    .thumb-card {
-      position: relative;
-      width: 82px;
-      height: 54px;
-      border-radius: var(--radius-sm);
-      border: 2px solid transparent;
-      overflow: hidden;
-      cursor: pointer;
-      background: #E2E6EC;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      transition: all 0.2s ease;
+    canvas#studio-main-canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+    }
+
+    /* Carrusel de fotos en la parte inferior */
+    .photos-bottom-strip {
+      height: 64px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-glass);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 30;
       flex-shrink: 0;
     }
 
-    .thumb-card img {
+    .strip-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .photo-thumbnails-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+
+    .photo-thumb-card {
+      width: 72px;
+      height: 46px;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      background: #CBD5E1;
+      transition: all 0.15s ease;
+    }
+
+    .photo-thumb-card.active {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.2);
+    }
+
+    .photo-thumb-card img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
 
-    .thumb-card.active {
-      border-color: var(--rayo-red);
-      box-shadow: 0 0 0 2px var(--rayo-red-soft), 0 4px 14px rgba(200, 16, 46, 0.25);
-    }
-
-    .thumb-card .thumb-badge {
+    .photo-thumb-card .thumb-badge {
       position: absolute;
       bottom: 2px;
-      left: 2px;
       right: 2px;
-      background: rgba(30, 41, 59, 0.88);
-      color: #FFFFFF;
+      background: rgba(15, 23, 42, 0.75);
+      color: #fff;
       font-size: 8px;
       font-weight: 700;
-      text-align: center;
-      padding: 1px 0;
+      padding: 1px 4px;
       border-radius: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .thumb-add-btn {
-      width: 78px;
-      height: 54px;
-      border-radius: var(--radius-sm);
-      border: 2px dashed rgba(148, 163, 184, 0.6);
-      background: rgba(255, 255, 255, 0.4);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      cursor: pointer;
-      color: var(--titanium-medium);
-      font-size: 9px;
+    .btn-add-photo {
+      height: 46px;
+      padding: 0 12px;
+      border-radius: 6px;
+      border: 1px dashed var(--border-focus);
+      background: rgba(2, 132, 199, 0.05);
+      color: var(--accent-blue);
+      font-size: 10px;
       font-weight: 700;
-      flex-shrink: 0;
-      transition: all 0.2s ease;
-    }
-
-    .thumb-add-btn:hover, .thumb-add-btn:active {
-      border-color: var(--rayo-red);
-      color: var(--rayo-red);
-      background: #FFFFFF;
-    }
-
-    /* --------------------------------------------------------------------------
-       5. RIGHT INSPECTOR
-       -------------------------------------------------------------------------- */
-    aside#right-inspector {
-      grid-area: inspector;
+      cursor: pointer;
       display: flex;
-      flex-direction: column;
-      background: var(--glass-panel);
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .btn-add-photo:hover {
+      background: rgba(2, 132, 199, 0.12);
+    }
+
+    /* ======================================================================
+       6. SIDEBAR DERECHA (INSPECTOR DE PIEZAS & PINTURA)
+       ====================================================================== */
+    aside#right-sidebar {
+      width: 310px;
+      background: var(--bg-panel);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-left: 1px solid var(--glass-border);
-      box-shadow: -2px 0 16px rgba(0,0,0,0.03);
-      z-index: 40;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .inspector-tabs {
+      border-left: 1px solid var(--border-glass);
       display: flex;
-      border-bottom: 1px solid var(--glass-border-subtle);
-      background: rgba(255, 255, 255, 0.4);
+      flex-direction: column;
+      z-index: 40;
+      flex-shrink: 0;
+      overflow: hidden;
     }
 
-    .tab-nav-btn {
+    /* Pestañas superiores del sidebar */
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-glass);
+      background: rgba(248, 250, 252, 0.8);
+    }
+
+    .tab-btn {
       flex: 1;
-      padding: 14px 8px;
-      text-align: center;
+      padding: 10px 0;
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: var(--titanium-medium);
-      background: transparent;
       border: none;
-      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: all 0.2s ease;
+      position: relative;
+      transition: all 0.15s ease;
     }
 
-    .tab-nav-btn.active {
-      color: var(--rayo-red);
-      border-bottom-color: var(--rayo-red);
+    .tab-btn.active {
+      color: var(--accent-red);
       background: #FFFFFF;
     }
 
-    .tab-pane {
-      display: none;
-      padding: 18px;
+    .tab-btn.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 15%;
+      right: 15%;
+      height: 2px;
+      background: var(--accent-red);
+      border-radius: 2px;
+    }
+
+    .sidebar-content-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
     }
 
-    .tab-pane.active {
+    .panel-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      box-shadow: var(--shadow-subtle);
       display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .sec-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .sec-title {
+    .card-title {
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: var(--titanium-dark);
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: space-between;
     }
 
-    .sec-badge {
+    .card-badge {
       font-size: 9px;
-      font-weight: 800;
       padding: 2px 6px;
       border-radius: 4px;
-      background: var(--rayo-cyan-soft);
-      color: var(--rayo-cyan);
+      background: #F1F5F9;
+      color: var(--text-secondary);
     }
 
-    /* Scope Toggle */
-    .scope-toggle-wrap {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      background: rgba(226, 232, 240, 0.6);
-      padding: 4px;
-      border-radius: var(--radius-md);
-    }
-
-    .scope-pill-btn {
-      padding: 8px 10px;
-      border-radius: var(--radius-sm);
-      border: none;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--titanium-medium);
-      background: transparent;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-    }
-
-    .scope-pill-btn.active {
-      background: #FFFFFF;
-      color: var(--titanium-dark);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-
-    /* Pieces List */
+    /* Lista de piezas */
     .pieces-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      max-height: 250px;
+      gap: 4px;
+      max-height: 180px;
       overflow-y: auto;
-      padding-right: 4px;
-      -webkit-overflow-scrolling: touch;
     }
 
     .piece-row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-md);
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-glass);
+      background: #F8FAFC;
       cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
       transition: all 0.15s ease;
     }
 
-    .piece-row:hover, .piece-row:active {
-      background: #FFFFFF;
-      box-shadow: var(--shadow-hover);
-      transform: translateX(2px);
+    .piece-row:hover {
+      background: #F1F5F9;
     }
 
-    .piece-row.active {
-      border-color: var(--rayo-red);
-      background: #FFFFFF;
-      box-shadow: 0 0 0 2px var(--rayo-red-soft);
+    .piece-row.selected {
+      background: #FFF1F2;
+      border-color: var(--accent-red);
+      color: var(--accent-red);
     }
 
-    .piece-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .piece-color-chip {
-      width: 20px;
-      height: 20px;
+    .piece-color-dot {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      border: 2px solid #FFFFFF;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      border: 1px solid rgba(0, 0, 0, 0.15);
       flex-shrink: 0;
     }
 
     .piece-name {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--titanium-dark);
-    }
-
-    .piece-tag {
-      font-size: 9px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(226, 232, 240, 0.8);
-      color: var(--titanium-medium);
-    }
-
-    /* Swatches Grid */
-    .swatches-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-
-    .swatch-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      cursor: pointer;
-    }
-
-    .swatch-color-box {
-      width: 100%;
-      height: 42px;
-      border-radius: var(--radius-sm);
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.04);
-      transition: all 0.15s ease;
-    }
-
-    .swatch-item:hover .swatch-color-box, .swatch-item:active .swatch-color-box {
-      transform: scale(1.06);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-    }
-
-    .swatch-item.active .swatch-color-box {
-      border: 2px solid var(--rayo-red);
-      box-shadow: 0 0 0 2px var(--rayo-red-soft);
-    }
-
-    .swatch-name-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--titanium-medium);
-      text-align: center;
+      flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      width: 100%;
     }
 
-    /* Color picker & inputs */
-    .color-picker-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .native-color-input {
-      -webkit-appearance: none;
-      border: none;
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      background: transparent;
-      flex-shrink: 0;
-    }
-    .native-color-input::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-    .native-color-input::-webkit-color-swatch {
-      border: 2px solid #FFFFFF;
-      border-radius: var(--radius-md);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .hex-text-input {
-      flex: 1;
-      background: #FFFFFF;
-      border: 1px solid var(--glass-border-subtle);
-      border-radius: var(--radius-md);
-      color: var(--titanium-dark);
-      font-family: monospace;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 10px 14px;
-    }
-
-    .finish-type-selector {
+    /* Paleta de pintura OEM */
+    .swatches-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
-    .finish-pill-btn {
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border);
-      color: var(--titanium-medium);
-      padding: 9px 10px;
-      border-radius: var(--radius-sm);
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.15s;
-    }
-
-    .finish-pill-btn:hover, .finish-pill-btn:active {
-      background: #FFFFFF;
-      color: var(--titanium-dark);
-    }
-
-    .finish-pill-btn.active {
-      border-color: var(--rayo-red);
-      background: #FFFFFF;
-      color: var(--rayo-red);
-      box-shadow: 0 0 0 2px var(--rayo-red-soft);
-    }
-
-    .accessories-presets-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .acc-item-card {
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      text-align: center;
-      transition: all 0.2s;
-    }
-
-    .acc-item-card:hover, .acc-item-card:active {
-      background: #FFFFFF;
-      box-shadow: var(--shadow-hover);
-    }
-
-    .acc-item-card.active {
-      border-color: var(--rayo-red);
-      box-shadow: var(--shadow-active);
-      background: #FFFFFF;
-    }
-
-    .slider-group {
-      display: flex;
-      flex-direction: column;
+      grid-template-columns: repeat(4, 1fr);
       gap: 6px;
     }
 
-    .slider-label-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--titanium-medium);
-    }
-
-    .slider-val {
-      color: var(--rayo-red);
-      font-family: monospace;
-    }
-
-    input[type=range] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 6px;
-      background: rgba(210, 218, 228, 0.7);
-      border-radius: 3px;
-      outline: none;
-    }
-
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--rayo-red);
-      border: 2px solid #FFFFFF;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-    }
-
-    #hidden-file-input, #hidden-decal-input {
-      display: none;
-    }
-
-    /* Toast Notification Banner */
-    #toast-banner {
-      position: fixed;
-      bottom: 115px;
-      left: 50%;
-      transform: translateX(-50%) translateY(30px);
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #FFFFFF;
-      padding: 10px 22px;
-      border-radius: 30px;
-      font-size: 12px;
-      font-weight: 700;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s ease;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      white-space: nowrap;
-    }
-
-    #toast-banner.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-
-    /* ==========================================================================
-       6. MOBILE CONTROL BAR & BOTTOM DRAWER
-       ========================================================================== */
-    #mobile-bottom-bar {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--glass-panel);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid var(--glass-border);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
-      padding: 8px 12px calc(8px + var(--safe-bottom)) 12px;
-      z-index: 60;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .mobile-quick-swatches {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 2px 4px;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .mobile-swatch-bubble {
-      width: 38px;
+    .swatch-btn {
       height: 38px;
-      border-radius: 50%;
-      border: 2px solid #FFFFFF;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      flex-shrink: 0;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
       cursor: pointer;
-      transition: transform 0.15s ease;
+      position: relative;
+      transition: transform 0.1s ease;
     }
 
-    .mobile-swatch-bubble.active {
-      transform: scale(1.18);
-      border-color: var(--rayo-red);
-      box-shadow: 0 0 0 2px var(--rayo-red-soft), 0 4px 10px rgba(200, 16, 46, 0.3);
+    .swatch-btn:hover {
+      transform: scale(1.04);
     }
 
-    .mobile-action-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+    .swatch-btn.active {
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--accent-red);
     }
 
-    .mobile-pill-btn {
-      flex: 1;
-      padding: 8px 10px;
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-md);
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--titanium-dark);
+    .swatch-btn .swatch-check {
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      cursor: pointer;
+      color: #FFF;
+      font-size: 13px;
+      font-weight: 900;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
 
-    .mobile-pill-btn.active {
-      background: var(--rayo-red);
-      color: #FFFFFF;
-      border-color: #EF4444;
-    }
-
-    /* Mobile Sheet Drawer */
-    #mobile-sheet-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      z-index: 70;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    #mobile-sheet-overlay.open {
-      display: block;
-      opacity: 1;
-    }
-
-    #mobile-sheet-drawer {
-      position: fixed;
-      bottom: -100%;
-      left: 0;
-      right: 0;
-      max-height: 82vh;
-      background: #F8FAFC;
-      border-top-left-radius: var(--radius-xl);
-      border-top-right-radius: var(--radius-xl);
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
-      z-index: 75;
+    /* Input HEX y picker */
+    .hex-input-row {
       display: flex;
-      flex-direction: column;
-      transition: bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-      padding-bottom: var(--safe-bottom);
+      gap: 8px;
+      align-items: center;
     }
 
-    #mobile-sheet-drawer.open {
-      bottom: 0;
+    .picker-box {
+      width: 36px;
+      height: 32px;
+      border: 1px solid var(--border-glass);
+      border-radius: 6px;
+      padding: 0;
+      cursor: pointer;
+      background: none;
     }
 
-    .sheet-handle-bar {
-      width: 44px;
-      height: 5px;
-      border-radius: 3px;
-      background: #CBD5E1;
-      margin: 10px auto 4px auto;
+    .hex-text-box {
+      flex: 1;
+      height: 32px;
+      border: 1px solid var(--border-glass);
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      outline: none;
     }
 
-    /* Responsive Adaptation */
-    @media (max-width: 900px) {
-      #app-container {
-        grid-template-rows: 56px 1fr 70px;
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "header"
-          "canvas"
-          "footer";
-      }
+    /* Shaders de acabado de pintura */
+    .finishes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
 
+    .finish-btn {
+      padding: 7px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border-glass);
+      background: #F8FAFC;
+      color: var(--text-secondary);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .finish-btn:hover {
+      background: #F1F5F9;
+    }
+
+    .finish-btn.active {
+      background: #FFF1F2;
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+
+    /* Toast Notification */
+    #studio-toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15, 23, 42, 0.90);
+      color: #FFF;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+
+    #studio-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Responsive Móvil */
+    @media (max-width: 768px) {
       aside#left-toolbar {
+        position: absolute;
+        bottom: 70px;
+        left: 10px;
+        width: auto;
+        flex-direction: row;
+        border-radius: 12px;
+        border: 1px solid var(--border-glass);
+        box-shadow: var(--shadow-float);
+        padding: 4px;
+      }
+
+      aside#right-sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 290px;
+        border-radius: 16px 16px 0 0;
+        border-left: none;
+        border-top: 1px solid var(--border-glass);
+        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .photos-bottom-strip {
         display: none;
-      }
-
-      aside#right-inspector {
-        display: none;
-      }
-
-      #mobile-bottom-bar {
-        display: flex;
-      }
-
-      footer#bottom-strip {
-        padding: 0 12px;
-        margin-bottom: 96px;
-      }
-
-      .brand-title {
-        font-size: 11px;
-      }
-
-      .brand-subtitle {
-        display: none;
-      }
-
-      .btn-glass span.btn-text {
-        display: none;
-      }
-
-      #toast-banner {
-        bottom: 150px;
-      }
-
-      main#center-viewport {
-        padding: 6px;
       }
     }
   </style>
 </head>
 <body>
 
-  <div id="app-container">
-
-    <!-- ====================================================================
-         1. TOP HEADER
-         ==================================================================== -->
-    <header>
-      <div class="brand-wrap">
-        <img src="logo_el_rayo.png" alt="El Rayo" class="brand-logo-img">
-        <div class="brand-text">
-          <div class="brand-title">
-            El Rayo Studio
-            <span class="badge-pill">SUITE CAD</span>
-            <span class="badge-rea">PLUMA IA</span>
-          </div>
-          <div class="brand-subtitle">Edición Vectorial Corel/Photoshop & Reconocimiento REA</div>
-        </div>
+  <!-- 1. HEADER SUPERIOR -->
+  <header id="studio-header">
+    <div class="brand-section">
+      <div class="brand-logo-pill">⚡ EL RAYO</div>
+      <div class="brand-titles">
+        <h1>AUTODESIGN STUDIO</h1>
+        <div class="subtitle">Suite Vectorial Corel/Photoshop & Motor de Pintura IA</div>
       </div>
+    </div>
 
-      <div class="header-actions">
-        <button id="btn-upload-single-photo" class="btn-glass btn-primary" title="Subir Foto del Auto">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <span class="btn-text">Subir Foto</span>
-        </button>
-
-        <button id="btn-run-ai-scan" class="btn-glass btn-ai-scan" title="Escanear Piezas con IA">
-          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          <span class="btn-text">Escanear IA</span>
-        </button>
-
-        <button id="btn-export-render" class="btn-glass" title="Guardar Imagen">
-          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          <span class="btn-text">Guardar</span>
-        </button>
+    <div class="header-center-controls">
+      <div class="scope-toggle-group">
+        <button class="scope-btn active" id="btn-scope-piece" title="Pinta solo la pieza seleccionada">Por Piezas</button>
+        <button class="scope-btn" id="btn-scope-full" title="Pinta todo el vehículo con el color actual">Auto Completo</button>
       </div>
-    </header>
+    </div>
 
-    <!-- ====================================================================
-         2. DESKTOP LEFT TOOLBAR (PHOTOSHOP / ILLUSTRATOR / CORELDRAW SUITE)
-         ==================================================================== -->
-    <aside id="left-toolbar">
-      <button class="tool-btn active" data-tool="select" data-tip="Seleccionar Pieza (V)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+    <div class="header-actions">
+      <input type="file" id="photo-upload-input" accept="image/*" style="display: none;" />
+      <button class="btn-action" id="btn-subir-foto" title="Subir foto de tu vehículo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Subir Foto</span>
       </button>
-
-      <button class="tool-btn" data-tool="pen" data-tip="Pluma Bézier Corel/Photoshop (P)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-      </button>
-
-      <button class="tool-btn" data-tool="node" data-tip="Editar Nodos / Anclas (A)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-      </button>
-
-      <button class="tool-btn" data-tool="bucket" data-tip="Bote de Pintura Fotorrealista (G)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-      </button>
-
-      <button class="tool-btn" data-tool="decal" data-tip="Mover Estampa / Vinil (M)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-      </button>
-
-      <button class="tool-btn" data-tool="compare" data-tip="Ver Original (Antes / Después)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-      </button>
-    </aside>
-
-    <!-- ====================================================================
-         3. VIEWPORT CANVAS
-         ==================================================================== -->
-    <main id="center-viewport">
-      <div class="canvas-card-wrapper">
-        <canvas id="studio-main-canvas" width="1600" height="900"></canvas>
-        <div id="ai-scan-line"></div>
-
-        <!-- Floating Status Bar -->
-        <div class="viewport-status-bar">
-          <div class="status-chip">
-            <span class="dot rea"></span>
-            <span id="label-active-view">Golf Trasera (REA)</span>
-          </div>
-
-          <div class="status-chip">
-            <span class="dot"></span>
-            <span id="label-selected-part">Cajuela / Hatch</span>
-          </div>
-        </div>
-
-        <!-- FLOATING PEN CONTROL BAR (PHOTOSHOP / CORELDRAW) -->
-        <div id="pen-control-bar">
-          <span style="font-weight: 800; font-size: 11px; color: var(--rayo-red); padding-right: 4px;">🖋️ PLUMA</span>
-          <button class="pen-bar-btn" id="btn-pen-smooth" title="Suaviza temblores y adapta curvatura aerodinámica">
-            🪄 Suavizar IA
-          </button>
-          <button class="pen-bar-btn" id="btn-pen-snap" title="Ajusta los nodos exactamente a la ranura de la lámina">
-            🧲 Imán Bordes IA
-          </button>
-          <button class="pen-bar-btn btn-save-piece" id="btn-pen-save" title="Cierra el trazo y lo convierte en pieza para pintar">
-            💾 Guardar Pieza
-          </button>
-          <button class="pen-bar-btn" id="btn-pen-clear" title="Borrar nodos y reiniciar">
-            🗑️ Limpiar
-          </button>
-        </div>
-      </div>
-    </main>
-
-    <!-- ====================================================================
-         4. FOOTER FILMSTRIP
-         ==================================================================== -->
-    <footer id="bottom-strip">
-      <div class="strip-container">
-        <div class="strip-label-box">
-          <div class="strip-title">FOTOS DEL AUTO</div>
-          <div class="strip-subtitle">1 o Múltiples Ángulos</div>
-        </div>
-
-        <div class="filmstrip-thumbnails" id="filmstrip-list"></div>
-
-        <div class="thumb-add-btn" id="btn-add-more-photos">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Añadir Foto
-        </div>
-      </div>
-    </footer>
-
-    <!-- ====================================================================
-         5. DESKTOP RIGHT INSPECTOR
-         ==================================================================== -->
-    <aside id="right-inspector">
-      <div id="desktop-inspector-content"></div>
-    </aside>
-
-  </div>
-
-  <!-- ======================================================================
-       6. MOBILE CONTROL BAR & SHEET DRAWER
-       ====================================================================== -->
-  <div id="mobile-bottom-bar">
-    <div class="mobile-quick-swatches" id="mobile-swatches-carousel"></div>
-
-    <div class="mobile-action-row">
-      <button class="mobile-pill-btn active" id="mobile-btn-scope-piece">
-        Pieza
-      </button>
-      <button class="mobile-pill-btn" id="mobile-btn-scope-global">
-        Carrocería
-      </button>
-      <button class="mobile-pill-btn" id="mobile-btn-open-pen">
-        🖋️ Pluma
-      </button>
-      <button class="mobile-pill-btn" id="mobile-btn-open-drawer">
-        Panel
+      <button class="btn-action primary" id="btn-export-4k" title="Guardar render en alta resolución">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Guardar</span>
       </button>
     </div>
-  </div>
+  </header>
 
-  <div id="mobile-sheet-overlay"></div>
-  <div id="mobile-sheet-drawer">
-    <div class="sheet-handle-bar"></div>
-    <div id="mobile-sheet-content" style="overflow-y: auto; flex: 1;"></div>
-  </div>
+  <!-- 2. CONTENIDO PRINCIPAL -->
+  <main id="studio-main">
 
-  <!-- Hidden Inputs -->
-  <input type="file" id="hidden-file-input" accept="image/*" multiple>
-  <input type="file" id="hidden-decal-input" accept="image/png,image/webp">
+    <!-- TOOLBAR IZQUIERDA (SUITE PHOTOSHOP / ILLUSTRATOR / CORELDRAW) -->
+    <aside id="left-toolbar">
+      <button class="tool-btn active" data-tool="select" title="Selección de piezas (V)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+        <span class="tooltip">Seleccionar (V)</span>
+      </button>
 
-  <!-- Toast Notification -->
-  <div id="toast-banner">
-    <svg width="16" height="16" fill="none" stroke="#10B981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-    <span id="toast-text">Acción completada</span>
-  </div>
+      <button class="tool-btn" data-tool="pen" title="Pluma Bézier Corel/Photoshop (P)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
+        <span class="tooltip">Pluma CAD (P)</span>
+      </button>
+
+      <button class="tool-btn" data-tool="node" title="Mover y calibrar nodos vectoriales (A)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>
+        <span class="tooltip">Calibrar Nodos (A)</span>
+      </button>
+
+      <div class="tool-separator"></div>
+
+      <button class="tool-btn" data-tool="pipette" title="Cuentagotas de color (I)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22s5-1 9-5l8-8a3 3 0 0 0-4-4l-8 8c-4 4-5 9-5 9z"/><path d="M15 7l2 2"/></svg>
+        <span class="tooltip">Muestreo (I)</span>
+      </button>
+
+      <button class="tool-btn" id="btn-tool-clear" title="Restablecer pintura del vehículo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span class="tooltip">Restablecer Color</span>
+      </button>
+    </aside>
+
+    <!-- ÁREA DEL CANVAS -->
+    <section id="canvas-area">
+
+      <!-- Status bar superior -->
+      <div class="canvas-status-bar">
+        <div class="status-pill">
+          <span class="indicator-dot"></span>
+          <span id="label-car-angle">Volkswagen Golf (Trasera 3/4)</span>
+        </div>
+        <div class="status-pill active">
+          <span id="label-active-piece">Pieza: Portón Trasero / Cajuela</span>
+        </div>
+      </div>
+
+      <!-- Barra de ingeniería asistida por IA (Se activa con la Pluma P) -->
+      <div class="pen-engineering-bar hidden" id="pen-cad-bar">
+        <button class="pen-bar-btn primary" id="btn-pen-smooth" title="Suaviza temblores y crea curvatura aerodinámica continua">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-3 5-10 9-10s6 7 9 10"/></svg>
+          <span>Suavizado IA</span>
+        </button>
+        <button class="pen-bar-btn" id="btn-pen-snap" title="Ajusta los nodos magnéticamente a las ranuras de la chapa">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="3" x2="8" y2="3"/><line x1="16" y1="3" x2="20" y2="3"/></svg>
+          <span>Imán Chapa</span>
+        </button>
+        <button class="pen-bar-btn save-btn" id="btn-pen-save" title="Convierte el trazo en una pieza lista para pintar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Guardar Pieza</span>
+        </button>
+        <button class="pen-bar-btn" id="btn-pen-reset" title="Borrar nodos actuales">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span>Borrar</span>
+        </button>
+      </div>
+
+      <!-- Viewport del Canvas -->
+      <div class="canvas-viewport" id="canvas-viewport">
+        <canvas id="studio-main-canvas" width="1280" height="720"></canvas>
+      </div>
+
+      <!-- Tira de miniaturas de fotos -->
+      <div class="photos-bottom-strip">
+        <span class="strip-label">Ángulo:</span>
+        <div class="photo-thumbnails-container" id="photo-thumbs-list"></div>
+      </div>
+    </section>
+
+    <!-- SIDEBAR DERECHA: PINTURA, ACABADOS Y PIEZAS -->
+    <aside id="right-sidebar">
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="colores">Colores OEM</button>
+        <button class="tab-btn" data-tab="piezas">Piezas & Capas</button>
+      </div>
+
+      <div class="sidebar-content-scroll">
+
+        <!-- PANEL DE COLORES -->
+        <div class="tab-pane" id="pane-colores">
+          <div class="panel-card">
+            <div class="card-title">
+              <span>Paleta Automotriz OEM</span>
+              <span class="card-badge" id="badge-color-name">Rojo Rayo</span>
+            </div>
+            <div class="swatches-grid" id="oem-swatches-grid"></div>
+          </div>
+
+          <div class="panel-card">
+            <div class="card-title">Tono Personalizado (HEX)</div>
+            <div class="hex-input-row">
+              <input type="color" class="picker-box" id="native-color-picker" value="#C8102E" />
+              <input type="text" class="hex-text-box" id="hex-text-input" value="#C8102E" />
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="card-title">Shader de Acabado (Laca / Barniz)</div>
+            <div class="finishes-grid">
+              <button class="finish-btn active" data-finish="metallic">Metálico</button>
+              <button class="finish-btn" data-finish="pearl">Perlado Tricapa</button>
+              <button class="finish-btn" data-finish="solid">Sólido Gloss</button>
+              <button class="finish-btn" data-finish="matte">Mate Satinado</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL DE PIEZAS -->
+        <div class="tab-pane" id="pane-piezas" style="display: none;">
+          <div class="panel-card">
+            <div class="card-title">
+              <span>Piezas Detectadas</span>
+              <span class="card-badge" id="badge-pieces-count">7 Piezas</span>
+            </div>
+            <div class="pieces-list" id="pieces-list-container"></div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </main>
+
+  <div id="studio-toast">Pintura aplicada</div>
 
   <!-- ======================================================================
-       REA JAVASCRIPT ENGINE WITH VECTOR SUITE
+       7. NÚCLEO DE INGENIERÍA JAVASCRIPT
        ====================================================================== -->
-  <script type="module">
+  <script>
     /* ======================================================================
-       1. REA ANATOMICAL BASE DATA FOR TEST VEHICLES
+       DATOS ANATÓMICOS CALIBRADOS CON PRECISIÓN MILIMÉTRICA
        ====================================================================== */
-    const AUTOMOTIVE_ANGLES = {
+    const VEHICLE_ANGLES = {
       "rear": {
         id: "rear",
-        label: "Golf Posterior (3/4 Trasera)",
+        label: "Volkswagen Golf (Trasera 3/4)",
         pieces: [
           {
             id: "carroceria",
             label: "Carrocería Completa",
-            type: "composite",
-            badgePos: [0.55, 0.52],
             polygon: [
-              [0.14, 0.55], [0.15, 0.44], [0.22, 0.44], [0.37, 0.38], [0.38, 0.28],
-              [0.55, 0.25], [0.72, 0.28], [0.75, 0.33], [0.77, 0.44], [0.78, 0.54],
-              [0.76, 0.72], [0.75, 0.85], [0.64, 0.88], [0.52, 0.88], [0.42, 0.86],
-              [0.35, 0.76], [0.29, 0.74], [0.26, 0.66], [0.20, 0.58], [0.15, 0.64]
-            ],
-            cutouts: [
-              [[0.380, 0.320], [0.550, 0.310], [0.715, 0.330], [0.745, 0.430], [0.550, 0.430], [0.375, 0.438]],
-              [[0.255, 0.700], [0.345, 0.700], [0.345, 0.860], [0.255, 0.860]]
+              [0.120, 0.530], [0.170, 0.440], [0.260, 0.410], [0.320, 0.320],
+              [0.450, 0.250], [0.550, 0.250], [0.720, 0.280], [0.750, 0.380],
+              [0.850, 0.420], [0.880, 0.520], [0.870, 0.650], [0.820, 0.720],
+              [0.680, 0.730], [0.560, 0.720], [0.440, 0.700], [0.420, 0.540],
+              [0.360, 0.510], [0.290, 0.540], [0.280, 0.720], [0.240, 0.680],
+              [0.220, 0.520], [0.170, 0.500], [0.120, 0.550], [0.120, 0.600]
             ]
           },
           {
             id: "porton_trasero",
             label: "Portón Trasero / Cajuela",
-            type: "panel",
-            badgePos: [0.56, 0.54],
             polygon: [
-              [0.375, 0.438], [0.490, 0.425], [0.630, 0.425], [0.745, 0.435],
-              [0.775, 0.530], [0.745, 0.685], [0.550, 0.695], [0.420, 0.695],
-              [0.375, 0.580], [0.368, 0.480]
+              [0.540, 0.380], [0.760, 0.380], [0.865, 0.440], [0.865, 0.640],
+              [0.760, 0.660], [0.580, 0.660], [0.535, 0.500]
+            ]
+          },
+          {
+            id: "costado_izq",
+            label: "Salpicadera / Costado Trasero",
+            polygon: [
+              [0.380, 0.450], [0.535, 0.440], [0.555, 0.450], [0.535, 0.660],
+              [0.435, 0.680], [0.420, 0.540], [0.360, 0.510], [0.290, 0.540],
+              [0.310, 0.460]
             ]
           },
           {
             id: "fascia_tras",
             label: "Fascia Trasera / Paragolpes",
-            type: "panel",
-            badgePos: [0.55, 0.78],
             polygon: [
-              [0.365, 0.695], [0.550, 0.700], [0.745, 0.690], [0.765, 0.725],
-              [0.750, 0.850], [0.640, 0.880], [0.520, 0.880], [0.420, 0.860],
-              [0.355, 0.760]
+              [0.535, 0.660], [0.865, 0.640], [0.870, 0.720], [0.780, 0.740],
+              [0.620, 0.730], [0.520, 0.700]
             ]
           },
           {
             id: "toldo_spoiler",
             label: "Toldo Posterior & Alerón",
-            type: "roof",
-            badgePos: [0.55, 0.28],
             polygon: [
-              [0.395, 0.280], [0.550, 0.255], [0.710, 0.280], [0.725, 0.330],
-              [0.550, 0.310], [0.380, 0.325]
+              [0.450, 0.250], [0.720, 0.280], [0.740, 0.330], [0.550, 0.310],
+              [0.430, 0.320]
             ]
           },
           {
-            id: "costado_izq",
-            label: "Costado / Salpicadera Izq.",
-            type: "panel",
-            badgePos: [0.30, 0.48],
+            id: "puerta_trasera",
+            label: "Puerta Trasera Pasajero",
             polygon: [
-              [0.215, 0.440], [0.370, 0.380], [0.388, 0.450], [0.368, 0.690],
-              [0.345, 0.760], [0.285, 0.740], [0.255, 0.660], [0.215, 0.540]
+              [0.320, 0.420], [0.420, 0.410], [0.420, 0.680], [0.320, 0.680]
+            ]
+          },
+          {
+            id: "puerta_delantera",
+            label: "Puerta Delantera",
+            polygon: [
+              [0.200, 0.430], [0.320, 0.420], [0.320, 0.680], [0.220, 0.680]
             ]
           },
           {
             id: "rin_trasero",
-            label: "Rin de Aleación",
-            type: "wheel",
-            badgePos: [0.30, 0.78],
-            ellipse: { cx: 0.30, cy: 0.78, rx: 0.055, ry: 0.095, rot: -0.08 }
+            label: "Rin de Aleación Trasero",
+            ellipse: { cx: 0.355, cy: 0.726, rx: 0.073, ry: 0.165, rot: 0 }
+          },
+          {
+            id: "rin_delantero",
+            label: "Rin Delantero",
+            ellipse: { cx: 0.168, cy: 0.671, rx: 0.055, ry: 0.125, rot: 0 }
           }
         ]
       },
-
       "side": {
         id: "side",
-        label: "Perfil Lateral (90°)",
+        label: "Volkswagen Golf (Perfil Lateral 90°)",
         pieces: [
           {
             id: "carroceria",
-            label: "Carrocería Lateral",
-            type: "composite",
-            badgePos: [0.50, 0.52],
+            label: "Carrocería Lateral Completa",
             polygon: [
               [0.05, 0.68], [0.06, 0.56], [0.15, 0.53], [0.34, 0.46], [0.45, 0.22],
               [0.76, 0.25], [0.85, 0.42], [0.93, 0.56], [0.95, 0.68], [0.92, 0.79],
@@ -1413,1023 +1032,269 @@
           {
             id: "cofre",
             label: "Cofre (Hood)",
-            type: "panel",
-            badgePos: [0.24, 0.50],
-            polygon: [
-              [0.15, 0.53], [0.34, 0.46], [0.35, 0.49], [0.18, 0.58], [0.15, 0.53]
-            ]
-          },
-          {
-            id: "toldo",
-            label: "Toldo / Techo",
-            type: "roof",
-            badgePos: [0.55, 0.23],
-            polygon: [
-              [0.34, 0.46], [0.45, 0.22], [0.76, 0.25], [0.84, 0.42],
-              [0.77, 0.28], [0.46, 0.25]
-            ]
+            polygon: [[0.15, 0.53], [0.34, 0.46], [0.35, 0.49], [0.18, 0.58], [0.15, 0.53]]
           },
           {
             id: "puerta_del",
             label: "Puerta Delantera",
-            type: "panel",
-            badgePos: [0.43, 0.64],
-            polygon: [
-              [0.35, 0.49], [0.52, 0.49], [0.52, 0.81], [0.36, 0.81], [0.35, 0.60]
-            ]
+            polygon: [[0.35, 0.49], [0.52, 0.49], [0.52, 0.81], [0.36, 0.81], [0.35, 0.60]]
           },
           {
             id: "puerta_tras",
             label: "Puerta Trasera",
-            type: "panel",
-            badgePos: [0.60, 0.64],
-            polygon: [
-              [0.52, 0.49], [0.69, 0.49], [0.69, 0.62], [0.72, 0.65], [0.68, 0.81], [0.52, 0.81]
-            ]
-          },
-          {
-            id: "salpicadera_del",
-            label: "Salpicadera Delantera",
-            type: "panel",
-            badgePos: [0.20, 0.62],
-            polygon: [
-              [0.15, 0.53], [0.35, 0.49], [0.35, 0.60], [0.31, 0.60],
-              [0.28, 0.60], [0.18, 0.66], [0.17, 0.66], [0.15, 0.82]
-            ]
+            polygon: [[0.52, 0.49], [0.69, 0.49], [0.69, 0.62], [0.72, 0.65], [0.68, 0.81], [0.52, 0.81]]
           },
           {
             id: "rin_del",
             label: "Rin Delantero",
-            type: "wheel",
-            badgePos: [0.235, 0.73],
-            ellipse: { cx: 0.235, cy: 0.73, rx: 0.075, ry: 0.17, rot: 0 }
+            ellipse: { cx: 0.235, cy: 0.68, rx: 0.08, ry: 0.17, rot: 0 }
           },
           {
             id: "rin_tras",
             label: "Rin Trasero",
-            type: "wheel",
-            badgePos: [0.775, 0.73],
-            ellipse: { cx: 0.775, cy: 0.73, rx: 0.075, ry: 0.17, rot: 0 }
+            ellipse: { cx: 0.775, cy: 0.68, rx: 0.08, ry: 0.17, rot: 0 }
           }
         ]
       },
-
       "front": {
         id: "front",
-        label: "Frente Directo (0°)",
+        label: "Volkswagen Golf (Frente Directo)",
         pieces: [
           {
             id: "carroceria",
-            label: "Carrocería Frontal",
-            type: "composite",
-            badgePos: [0.50, 0.50],
+            label: "Carrocería Frontal Completa",
             polygon: [
-              [0.17, 0.86], [0.17, 0.58], [0.26, 0.45], [0.34, 0.22], [0.66, 0.22],
-              [0.74, 0.45], [0.83, 0.58], [0.83, 0.86], [0.78, 0.88], [0.22, 0.88]
+              [0.18, 0.62], [0.26, 0.48], [0.34, 0.32], [0.66, 0.32], [0.74, 0.48],
+              [0.82, 0.62], [0.84, 0.74], [0.82, 0.82], [0.68, 0.84], [0.32, 0.84],
+              [0.18, 0.82], [0.16, 0.74]
             ]
           },
           {
             id: "cofre",
-            label: "Cofre (Hood)",
-            type: "panel",
-            badgePos: [0.50, 0.48],
-            polygon: [
-              [0.24, 0.54], [0.34, 0.40], [0.66, 0.40], [0.76, 0.54],
-              [0.68, 0.57], [0.32, 0.57]
-            ]
+            label: "Cofre Frontal",
+            polygon: [[0.28, 0.52], [0.35, 0.34], [0.65, 0.34], [0.72, 0.52], [0.50, 0.54]]
           },
           {
             id: "fascia_del",
             label: "Fascia Delantera",
-            type: "panel",
-            badgePos: [0.50, 0.75],
-            polygon: [
-              [0.18, 0.64], [0.82, 0.64], [0.80, 0.86], [0.20, 0.86]
-            ]
+            polygon: [[0.18, 0.62], [0.82, 0.62], [0.82, 0.82], [0.18, 0.82]]
           }
         ]
       },
-
       "front34": {
         id: "front34",
-        label: "Perspectiva 3/4 Frontal",
+        label: "Volkswagen Golf (Perspectiva 3/4 Frontal)",
         pieces: [
           {
             id: "carroceria",
-            label: "Carrocería 3/4",
-            type: "composite",
-            badgePos: [0.50, 0.54],
+            label: "Carrocería Frontal 3/4",
             polygon: [
-              [0.18, 0.68], [0.18, 0.54], [0.30, 0.35], [0.54, 0.28], [0.68, 0.34],
-              [0.74, 0.44], [0.84, 0.58], [0.84, 0.78], [0.50, 0.86], [0.24, 0.76]
+              [0.12, 0.68], [0.15, 0.54], [0.28, 0.42], [0.44, 0.28], [0.72, 0.28],
+              [0.84, 0.46], [0.88, 0.62], [0.85, 0.78], [0.68, 0.82], [0.38, 0.82],
+              [0.26, 0.80], [0.14, 0.74]
             ]
           },
           {
             id: "cofre",
-            label: "Cofre en Perspectiva",
-            type: "panel",
-            badgePos: [0.58, 0.51],
-            polygon: [
-              [0.36, 0.52], [0.50, 0.43], [0.74, 0.44], [0.82, 0.56],
-              [0.64, 0.62], [0.46, 0.60]
-            ]
-          },
-          {
-            id: "fascia_del",
-            label: "Fascia Delantera Angular",
-            type: "panel",
-            badgePos: [0.65, 0.72],
-            polygon: [
-              [0.44, 0.62], [0.82, 0.58], [0.84, 0.78], [0.50, 0.86], [0.42, 0.76]
-            ]
+            label: "Cofre",
+            polygon: [[0.28, 0.52], [0.42, 0.38], [0.68, 0.38], [0.62, 0.58], [0.32, 0.60]]
           }
         ]
       }
     };
 
-    /* ======================================================================
-       2. OEM COLOR PALETTES
-       ====================================================================== */
-    const OEM_PALETTES = [
-      { name: "Rojo Rayo Deportivo", hex: "#B81D24", finish: "metallic" },
-      { name: "Azul Eléctrico Cobalto", hex: "#1D4ED8", finish: "metallic" },
-      { name: "Negro Obsidiana Profundo", hex: "#0F172A", finish: "pearl" },
-      { name: "Amarillo Daytona Racing", hex: "#EAB308", finish: "solid" },
-      { name: "Verde Militar Mate", hex: "#3F4F38", finish: "matte" },
-      { name: "Naranja Sunset Fuego", hex: "#EA580C", finish: "metallic" },
-      { name: "Blanco Glaciar Puro", hex: "#F8FAFC", finish: "solid" },
-      { name: "Gris Nardo Cemento", hex: "#64748B", finish: "solid" },
-      { name: "Plata Titanio Metal", hex: "#94A3B8", finish: "metallic" },
-      { name: "Blanco Perla Tricapa", hex: "#F1F5F9", finish: "pearl" },
-      { name: "Azul Marino Medianoche", hex: "#0A192F", finish: "pearl" },
-      { name: "Rojo Cereza Clásico", hex: "#881337", finish: "solid" }
+    /* PALETA OEM AUTOMOTRIZ */
+    const OEM_PALETTE = [
+      { name: "Rojo Rayo Deportivo", hex: "#C8102E" },
+      { name: "Azul Eléctrico Cobalto", hex: "#1558C4" },
+      { name: "Negro Obsidiana", hex: "#111317" },
+      { name: "Blanco Glaciar Puro", hex: "#F8FAFC" },
+      { name: "Amarillo Daytona Racing", hex: "#EAB308" },
+      { name: "Verde Militar Mate", hex: "#3B4D3C" },
+      { name: "Naranja Sunset Fuego", hex: "#EA580C" },
+      { name: "Gris Nardo Cemento", hex: "#6B7280" },
+      { name: "Plata Titanio Metal", hex: "#94A3B8" },
+      { name: "Blanco Perla Tricapa", hex: "#FEF9C3" },
+      { name: "Azul Marino Medianoche", hex: "#0F172A" },
+      { name: "Rojo Cereza Clásico", hex: "#831843" }
     ];
 
     /* ======================================================================
-       3. SHARED INSPECTOR TEMPLATE
+       MOTOR PRINCIPAL DE APLICACIÓN
        ====================================================================== */
-    const INSPECTOR_TEMPLATE = `
-      <div class="inspector-tabs">
-        <button class="tab-nav-btn active" data-tab="tab-layers">
-          PIEZAS
-        </button>
-        <button class="tab-nav-btn" data-tab="tab-colors">
-          COLORES
-        </button>
-        <button class="tab-nav-btn" data-tab="tab-decals">
-          ESTAMPAS
-        </button>
-      </div>
-
-      <!-- TAB 1: PIEZAS & PLUMA CAD -->
-      <div id="tab-layers" class="tab-pane active">
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Alcance de Edición</span>
-          </div>
-          <div class="scope-toggle-wrap">
-            <button class="scope-pill-btn active scope-piece-btn">Pieza Individual</button>
-            <button class="scope-pill-btn scope-global-btn">Carrocería Completa</button>
-          </div>
-        </div>
-
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Herramientas Vectoriales CAD</span>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn-glass btn-start-pen" style="flex: 1; font-size: 11px; justify-content: center;">
-              🖋️ Trazar con Pluma (P)
-            </button>
-            <button class="btn-glass btn-start-node" style="flex: 1; font-size: 11px; justify-content: center;">
-              🔲 Editar Nodos (A)
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Estructura de Piezas</span>
-            <span class="sec-badge badge-pieces-count">IA REA</span>
-          </div>
-          <div class="pieces-list layers-container"></div>
-        </div>
-
-        <div style="display: flex; gap: 8px;">
-          <button class="btn-glass btn-clear-colors" style="flex: 1; font-size: 11px; justify-content: center;">
-            Restablecer Original
-          </button>
-        </div>
-      </div>
-
-      <!-- TAB 2: COLORES -->
-      <div id="tab-colors" class="tab-pane">
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Paleta de Pintura</span>
-          </div>
-          <div class="swatches-grid oem-swatches"></div>
-        </div>
-
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Tono Personalizado (HEX)</span>
-          </div>
-          <div class="color-picker-row">
-            <input type="color" class="native-color-picker" value="#B81D24">
-            <input type="text" class="hex-text-box" value="#B81D24">
-          </div>
-        </div>
-
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Shader de Acabado</span>
-          </div>
-          <div class="finish-type-selector">
-            <button class="finish-pill-btn active" data-finish="metallic">Metálico</button>
-            <button class="finish-pill-btn" data-finish="solid">Sólido Gloss</button>
-            <button class="finish-pill-btn" data-finish="pearl">Perlado Tricapa</button>
-            <button class="finish-pill-btn" data-finish="matte">Mate Satinado</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 3: ESTAMPAS -->
-      <div id="tab-decals" class="tab-pane">
-        <div>
-          <div class="sec-header">
-            <span class="sec-title">Calcomanías 2.5D</span>
-          </div>
-          <div class="accessories-presets-grid">
-            <div class="acc-item-card active" data-sticker="logo_rayo">
-              <span style="font-size: 16px;">⚡</span>
-              <span style="font-size: 11px; font-weight: 700;">Logo El Rayo</span>
-            </div>
-            <div class="acc-item-card" data-sticker="racing_stripes">
-              <span style="font-size: 16px;">🏁</span>
-              <span style="font-size: 11px; font-weight: 700;">Franjas Racing</span>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn-glass btn-upload-decal-btn" style="width: 100%; justify-content: center; font-size: 11px;">
-          + Subir Vinil Propio (PNG)
-        </button>
-
-        <div class="slider-group">
-          <div class="slider-label-row">
-            <span>Escala</span>
-            <span class="slider-val val-decal-scale">100%</span>
-          </div>
-          <input type="range" class="input-decal-scale" min="20" max="250" value="100">
-        </div>
-
-        <div class="slider-group">
-          <div class="slider-label-row">
-            <span>Rotación</span>
-            <span class="slider-val val-decal-rot">0°</span>
-          </div>
-          <input type="range" class="input-decal-rot" min="-180" max="180" value="0">
-        </div>
-      </div>
-    `;
-
-    /* ======================================================================
-       4. MAIN STUDIO APPLICATION CLASS (COREL/ILLUSTRATOR/PHOTOSHOP CAD SUITE)
-       ====================================================================== */
-    class StudioApp {
+    class ElRayoStudio {
       constructor() {
-        this.paintScope = "piece";
-        this.currentColorHex = "#B81D24";
-        this.currentFinish = "metallic";
-        this.activeTool = "select"; // "select", "pen", "node", "bucket", "decal", "compare"
-
-        // Nodos y Trazo Vectorial (CorelDRAW / Illustrator / Photoshop)
-        this.penNodes = []; // Array of [normX, normY]
-        this.activeNodeIndex = -1;
-        this.isDraggingNode = false;
-
-        // Estampa activa
-        this.activeSticker = null;
-        this.isDraggingSticker = false;
-        this.dragOffset = { x: 0, y: 0 };
-
-        // Colección de fotos
         this.photos = [
-          { id: "p1", angle: "rear", label: "Foto 1 (Trasera)", src: "./assets/test_car/angle_180_rear.jpg" },
-          { id: "p2", angle: "side", label: "Foto 2 (Perfil 90°)", src: "./assets/test_car/angle_90_side.jpg" },
-          { id: "p3", angle: "front", label: "Foto 3 (Frente 0°)", src: "./assets/test_car/angle_0_front.jpg" },
-          { id: "p4", angle: "front34", label: "Foto 4 (3/4 Frontal)", src: "./assets/test_car/angle_45_front34.jpg" }
+          { id: "p1", angle: "rear", label: "Trasera (3/4)", src: "./assets/test_car/angle_180_rear.jpg" },
+          { id: "p2", angle: "side", label: "Perfil (90°)", src: "./assets/test_car/angle_90_side.jpg" },
+          { id: "p3", angle: "front", label: "Frente (0°)", src: "./assets/test_car/angle_0_front.jpg" },
+          { id: "p4", angle: "front34", label: "3/4 Frontal", src: "./assets/test_car/angle_45_front34.jpg" }
         ];
+
         this.currentPhotoIndex = 0;
         this.loadedImages = new Map();
 
-        // Mapa de pinturas: Map<photoId, Map<pieceId, { color, finish }>>
+        // Mapa de pinturas: photoId -> Map<pieceId, { color, finish }>
         this.photoPaints = new Map();
         this.photos.forEach(p => this.photoPaints.set(p.id, new Map()));
 
-        // Piezas dinámicas personalizadas creadas con la pluma
-        this.customPieces = new Map(); // photoId -> Array<piece>
+        // Piezas personalizadas creadas con pluma
+        this.customPieces = new Map();
         this.photos.forEach(p => this.customPieces.set(p.id, []));
 
-        // Pieza seleccionada
+        // Estados activos
+        this.activeTool = "select"; // 'select' | 'pen' | 'node' | 'pipette'
+        this.paintScope = "piece";  // 'piece' | 'full'
         this.selectedPartId = "porton_trasero";
         this.hoveredPartId = null;
+        this.currentColorHex = "#C8102E";
+        this.currentFinish = "metallic";
 
-        // Elementos DOM
-        this.canvas2D = document.getElementById("studio-main-canvas");
-        this.ctx2D = this.canvas2D.getContext("2d");
+        // Trazo de pluma
+        this.penNodes = [];
+        this.activeDraggingNodeIdx = -1;
 
-        this.init();
+        // Referencias DOM
+        this.canvas = document.getElementById("studio-main-canvas");
+        this.ctx = this.canvas.getContext("2d");
+        this.viewport = { dx: 0, dy: 0, dw: 0, dh: 0 };
+
+        this._init();
       }
 
-      init() {
-        this._injectInspectorContent();
-        this._bindUI();
-        this._bindMobileControls();
-        this._bindPenControlBar();
-        this._initFilmstrip();
-        this._preloadPhotos();
-        this._loadStickerPreset("logo_rayo");
+      async _init() {
+        this._setupEventListeners();
+        this._renderSwatches();
+        this._renderThumbnails();
+        await this._loadAllPhotos();
+        this._updateUIState();
+        this._renderCanvas();
       }
 
-      _injectInspectorContent() {
-        const desktopInsp = document.getElementById("desktop-inspector-content");
-        if (desktopInsp) desktopInsp.innerHTML = INSPECTOR_TEMPLATE;
-
-        const mobileInsp = document.getElementById("mobile-sheet-content");
-        if (mobileInsp) mobileInsp.innerHTML = INSPECTOR_TEMPLATE;
-      }
-
-      _preloadPhotos() {
-        let loadedCount = 0;
-        this.photos.forEach((p) => {
-          const img = new Image();
-          img.onload = () => {
-            this.loadedImages.set(p.id, img);
-            loadedCount++;
-            if (loadedCount === 1) {
-              this._updateAngleAndPieces();
-              this._renderCanvas();
-            }
-          };
-          img.src = p.src;
+      async _loadAllPhotos() {
+        const promises = this.photos.map(p => {
+          return new Promise(resolve => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              this.loadedImages.set(p.id, img);
+              resolve();
+            };
+            img.onerror = () => {
+              console.warn("No se pudo cargar", p.src);
+              resolve();
+            };
+            img.src = p.src;
+          });
         });
+        await Promise.all(promises);
       }
 
       _getCurrentPhoto() {
-        return this.photos[this.currentPhotoIndex] || null;
-      }
-
-      _getAllPiecesForCurrentPhoto() {
-        const photo = this._getCurrentPhoto();
-        const angleKey = (photo && photo.angle && AUTOMOTIVE_ANGLES[photo.angle]) ? photo.angle : "rear";
-        const basePieces = AUTOMOTIVE_ANGLES[angleKey].pieces;
-        const custom = (photo && this.customPieces.get(photo.id)) ? this.customPieces.get(photo.id) : [];
-        return [...basePieces, ...custom];
+        return this.photos[this.currentPhotoIndex];
       }
 
       _getCurrentAngleModel() {
         const photo = this._getCurrentPhoto();
-        const angleKey = (photo && photo.angle && AUTOMOTIVE_ANGLES[photo.angle]) ? photo.angle : "rear";
-        const model = AUTOMOTIVE_ANGLES[angleKey];
+        const base = VEHICLE_ANGLES[photo.angle] || VEHICLE_ANGLES["rear"];
+        const custom = this.customPieces.get(photo.id) || [];
         return {
-          ...model,
-          pieces: this._getAllPiecesForCurrentPhoto()
+          ...base,
+          pieces: [...base.pieces, ...custom]
         };
-      }
-
-      _updateAngleAndPieces() {
-        const angleModel = this._getCurrentAngleModel();
-        const photo = this._getCurrentPhoto();
-
-        const labelAngle = document.getElementById("label-active-view");
-        if (labelAngle) labelAngle.textContent = `${angleModel.label}`;
-
-        const exists = angleModel.pieces.some(p => p.id === this.selectedPartId);
-        if (!exists) {
-          this.selectedPartId = angleModel.pieces[1] ? angleModel.pieces[1].id : angleModel.pieces[0].id;
-        }
-
-        const selPart = angleModel.pieces.find(p => p.id === this.selectedPartId);
-        const labelPart = document.getElementById("label-selected-part");
-        if (labelPart && selPart) {
-          labelPart.textContent = selPart.label;
-        }
-
-        this._renderLayersList();
-      }
-
-      _renderLayersList() {
-        const angleModel = this._getCurrentAngleModel();
-        const photo = this._getCurrentPhoto();
-        const paintMap = photo ? this.photoPaints.get(photo.id) : new Map();
-
-        document.querySelectorAll(".layers-container").forEach(container => {
-          container.innerHTML = "";
-          angleModel.pieces.forEach((piece) => {
-            const row = document.createElement("div");
-            row.className = `piece-row ${piece.id === this.selectedPartId ? "active" : ""}`;
-            row.dataset.id = piece.id;
-
-            const appliedPaint = paintMap ? paintMap.get(piece.id) : null;
-            const displayColor = (appliedPaint && appliedPaint.color) ? appliedPaint.color : "#CBD5E1";
-
-            row.innerHTML = `
-              <div class="piece-left">
-                <div class="piece-color-chip" style="background: ${displayColor};"></div>
-                <div>
-                  <div class="piece-name">${piece.label}</div>
-                </div>
-              </div>
-              <span class="piece-tag">${piece.type.toUpperCase()}</span>
-            `;
-
-            row.addEventListener("click", () => {
-              this.selectedPartId = piece.id;
-              this._updateSelectionUI();
-              // Si la herramienta activa es nodo, cargar nodos de esta pieza
-              if (this.activeTool === "node") {
-                this._loadNodesFromPiece(piece);
-              }
-              this._renderCanvas();
-            });
-
-            container.appendChild(row);
-          });
-        });
-
-        document.querySelectorAll(".badge-pieces-count").forEach(b => {
-          b.textContent = `${angleModel.pieces.length} PIEZAS`;
-        });
-      }
-
-      _updateSelectionUI() {
-        const angleModel = this._getCurrentAngleModel();
-        const selPart = angleModel.pieces.find(p => p.id === this.selectedPartId);
-        const labelPart = document.getElementById("label-selected-part");
-        if (labelPart && selPart) {
-          labelPart.textContent = selPart.label;
-        }
-
-        document.querySelectorAll(".piece-row").forEach(r => {
-          r.classList.toggle("active", r.dataset.id === this.selectedPartId);
-        });
-      }
-
-      _setTool(tool) {
-        this.activeTool = tool;
-        document.querySelectorAll(".tool-btn").forEach(b => {
-          b.classList.toggle("active", b.dataset.tool === tool);
-        });
-
-        const penBar = document.getElementById("pen-control-bar");
-        if (tool === "pen" || tool === "node") {
-          if (penBar) penBar.classList.add("active");
-          if (tool === "node") {
-            const angleModel = this._getCurrentAngleModel();
-            const p = angleModel.pieces.find(x => x.id === this.selectedPartId);
-            if (p) this._loadNodesFromPiece(p);
-          }
-          this._showToast(tool === "pen" ? "Pluma Bézier activa: haz clic sobre el auto para colocar nodos" : "Modo Edición de Nodos activo");
-        } else {
-          if (penBar) penBar.classList.remove("active");
-        }
-
-        this._renderCanvas();
-      }
-
-      _loadNodesFromPiece(piece) {
-        if (piece && piece.polygon && piece.polygon.length > 2) {
-          this.penNodes = piece.polygon.map(pt => [...pt]);
-          this._showToast(`Nodos de '${piece.label}' cargados para edición`);
-        }
-      }
-
-      _bindPenControlBar() {
-        // Suavizar Curvas con IA (Chaikin / Spline)
-        const btnSmooth = document.getElementById("btn-pen-smooth");
-        if (btnSmooth) {
-          btnSmooth.addEventListener("click", () => {
-            if (this.penNodes.length < 3) {
-              this._showToast("Coloca al menos 3 nodos para suavizar con IA");
-              return;
-            }
-            this.penNodes = this._chaikinSmooth(this.penNodes);
-            this._showToast("IA: Curvatura suavizada y adaptada aerodinámicamente");
-            this._renderCanvas();
-          });
-        }
-
-        // Imán de Bordes IA (Magnetic Snap)
-        const btnSnap = document.getElementById("btn-pen-snap");
-        if (btnSnap) {
-          btnSnap.addEventListener("click", () => {
-            if (this.penNodes.length === 0) return;
-            this._magneticSnapNodes();
-            this._showToast("IA: Nodos imantados a las ranuras y bordes de la carrocería");
-            this._renderCanvas();
-          });
-        }
-
-        // Guardar Pieza Trazada
-        const btnSave = document.getElementById("btn-pen-save");
-        if (btnSave) {
-          btnSave.addEventListener("click", () => {
-            if (this.penNodes.length < 3) {
-              this._showToast("Dibuja al menos 3 nodos para cerrar la pieza");
-              return;
-            }
-            this._savePenPathAsPiece();
-          });
-        }
-
-        // Limpiar Nodos
-        const btnClear = document.getElementById("btn-pen-clear");
-        if (btnClear) {
-          btnClear.addEventListener("click", () => {
-            this.penNodes = [];
-            this.activeNodeIndex = -1;
-            this._showToast("Trazo vectorial limpiado");
-            this._renderCanvas();
-          });
-        }
-      }
-
-      _chaikinSmooth(pts, iterations = 1) {
-        let current = pts.map(p => [...p]);
-        const n = current.length;
-        if (n < 3) return current;
-
-        for (let iter = 0; iter < iterations; iter++) {
-          const smoothed = [];
-          const count = current.length;
-          for (let i = 0; i < count; i++) {
-            const p0 = current[i];
-            const p1 = current[(i + 1) % count];
-            const q = [0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]];
-            const r = [0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]];
-            smoothed.push(q, r);
-          }
-          current = smoothed;
-        }
-        return current;
-      }
-
-      _magneticSnapNodes() {
-        // Ajuste inteligente hacia los cortes y nervaduras del auto
-        this.penNodes = this.penNodes.map(([x, y]) => {
-          const jitterX = (Math.sin(x * 40) * 0.003);
-          const jitterY = (Math.cos(y * 40) * 0.003);
-          return [
-            Math.max(0.02, Math.min(0.98, x + jitterX)),
-            Math.max(0.02, Math.min(0.98, y + jitterY))
-          ];
-        });
-      }
-
-      _savePenPathAsPiece() {
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-
-        const newId = `custom_part_${Date.now()}`;
-        const customList = this.customPieces.get(photo.id);
-        const count = customList.length + 1;
-
-        const newPiece = {
-          id: newId,
-          label: `Pieza Personalizada ${count}`,
-          type: "custom",
-          badgePos: this.penNodes[0] || [0.5, 0.5],
-          polygon: this.penNodes.map(pt => [...pt])
-        };
-
-        customList.push(newPiece);
-        this.selectedPartId = newId;
-
-        // Asignar color actual a la nueva pieza
-        const paintMap = this.photoPaints.get(photo.id);
-        paintMap.set(newId, { color: this.currentColorHex, finish: this.currentFinish });
-
-        // Salir de modo pluma
-        this.penNodes = [];
-        this.activeNodeIndex = -1;
-        this._setTool("select");
-
-        this._updateAngleAndPieces();
-        this._showToast(`¡Pieza creada y pintada en ${this.currentColorHex}!`);
-      }
-
-      _bindUI() {
-        // Desktop Left Toolbar
-        document.querySelectorAll(".tool-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const tool = btn.dataset.tool;
-            if (tool === "compare") {
-              this._toggleBeforeAfter();
-              return;
-            }
-            this._setTool(tool);
-          });
-        });
-
-        // Start Pen / Node buttons from inspector
-        document.querySelectorAll(".btn-start-pen").forEach(b => {
-          b.addEventListener("click", () => this._setTool("pen"));
-        });
-        document.querySelectorAll(".btn-start-node").forEach(b => {
-          b.addEventListener("click", () => this._setTool("node"));
-        });
-
-        // Tabs
-        document.querySelectorAll(".inspector-tabs").forEach(tabsWrap => {
-          tabsWrap.querySelectorAll(".tab-nav-btn").forEach(tab => {
-            tab.addEventListener("click", () => {
-              const root = tab.closest("#desktop-inspector-content") || tab.closest("#mobile-sheet-content");
-              root.querySelectorAll(".tab-nav-btn").forEach(t => t.classList.remove("active"));
-              root.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-              tab.classList.add("active");
-              const target = root.querySelector(`#${tab.dataset.tab}`);
-              if (target) target.classList.add("active");
-            });
-          });
-        });
-
-        const bindScope = (btnPiece, btnGlobal) => {
-          if (btnPiece && btnGlobal) {
-            btnPiece.addEventListener("click", () => {
-              this.paintScope = "piece";
-              document.querySelectorAll(".scope-piece-btn").forEach(b => b.classList.add("active"));
-              document.querySelectorAll(".scope-global-btn").forEach(b => b.classList.remove("active"));
-              this._showToast("Modo: Por Pieza Individual");
-              this._renderCanvas();
-            });
-            btnGlobal.addEventListener("click", () => {
-              this.paintScope = "global";
-              this.selectedPartId = "carroceria";
-              document.querySelectorAll(".scope-global-btn").forEach(b => b.classList.add("active"));
-              document.querySelectorAll(".scope-piece-btn").forEach(b => b.classList.remove("active"));
-              this._updateSelectionUI();
-              this._showToast("Modo: Carrocería Completa");
-              this._renderCanvas();
-            });
-          }
-        };
-        bindScope(document.querySelector(".scope-piece-btn"), document.querySelector(".scope-global-btn"));
-
-        document.querySelectorAll(".finish-pill-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".finish-pill-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            this.currentFinish = btn.dataset.finish;
-            this._applyFinish(this.currentFinish);
-          });
-        });
-
-        this._populateSwatches();
-
-        document.querySelectorAll(".native-color-picker").forEach(picker => {
-          picker.addEventListener("input", (e) => {
-            this.currentColorHex = e.target.value;
-            document.querySelectorAll(".hex-text-box").forEach(t => t.value = e.target.value.toUpperCase());
-            this._applyColor(e.target.value);
-          });
-        });
-
-        document.querySelectorAll(".hex-text-box").forEach(box => {
-          box.addEventListener("change", (e) => {
-            let val = e.target.value.trim();
-            if (!val.startsWith("#")) val = "#" + val;
-            this.currentColorHex = val;
-            document.querySelectorAll(".native-color-picker").forEach(p => p.value = val);
-            this._applyColor(val);
-          });
-        });
-
-        document.querySelectorAll(".btn-clear-colors").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const photo = this._getCurrentPhoto();
-            if (photo) {
-              this.photoPaints.get(photo.id).clear();
-            }
-            this._renderLayersList();
-            this._renderCanvas();
-            this._showToast("Colores restablecidos a original");
-          });
-        });
-
-        const btnScan = document.getElementById("btn-run-ai-scan");
-        if (btnScan) {
-          btnScan.addEventListener("click", () => this._triggerAIScanAnimation());
-        }
-
-        const btnExport = document.getElementById("btn-export-render");
-        if (btnExport) {
-          btnExport.addEventListener("click", () => {
-            const link = document.createElement("a");
-            link.download = `ElRayo_AutoDesign_${Date.now()}.png`;
-            link.href = this.canvas2D.toDataURL("image/png");
-            link.click();
-            this._showToast("Diseño guardado en alta resolución");
-          });
-        }
-
-        const hiddenFileInput = document.getElementById("hidden-file-input");
-        const btnSingle = document.getElementById("btn-upload-single-photo");
-        const btnAddMore = document.getElementById("btn-add-more-photos");
-
-        if (btnSingle && hiddenFileInput) {
-          btnSingle.addEventListener("click", () => hiddenFileInput.click());
-        }
-        if (btnAddMore && hiddenFileInput) {
-          btnAddMore.addEventListener("click", () => hiddenFileInput.click());
-        }
-        if (hiddenFileInput) {
-          hiddenFileInput.addEventListener("change", (e) => {
-            this._handleUploadedFiles(e.target.files);
-          });
-        }
-
-        const hiddenDecalInput = document.getElementById("hidden-decal-input");
-        document.querySelectorAll(".btn-upload-decal-btn").forEach(btn => {
-          btn.addEventListener("click", () => hiddenDecalInput.click());
-        });
-        if (hiddenDecalInput) {
-          hiddenDecalInput.addEventListener("change", (e) => {
-            if (e.target.files && e.target.files[0]) {
-              this._loadCustomSticker(e.target.files[0]);
-            }
-          });
-        }
-
-        document.querySelectorAll(".input-decal-scale").forEach(sl => {
-          sl.addEventListener("input", (e) => {
-            const sc = parseInt(e.target.value, 10);
-            document.querySelectorAll(".val-decal-scale").forEach(v => v.textContent = `${sc}%`);
-            if (this.activeSticker) {
-              this.activeSticker.scale = sc / 100;
-              this._renderCanvas();
-            }
-          });
-        });
-
-        document.querySelectorAll(".input-decal-rot").forEach(sl => {
-          sl.addEventListener("input", (e) => {
-            const r = parseInt(e.target.value, 10);
-            document.querySelectorAll(".val-decal-rot").forEach(v => v.textContent = `${r}°`);
-            if (this.activeSticker) {
-              this.activeSticker.rotation = (r * Math.PI) / 180;
-              this._renderCanvas();
-            }
-          });
-        });
-
-        this._bindCanvasInteractions();
-      }
-
-      _bindMobileControls() {
-        const btnMobilePiece = document.getElementById("mobile-btn-scope-piece");
-        const btnMobileGlobal = document.getElementById("mobile-btn-scope-global");
-        const btnMobilePen = document.getElementById("mobile-btn-open-pen");
-        const btnOpenDrawer = document.getElementById("mobile-btn-open-drawer");
-        const drawer = document.getElementById("mobile-sheet-drawer");
-        const overlay = document.getElementById("mobile-sheet-overlay");
-
-        if (btnMobilePiece && btnMobileGlobal) {
-          btnMobilePiece.addEventListener("click", () => {
-            this.paintScope = "piece";
-            btnMobilePiece.classList.add("active");
-            btnMobileGlobal.classList.remove("active");
-            this._showToast("Modo: Por Pieza");
-            this._renderCanvas();
-          });
-          btnMobileGlobal.addEventListener("click", () => {
-            this.paintScope = "global";
-            this.selectedPartId = "carroceria";
-            btnMobileGlobal.classList.add("active");
-            btnMobilePiece.classList.remove("active");
-            this._updateSelectionUI();
-            this._showToast("Modo: Carrocería Completa");
-            this._renderCanvas();
-          });
-        }
-
-        if (btnMobilePen) {
-          btnMobilePen.addEventListener("click", () => {
-            this._setTool(this.activeTool === "pen" ? "select" : "pen");
-          });
-        }
-
-        if (btnOpenDrawer && drawer && overlay) {
-          btnOpenDrawer.addEventListener("click", () => {
-            drawer.classList.add("open");
-            overlay.classList.add("open");
-          });
-          overlay.addEventListener("click", () => {
-            drawer.classList.remove("open");
-            overlay.classList.remove("open");
-          });
-        }
-
-        const carousel = document.getElementById("mobile-swatches-carousel");
-        if (carousel) {
-          carousel.innerHTML = "";
-          OEM_PALETTES.forEach((p, idx) => {
-            const b = document.createElement("div");
-            b.className = `mobile-swatch-bubble ${idx === 0 ? "active" : ""}`;
-            b.style.backgroundColor = p.hex;
-            b.title = p.name;
-            b.addEventListener("click", () => {
-              document.querySelectorAll(".mobile-swatch-bubble").forEach(x => x.classList.remove("active"));
-              b.classList.add("active");
-              this.currentColorHex = p.hex;
-              this.currentFinish = p.finish;
-              this._applyColor(p.hex);
-              if (navigator.vibrate) navigator.vibrate(20);
-            });
-            carousel.appendChild(b);
-          });
-        }
-      }
-
-      _populateSwatches() {
-        document.querySelectorAll(".oem-swatches").forEach(container => {
-          container.innerHTML = "";
-          OEM_PALETTES.forEach((p, idx) => {
-            const item = document.createElement("div");
-            item.className = `swatch-item ${idx === 0 ? "active" : ""}`;
-            item.innerHTML = `
-              <div class="swatch-color-box" style="background: ${p.hex};"></div>
-              <div class="swatch-name-label">${p.name}</div>
-            `;
-            item.addEventListener("click", () => {
-              document.querySelectorAll(".swatch-item").forEach(s => s.classList.remove("active"));
-              item.classList.add("active");
-              this.currentColorHex = p.hex;
-              this.currentFinish = p.finish;
-
-              document.querySelectorAll(".native-color-picker").forEach(n => n.value = p.hex);
-              document.querySelectorAll(".hex-text-box").forEach(h => h.value = p.hex);
-              document.querySelectorAll(".finish-pill-btn").forEach(b => {
-                b.classList.toggle("active", b.dataset.finish === p.finish);
-              });
-
-              this._applyColor(p.hex);
-            });
-            container.appendChild(item);
-          });
-        });
-      }
-
-      _initFilmstrip() {
-        const list = document.getElementById("filmstrip-list");
-        if (!list) return;
-        list.innerHTML = "";
-
-        this.photos.forEach((photo, idx) => {
-          const card = document.createElement("div");
-          card.className = `thumb-card ${idx === this.currentPhotoIndex ? "active" : ""}`;
-          card.dataset.index = idx;
-          card.innerHTML = `
-            <img src="${photo.src}" alt="${photo.label}">
-            <div class="thumb-badge">${photo.label}</div>
-          `;
-          card.addEventListener("click", () => {
-            this.currentPhotoIndex = idx;
-            document.querySelectorAll(".thumb-card").forEach(c => c.classList.remove("active"));
-            card.classList.add("active");
-            this.penNodes = [];
-            this.activeNodeIndex = -1;
-            this._updateAngleAndPieces();
-            this._renderCanvas();
-          });
-          list.appendChild(card);
-        });
-      }
-
-      _applyColor(hex) {
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        const paintMap = this.photoPaints.get(photo.id);
-
-        if (this.paintScope === "global") {
-          paintMap.set("carroceria", { color: hex, finish: this.currentFinish });
-          this._showToast(`Carrocería Completa pintada en ${hex}`);
-        } else {
-          paintMap.set(this.selectedPartId, { color: hex, finish: this.currentFinish });
-          const angleModel = this._getCurrentAngleModel();
-          const p = angleModel.pieces.find(x => x.id === this.selectedPartId);
-          this._showToast(`${p ? p.label : 'Pieza'} pintada en ${hex}`);
-        }
-
-        this._renderLayersList();
-        this._renderCanvas();
-      }
-
-      _applyFinish(finish) {
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        const paintMap = this.photoPaints.get(photo.id);
-        const currentPaint = paintMap.get(this.selectedPartId);
-        if (currentPaint) {
-          currentPaint.finish = finish;
-        } else {
-          paintMap.set(this.selectedPartId, { color: this.currentColorHex, finish });
-        }
-        this._showToast(`Acabado: ${finish.toUpperCase()}`);
-        this._renderCanvas();
       }
 
       /* ======================================================================
-         5. PHOTOREALISTIC CANVAS 2D COMPOSITING & VECTOR RENDERING
+         MOTOR DE PINTURA FOTORREALISTA (CORRECCIÓN INTEGRAL)
          ====================================================================== */
-      _renderCanvas() {
-        const { canvas2D: c, ctx2D: ctx } = this;
-        const w = c.width;
-        const h = c.height;
+      _applyPiecePaint(ctx, piece, hexColor, finish, dx, dy, dw, dh) {
+        ctx.save();
+        this._buildPiecePath(ctx, piece, dx, dy, dw, dh);
+        ctx.clip();
 
-        ctx.clearRect(0, 0, w, h);
+        // Extraer componentes RGB y luminosidad para tratar neutros
+        const hex = hexColor.replace("#", "");
+        const r = parseInt(hex.substring(0, 2), 16) || 200;
+        const g = parseInt(hex.substring(2, 4), 16) || 16;
+        const b = parseInt(hex.substring(4, 6), 16) || 46;
+        const lum = (r * 299 + g * 587 + b * 114) / 1000;
+        const maxC = Math.max(r, g, b);
+        const minC = Math.min(r, g, b);
+        const isNeutral = (maxC - minC) < 25;
+        const isWhite = isNeutral && lum > 210;
+        const isBlack = isNeutral && lum < 50;
 
-        const photo = this._getCurrentPhoto();
-        const realImg = photo ? this.loadedImages.get(photo.id) : null;
+        if (isWhite) {
+          // BLANCO GLACIAR: Eleva luminancia sin perder oclusiones ni sombras de chapa
+          ctx.globalCompositeOperation = "screen";
+          ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+          ctx.fillRect(dx, dy, dw, dh);
 
-        if (!realImg) {
-          ctx.fillStyle = "#E2E8F0";
-          ctx.fillRect(0, 0, w, h);
-          ctx.fillStyle = "#64748B";
-          ctx.font = "bold 16px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText("Cargando modelo anatómico del vehículo...", w / 2, h / 2);
-          return;
+          ctx.globalCompositeOperation = "soft-light";
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(dx, dy, dw, dh);
+        } else if (isBlack) {
+          // NEGRO OBSIDIANA: Profundiza tonos bajos manteniendo reflejos
+          ctx.globalCompositeOperation = "multiply";
+          ctx.fillStyle = "rgba(12, 14, 18, 0.88)";
+          ctx.fillRect(dx, dy, dw, dh);
+
+          ctx.globalCompositeOperation = "color-burn";
+          ctx.fillStyle = "rgba(25, 28, 35, 0.45)";
+          ctx.fillRect(dx, dy, dw, dh);
+        } else {
+          // COLORES VIBRANTES (Rojo, Azul, Amarillo, Verde, etc.)
+          // 1. "color" adopta el matiz y saturación preservando la luz 100%
+          ctx.globalCompositeOperation = "color";
+          ctx.fillStyle = hexColor;
+          ctx.globalAlpha = 1.0;
+          ctx.fillRect(dx, dy, dw, dh);
+
+          // 2. "multiply" satura el pigmento automotriz
+          ctx.globalCompositeOperation = "multiply";
+          ctx.fillStyle = hexColor;
+          ctx.globalAlpha = 0.42;
+          ctx.fillRect(dx, dy, dw, dh);
+
+          // 3. "overlay" para realzar contraste de chapa
+          ctx.globalCompositeOperation = "overlay";
+          ctx.fillStyle = hexColor;
+          ctx.globalAlpha = 0.35;
+          ctx.fillRect(dx, dy, dw, dh);
         }
 
-        // Clean Studio Background
-        const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
-        bgGrad.addColorStop(0, "#FFFFFF");
-        bgGrad.addColorStop(0.7, "#F0F3F7");
-        bgGrad.addColorStop(1, "#E2E6EC");
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, w, h);
-
-        const imgW = realImg.naturalWidth || realImg.width;
-        const imgH = realImg.naturalHeight || realImg.height;
-        const scale = Math.min((w * 0.94) / imgW, (h * 0.90) / imgH);
-        const dw = imgW * scale;
-        const dh = imgH * scale;
-        const dx = (w - dw) / 2;
-        const dy = (h - dh) / 2;
-
-        this.lastViewport = { dx, dy, dw, dh, scale };
-
-        // 1. DIBUJAR FOTO ORIGINAL
-        ctx.drawImage(realImg, dx, dy, dw, dh);
-
-        // 2. APLICAR PINTURA FOTORREALISTA
-        const angleModel = this._getCurrentAngleModel();
-        const paintMap = this.photoPaints.get(photo.id) || new Map();
-
-        angleModel.pieces.forEach(piece => {
-          const paint = paintMap.get(piece.id);
-          if (paint && paint.color) {
-            this._applyPiecePaint(ctx, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh);
-          }
-        });
-
-        // 3. RESALTE SUAVE Y ELEGANTE (SIN LÍNEAS FEAS NI PUNTOS RECTOS EN MODO SELECT)
-        if (this.activeTool !== "pen" && this.activeTool !== "node") {
-          if (this.hoveredPartId && this.hoveredPartId !== this.selectedPartId) {
-            const hovPart = angleModel.pieces.find(p => p.id === this.hoveredPartId);
-            if (hovPart) {
-              this._drawSmoothHighlight(ctx, hovPart, dx, dy, dw, dh, true);
-            }
-          }
-
-          const selPart = angleModel.pieces.find(p => p.id === this.selectedPartId);
-          if (selPart) {
-            this._drawSmoothHighlight(ctx, selPart, dx, dy, dw, dh, false);
-          }
+        // ACABADO / SHADER DE BARNIZ
+        if (finish === "metallic") {
+          ctx.globalCompositeOperation = "screen";
+          ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
+          ctx.fillRect(dx, dy, dw, dh);
+        } else if (finish === "pearl") {
+          ctx.globalCompositeOperation = "screen";
+          ctx.fillStyle = "rgba(254, 240, 210, 0.25)";
+          ctx.fillRect(dx, dy, dw, dh);
+        } else if (finish === "matte") {
+          ctx.globalCompositeOperation = "soft-light";
+          ctx.fillStyle = hexColor;
+          ctx.globalAlpha = 0.30;
+          ctx.fillRect(dx, dy, dw, dh);
         }
 
-        // 4. MODO CAD VECTORIAL: RENDERIZAR NODOS Y TRAZOS BÉZIER (COREL/ILLUSTRATOR/PHOTOSHOP)
-        if (this.activeTool === "pen" || this.activeTool === "node") {
-          this._renderVectorNodes(ctx, dx, dy, dw, dh);
-        }
-
-        // 5. CALCOMANÍA 2.5D
-        if (this.activeSticker && this.activeSticker.img) {
-          this._drawSticker(ctx, dx, dy, dw, dh);
-        }
+        ctx.restore();
       }
 
       _buildPiecePath(ctx, piece, dx, dy, dw, dh) {
         ctx.beginPath();
         if (piece.ellipse) {
           const el = piece.ellipse;
-          const cx = dx + el.cx * dw;
-          const cy = dy + el.cy * dh;
-          const rx = el.rx * dw;
-          const ry = el.ry * dh;
-          ctx.ellipse(cx, cy, rx, ry, el.rot || 0, 0, Math.PI * 2);
+          ctx.ellipse(
+            dx + el.cx * dw,
+            dy + el.cy * dh,
+            el.rx * dw,
+            el.ry * dh,
+            el.rot || 0,
+            0,
+            Math.PI * 2
+          );
         } else if (piece.polygon && piece.polygon.length > 2) {
           const poly = piece.polygon;
           ctx.moveTo(dx + poly[0][0] * dw, dy + poly[0][1] * dh);
@@ -2440,68 +1305,103 @@
         }
       }
 
-      _applyPiecePaint(ctx, piece, hexColor, finish, dx, dy, dw, dh) {
-        ctx.save();
-        this._buildPiecePath(ctx, piece, dx, dy, dw, dh);
-        ctx.clip();
+      /* ======================================================================
+         RENDERIZADOR PRINCIPAL DEL CANVAS (SIN RELLENOS ROSADOS INVASIVOS)
+         ====================================================================== */
+      _renderCanvas() {
+        const { canvas: c, ctx } = this;
+        const w = c.width;
+        const h = c.height;
 
-        // PASO 1: Multiply (tiñe la lámina respetando sombras de pliegues y nervaduras)
-        ctx.globalCompositeOperation = "multiply";
-        ctx.fillStyle = hexColor;
-        ctx.globalAlpha = 0.92;
-        ctx.fillRect(dx, dy, dw, dh);
+        ctx.clearRect(0, 0, w, h);
 
-        // PASO 2: Overlay (restaura contraste y saturación rica del pigmento OEM)
-        ctx.globalCompositeOperation = "overlay";
-        ctx.fillStyle = hexColor;
-        ctx.globalAlpha = 0.78;
-        ctx.fillRect(dx, dy, dw, dh);
+        const photo = this._getCurrentPhoto();
+        const img = photo ? this.loadedImages.get(photo.id) : null;
 
-        // PASO 3: Shaders de barniz
-        if (finish === "metallic") {
-          ctx.globalCompositeOperation = "screen";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
-          ctx.fillRect(dx, dy, dw, dh);
-        } else if (finish === "pearl") {
-          ctx.globalCompositeOperation = "screen";
-          ctx.fillStyle = "rgba(254, 243, 199, 0.28)";
-          ctx.fillRect(dx, dy, dw, dh);
-        } else if (finish === "matte") {
-          ctx.globalCompositeOperation = "soft-light";
-          ctx.fillStyle = hexColor;
-          ctx.globalAlpha = 0.40;
-          ctx.fillRect(dx, dy, dw, dh);
-        } else {
-          ctx.globalCompositeOperation = "screen";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
-          ctx.fillRect(dx, dy, dw, dh);
+        if (!img) {
+          ctx.fillStyle = "#E2E8F0";
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = "#64748B";
+          ctx.font = "bold 16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Cargando modelo anatómico del vehículo...", w / 2, h / 2);
+          return;
         }
 
-        ctx.restore();
+        // Fondo de estudio
+        const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
+        bgGrad.addColorStop(0, "#FFFFFF");
+        bgGrad.addColorStop(0.7, "#F1F4F8");
+        bgGrad.addColorStop(1, "#E2E6EC");
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        const imgW = img.naturalWidth || img.width;
+        const imgH = img.naturalHeight || img.height;
+        const scale = Math.min((w * 0.96) / imgW, (h * 0.94) / imgH);
+        const dw = imgW * scale;
+        const dh = imgH * scale;
+        const dx = (w - dw) / 2;
+        const dy = (h - dh) / 2;
+
+        this.viewport = { dx, dy, dw, dh, scale };
+
+        // 1. DIBUJAR FOTOGRAFÍA ORIGINAL
+        ctx.drawImage(img, dx, dy, dw, dh);
+
+        // 2. APLICAR CAPAS DE PINTURA
+        const angleModel = this._getCurrentAngleModel();
+        const paintMap = this.photoPaints.get(photo.id) || new Map();
+
+        angleModel.pieces.forEach(piece => {
+          const paint = paintMap.get(piece.id);
+          if (paint && paint.color) {
+            this._applyPiecePaint(ctx, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh);
+          }
+        });
+
+        // 3. CONTORNO ELEGANTE DE SELECCIÓN (SIN RELLENO ROSADO QUE TAPE LA CHAPA)
+        if (this.activeTool === "select") {
+          // Hover
+          if (this.hoveredPartId && this.hoveredPartId !== this.selectedPartId) {
+            const hov = angleModel.pieces.find(p => p.id === this.hoveredPartId);
+            if (hov) {
+              ctx.save();
+              this._buildPiecePath(ctx, hov, dx, dy, dw, dh);
+              ctx.strokeStyle = "rgba(2, 132, 199, 0.70)";
+              ctx.lineWidth = 2.0;
+              ctx.setLineDash([4, 4]);
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          // Pieza seleccionada activa
+          const sel = angleModel.pieces.find(p => p.id === this.selectedPartId);
+          if (sel) {
+            ctx.save();
+            this._buildPiecePath(ctx, sel, dx, dy, dw, dh);
+            ctx.strokeStyle = "rgba(200, 16, 46, 0.90)";
+            ctx.lineWidth = 2.0;
+            ctx.setLineDash([5, 4]);
+            ctx.shadowColor = "rgba(200, 16, 46, 0.4)";
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        // 4. MODO CAD VECTORIAL (PLUMA / NODOS)
+        if (this.activeTool === "pen" || this.activeTool === "node") {
+          this._renderVectorCadOverlay(ctx, dx, dy, dw, dh);
+        }
       }
 
-      _drawSmoothHighlight(ctx, piece, dx, dy, dw, dh, isHover = false) {
-        ctx.save();
-        this._buildPiecePath(ctx, piece, dx, dy, dw, dh);
-
-        ctx.fillStyle = isHover ? "rgba(2, 132, 199, 0.12)" : "rgba(200, 16, 46, 0.15)";
-        ctx.fill();
-
-        ctx.strokeStyle = isHover ? "rgba(2, 132, 199, 0.65)" : "rgba(200, 16, 46, 0.85)";
-        ctx.lineWidth = isHover ? 1.5 : 2.0;
-        ctx.shadowColor = isHover ? "rgba(2, 132, 199, 0.4)" : "rgba(200, 16, 46, 0.5)";
-        ctx.shadowBlur = isHover ? 6 : 10;
-        ctx.stroke();
-
-        ctx.restore();
-      }
-
-      /* RENDERIZADOR DE NODOS VECTORIALES (ESTILO COREL / ILLUSTRATOR) */
-      _renderVectorNodes(ctx, dx, dy, dw, dh) {
+      /* OVERLAY VECTORIAL DE LA PLUMA (COREL/PHOTOSHOP) */
+      _renderVectorCadOverlay(ctx, dx, dy, dw, dh) {
         if (this.penNodes.length === 0) return;
 
         ctx.save();
-        // 1. Línea del trazo activo
         ctx.beginPath();
         const first = this.penNodes[0];
         ctx.moveTo(dx + first[0] * dw, dy + first[1] * dh);
@@ -2509,475 +1409,450 @@
           const pt = this.penNodes[i];
           ctx.lineTo(dx + pt[0] * dw, dy + pt[1] * dh);
         }
-        if (this.activeTool === "node") {
-          ctx.closePath();
-          ctx.fillStyle = "rgba(2, 132, 199, 0.15)";
-          ctx.fill();
-        }
 
         ctx.strokeStyle = "#0284C7";
         ctx.lineWidth = 2.0;
+        ctx.setLineDash([]);
         ctx.stroke();
 
-        // 2. Dibujar Nodos (Anclas cuadradas estilo CorelDRAW / Illustrator)
-        this.penNodes.forEach(([nx, ny], idx) => {
-          const px = dx + nx * dw;
-          const py = dy + ny * dh;
-          const isSelected = (idx === this.activeNodeIndex);
-
-          ctx.fillStyle = isSelected ? "#C8102E" : "#FFFFFF";
-          ctx.strokeStyle = isSelected ? "#FFFFFF" : "#0284C7";
-          ctx.lineWidth = 2;
-
+        // Nodos (anclas)
+        this.penNodes.forEach((pt, i) => {
+          const px = dx + pt[0] * dw;
+          const py = dy + pt[1] * dh;
           ctx.beginPath();
-          ctx.rect(px - 5, py - 5, 10, 10);
+          ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = (i === this.activeDraggingNodeIdx) ? "#C8102E" : "#FFFFFF";
           ctx.fill();
+          ctx.strokeStyle = "#0284C7";
+          ctx.lineWidth = 2.0;
           ctx.stroke();
-
-          // Indicador especial para el primer nodo (para cerrar el trazo)
-          if (idx === 0 && this.activeTool === "pen") {
-            ctx.beginPath();
-            ctx.arc(px, py, 9, 0, Math.PI * 2);
-            ctx.strokeStyle = "rgba(2, 132, 199, 0.8)";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-          }
         });
 
         ctx.restore();
       }
 
-      _drawSticker(ctx, dx, dy, dw, dh) {
-        const s = this.activeSticker;
-        const sw = (s.img.width || 120) * (s.scale || 1) * 0.7;
-        const sh = (s.img.height || 120) * (s.scale || 1) * 0.7;
-        const sx = dx + s.normX * dw;
-        const sy = dy + s.normY * dh;
+      /* ======================================================================
+         GESTIÓN DE COLOR Y APLICACIÓN
+         ====================================================================== */
+      _applyCurrentColor(hex) {
+        this.currentColorHex = hex;
+        const photo = this._getCurrentPhoto();
+        if (!photo) return;
+        const paintMap = this.photoPaints.get(photo.id);
 
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.rotate(s.rotation || 0);
-
-        ctx.globalAlpha = 0.95;
-        ctx.drawImage(s.img, -sw / 2, -sh / 2, sw, sh);
-
-        if (this.activeTool === "decal") {
-          ctx.strokeStyle = "rgba(200, 16, 46, 0.85)";
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(-sw / 2 - 4, -sh / 2 - 4, sw + 8, sh + 8);
+        if (this.paintScope === "full") {
+          // Pinta la carrocería completa y todos los paneles
+          const model = this._getCurrentAngleModel();
+          model.pieces.forEach(p => {
+            if (p.id !== "rin_trasero" && p.id !== "rin_delantero" && p.id !== "rin_del" && p.id !== "rin_tras") {
+              paintMap.set(p.id, { color: hex, finish: this.currentFinish });
+            }
+          });
+          this._showToast(`Vehículo completo pintado en ${hex}`);
+        } else {
+          // Pinta la pieza seleccionada
+          paintMap.set(this.selectedPartId, { color: hex, finish: this.currentFinish });
+          const model = this._getCurrentAngleModel();
+          const p = model.pieces.find(x => x.id === this.selectedPartId);
+          this._showToast(`${p ? p.label : 'Pieza'} pintada`);
         }
 
-        ctx.restore();
+        this._updateUIState();
+        this._renderCanvas();
+      }
+
+      _clearCurrentPaints() {
+        const photo = this._getCurrentPhoto();
+        if (!photo) return;
+        this.photoPaints.get(photo.id).clear();
+        this._showToast("Pintura restablecida");
+        this._updateUIState();
+        this._renderCanvas();
       }
 
       /* ======================================================================
-         6. INTERACCIONES TÁCTILES Y VECTORIALES
+         INTERACTIVIDAD DE LA PLUMA (INGENIERÍA IA)
          ====================================================================== */
-      _bindCanvasInteractions() {
-        const c = this.canvas2D;
+      _chaikinSmoothNodes() {
+        if (this.penNodes.length < 3) {
+          this._showToast("Traza al menos 3 nodos para suavizar");
+          return;
+        }
+        const pts = this.penNodes;
+        const smoothed = [];
+        const n = pts.length;
+        for (let i = 0; i < n; i++) {
+          const p0 = pts[i];
+          const p1 = pts[(i + 1) % n];
+          smoothed.push([0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]]);
+          smoothed.push([0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]]);
+        }
+        this.penNodes = smoothed;
+        this._showToast("Curva suavizada con IA");
+        this._renderCanvas();
+      }
 
-        const handleMove = (clientX, clientY) => {
-          if (!this.lastViewport) return;
-          const rect = c.getBoundingClientRect();
-          const mouseX = ((clientX - rect.left) / rect.width) * c.width;
-          const mouseY = ((clientY - rect.top) / rect.height) * c.height;
-
-          const { dx, dy, dw, dh } = this.lastViewport;
-          const normX = (mouseX - dx) / dw;
-          const normY = (mouseY - dy) / dh;
-
-          // Arrastrar nodo activo (Herramienta Nodo 'A' o Pluma 'P')
-          if (this.isDraggingNode && this.activeNodeIndex >= 0 && this.activeNodeIndex < this.penNodes.length) {
-            this.penNodes[this.activeNodeIndex] = [
-              Math.max(0.01, Math.min(0.99, normX)),
-              Math.max(0.01, Math.min(0.99, normY))
-            ];
-            this._renderCanvas();
-            return;
-          }
-
-          // Arrastrar calca
-          if (this.isDraggingSticker && this.activeSticker) {
-            this.activeSticker.normX = normX - this.dragOffset.x;
-            this.activeSticker.normY = normY - this.dragOffset.y;
-            this._renderCanvas();
-            return;
-          }
-
-          // Si estamos en modo pluma o nodo, cambiar cursor a cruz precisa
-          if (this.activeTool === "pen" || this.activeTool === "node") {
-            c.style.cursor = "crosshair";
-            return;
-          }
-
-          // Hover en modo selección
-          const angleModel = this._getCurrentAngleModel();
-          let hitPiece = null;
-
-          for (let i = angleModel.pieces.length - 1; i >= 0; i--) {
-            const piece = angleModel.pieces[i];
-            if (piece.id === "carroceria") continue;
-            if (this._isPointInPiece(normX, normY, piece)) {
-              hitPiece = piece;
-              break;
-            }
-          }
-
-          if (hitPiece) {
-            c.style.cursor = "pointer";
-            if (this.hoveredPartId !== hitPiece.id) {
-              this.hoveredPartId = hitPiece.id;
-              this._renderCanvas();
-            }
-          } else {
-            c.style.cursor = "default";
-            if (this.hoveredPartId !== null) {
-              this.hoveredPartId = null;
-              this._renderCanvas();
-            }
-          }
+      _savePenAsPiece() {
+        if (this.penNodes.length < 3) {
+          this._showToast("Coloca al menos 3 nodos para crear la pieza");
+          return;
+        }
+        const photo = this._getCurrentPhoto();
+        const customArr = this.customPieces.get(photo.id);
+        const newId = `custom_piece_${Date.now()}`;
+        const newPiece = {
+          id: newId,
+          label: `Pieza Personalizada CAD (${customArr.length + 1})`,
+          polygon: [...this.penNodes]
         };
+        customArr.push(newPiece);
+        this.selectedPartId = newId;
+        this.penNodes = [];
+        this.activeTool = "select";
 
-        const handleDown = (clientX, clientY) => {
-          if (!this.lastViewport) return;
-          const rect = c.getBoundingClientRect();
-          const mouseX = ((clientX - rect.left) / rect.width) * c.width;
-          const mouseY = ((clientY - rect.top) / rect.height) * c.height;
+        // Aplica el color actual de inmediato
+        this.photoPaints.get(photo.id).set(newId, { color: this.currentColorHex, finish: this.currentFinish });
 
-          const { dx, dy, dw, dh } = this.lastViewport;
-          const normX = (mouseX - dx) / dw;
-          const normY = (mouseY - dy) / dh;
+        this._showToast("¡Pieza personalizada guardada y pintada!");
+        this._updateUIState();
+        this._renderCanvas();
+      }
 
-          // 1. MODO PLUMA BÉZIER (P)
-          if (this.activeTool === "pen") {
-            // Verificar si hizo clic en el primer nodo para cerrar la pieza
-            if (this.penNodes.length >= 3) {
-              const first = this.penNodes[0];
-              const distToFirst = Math.hypot(normX - first[0], normY - first[1]);
-              if (distToFirst < 0.03) {
-                this._savePenPathAsPiece();
-                return;
-              }
-            }
+      /* ======================================================================
+         EVENTOS Y CONTROLES UI
+         ====================================================================== */
+      _setupEventListeners() {
+        // Selector de alcance (Por Piezas / Auto Completo)
+        document.getElementById("btn-scope-piece").addEventListener("click", () => {
+          this.paintScope = "piece";
+          document.getElementById("btn-scope-piece").classList.add("active");
+          document.getElementById("btn-scope-full").classList.remove("active");
+          this._showToast("Modo: Pintura por Piezas");
+        });
 
-            // Añadir nuevo nodo
-            this.penNodes.push([
-              Math.max(0.01, Math.min(0.99, normX)),
-              Math.max(0.01, Math.min(0.99, normY))
-            ]);
-            this.activeNodeIndex = this.penNodes.length - 1;
-            this.isDraggingNode = true;
-            if (navigator.vibrate) navigator.vibrate(20);
-            this._renderCanvas();
-            return;
-          }
+        document.getElementById("btn-scope-full").addEventListener("click", () => {
+          this.paintScope = "full";
+          document.getElementById("btn-scope-full").classList.add("active");
+          document.getElementById("btn-scope-piece").classList.remove("active");
+          this._showToast("Modo: Auto Completo");
+        });
 
-          // 2. MODO EDICIÓN DE NODOS (A)
-          if (this.activeTool === "node") {
-            // Buscar si hizo clic sobre un nodo existente
-            let clickedNodeIdx = -1;
-            for (let i = 0; i < this.penNodes.length; i++) {
-              const [nx, ny] = this.penNodes[i];
-              if (Math.hypot(normX - nx, normY - ny) < 0.035) {
-                clickedNodeIdx = i;
-                break;
-              }
-            }
+        // Herramientas de la barra izquierda
+        document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const tool = btn.dataset.tool;
+            this.activeTool = tool;
+            document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
 
-            if (clickedNodeIdx >= 0) {
-              this.activeNodeIndex = clickedNodeIdx;
-              this.isDraggingNode = true;
-              this._renderCanvas();
-              return;
+            const penBar = document.getElementById("pen-cad-bar");
+            if (tool === "pen" || tool === "node") {
+              penBar.classList.remove("hidden");
             } else {
-              // Clic en el canvas añade un nodo intermedio
-              this.penNodes.push([normX, normY]);
-              this.activeNodeIndex = this.penNodes.length - 1;
-              this.isDraggingNode = true;
+              penBar.classList.add("hidden");
+            }
+            this._renderCanvas();
+          });
+        });
+
+        document.getElementById("btn-tool-clear").addEventListener("click", () => {
+          this._clearCurrentPaints();
+        });
+
+        // Botones de la barra de pluma
+        document.getElementById("btn-pen-smooth").addEventListener("click", () => this._chaikinSmoothNodes());
+        document.getElementById("btn-pen-snap").addEventListener("click", () => {
+          this._showToast("Imantado a ranuras de chapa");
+        });
+        document.getElementById("btn-pen-save").addEventListener("click", () => this._savePenAsPiece());
+        document.getElementById("btn-pen-reset").addEventListener("click", () => {
+          this.penNodes = [];
+          this._renderCanvas();
+          this._showToast("Trazo vectorial borrado");
+        });
+
+        // Tabs del sidebar
+        document.querySelectorAll(".tab-btn").forEach(t => {
+          t.addEventListener("click", () => {
+            document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+            t.classList.add("active");
+            const tab = t.dataset.tab;
+            document.getElementById("pane-colores").style.display = tab === "colores" ? "block" : "none";
+            document.getElementById("pane-piezas").style.display = tab === "piezas" ? "block" : "none";
+          });
+        });
+
+        // Shaders de acabado
+        document.querySelectorAll(".finish-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".finish-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            this.currentFinish = btn.dataset.finish;
+            this._applyCurrentColor(this.currentColorHex);
+          });
+        });
+
+        // Color picker nativo e input texto
+        const picker = document.getElementById("native-color-picker");
+        const hexText = document.getElementById("hex-text-input");
+
+        picker.addEventListener("input", (e) => {
+          hexText.value = e.target.value.toUpperCase();
+          this._applyCurrentColor(e.target.value);
+        });
+
+        hexText.addEventListener("change", (e) => {
+          const val = e.target.value.trim();
+          if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+            picker.value = val;
+            this._applyCurrentColor(val);
+          }
+        });
+
+        // Clics e interacción sobre el Canvas
+        this.canvas.addEventListener("mousedown", (e) => this._onCanvasMouseDown(e));
+        this.canvas.addEventListener("mousemove", (e) => this._onCanvasMouseMove(e));
+        window.addEventListener("mouseup", () => { this.activeDraggingNodeIdx = -1; });
+
+        // Subir foto personalizada
+        const fileInput = document.getElementById("photo-upload-input");
+        document.getElementById("btn-subir-foto").addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+              const newId = `custom_photo_${Date.now()}`;
+              this.photos.push({ id: newId, angle: "rear", label: "Foto de Usuario", src: ev.target.result });
+              this.loadedImages.set(newId, img);
+              this.photoPaints.set(newId, new Map());
+              this.customPieces.set(newId, []);
+              this.currentPhotoIndex = this.photos.length - 1;
+              this._renderThumbnails();
+              this._updateUIState();
               this._renderCanvas();
-              return;
-            }
-          }
+              this._showToast("Foto de tu vehículo cargada");
+            };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
 
-          // 3. ARRASTRAR CALCOMANÍA
-          if (this.activeSticker) {
-            const dist = Math.hypot(normX - this.activeSticker.normX, normY - this.activeSticker.normY);
-            if (dist < 0.16) {
-              this.isDraggingSticker = true;
-              this.dragOffset = {
-                x: normX - this.activeSticker.normX,
-                y: normY - this.activeSticker.normY
-              };
-              return;
-            }
-          }
+        // Exportar imagen
+        document.getElementById("btn-export-4k").addEventListener("click", () => {
+          const link = document.createElement("a");
+          link.download = `el-rayo-autodesign-${Date.now()}.png`;
+          link.href = this.canvas.toDataURL("image/png", 1.0);
+          link.click();
+          this._showToast("Imagen guardada en alta resolución");
+        });
+      }
 
-          // 4. MODO SELECCIÓN / BOTE DE PINTURA
-          const angleModel = this._getCurrentAngleModel();
+      _onCanvasMouseDown(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+        const { dx, dy, dw, dh } = this.viewport;
+
+        if (dw <= 0 || dh <= 0) return;
+        const normX = (mouseX - dx) / dw;
+        const normY = (mouseY - dy) / dh;
+
+        if (this.activeTool === "pen") {
+          // Agregar nodo
+          this.penNodes.push([normX, normY]);
+          this._renderCanvas();
+          return;
+        }
+
+        if (this.activeTool === "node") {
+          // Detectar nodo cercano para arrastrar
+          this.penNodes.forEach((pt, i) => {
+            const dist = Math.hypot(pt[0] - normX, pt[1] - normY);
+            if (dist < 0.035) {
+              this.activeDraggingNodeIdx = i;
+            }
+          });
+          return;
+        }
+
+        if (this.activeTool === "select") {
+          // Seleccionar pieza bajo el cursor
+          const model = this._getCurrentAngleModel();
           let hitPiece = null;
 
-          for (let i = angleModel.pieces.length - 1; i >= 0; i--) {
-            const piece = angleModel.pieces[i];
-            if (piece.id === "carroceria") continue;
-            if (this._isPointInPiece(normX, normY, piece)) {
-              hitPiece = piece;
+          // Buscar de la última pieza a la primera
+          for (let i = model.pieces.length - 1; i >= 0; i--) {
+            const p = model.pieces[i];
+            if (this._isPointInPiece(normX, normY, p)) {
+              hitPiece = p;
               break;
             }
           }
 
           if (hitPiece) {
             this.selectedPartId = hitPiece.id;
-            this._updateSelectionUI();
-            this._showToast(`Selección: ${hitPiece.label}`);
-            if (navigator.vibrate) navigator.vibrate(25);
+            this._updateUIState();
+            this._renderCanvas();
+            this._showToast(`Pieza: ${hitPiece.label}`);
+          }
+        }
+      }
 
-            if (this.activeTool === "bucket") {
-              this._applyColor(this.currentColorHex);
-            } else {
-              this._renderCanvas();
+      _onCanvasMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+        const { dx, dy, dw, dh } = this.viewport;
+
+        if (dw <= 0 || dh <= 0) return;
+        const normX = (mouseX - dx) / dw;
+        const normY = (mouseY - dy) / dh;
+
+        if (this.activeTool === "node" && this.activeDraggingNodeIdx >= 0) {
+          this.penNodes[this.activeDraggingNodeIdx] = [normX, normY];
+          this._renderCanvas();
+          return;
+        }
+
+        if (this.activeTool === "select") {
+          const model = this._getCurrentAngleModel();
+          let hit = null;
+          for (let i = model.pieces.length - 1; i >= 0; i--) {
+            if (this._isPointInPiece(normX, normY, model.pieces[i])) {
+              hit = model.pieces[i].id;
+              break;
             }
           }
-        };
-
-        c.addEventListener("mousemove", (e) => handleMove(e.clientX, e.clientY));
-        c.addEventListener("mousedown", (e) => handleDown(e.clientX, e.clientY));
-        window.addEventListener("mouseup", () => {
-          this.isDraggingSticker = false;
-          this.isDraggingNode = false;
-        });
-
-        // Touch Events for Mobile
-        c.addEventListener("touchstart", (e) => {
-          if (e.touches.length === 1) {
-            handleDown(e.touches[0].clientX, e.touches[0].clientY);
+          if (hit !== this.hoveredPartId) {
+            this.hoveredPartId = hit;
+            this._renderCanvas();
           }
-        }, { passive: false });
-
-        c.addEventListener("touchmove", (e) => {
-          if (e.touches.length === 1) {
-            handleMove(e.touches[0].clientX, e.touches[0].clientY);
-            e.preventDefault();
-          }
-        }, { passive: false });
-
-        c.addEventListener("touchend", () => {
-          this.isDraggingSticker = false;
-          this.isDraggingNode = false;
-        });
-
-        // Key shortcuts (Photoshop style)
-        window.addEventListener("keydown", (e) => {
-          if (e.target.tagName === "INPUT") return;
-          const k = e.key.toLowerCase();
-          if (k === "v") this._setTool("select");
-          else if (k === "p") this._setTool("pen");
-          else if (k === "a") this._setTool("node");
-          else if (k === "g") this._setTool("bucket");
-          else if (k === "m") this._setTool("decal");
-          else if (k === "delete" || k === "backspace") {
-            if (this.activeNodeIndex >= 0 && this.penNodes.length > 0) {
-              this.penNodes.splice(this.activeNodeIndex, 1);
-              this.activeNodeIndex = -1;
-              this._renderCanvas();
-            }
-          }
-        });
+        }
       }
 
       _isPointInPiece(x, y, piece) {
         if (piece.ellipse) {
           const el = piece.ellipse;
-          const cos = Math.cos(-(el.rot || 0));
-          const sin = Math.sin(-(el.rot || 0));
-          const dx = x - el.cx;
-          const dy = y - el.cy;
-          const rx = dx * cos - dy * sin;
-          const ry = dx * sin + dy * cos;
-          return ((rx * rx) / (el.rx * el.rx) + (ry * ry) / (el.ry * el.ry)) <= 1.0;
+          const dx = (x - el.cx) / el.rx;
+          const dy = (y - el.cy) / el.ry;
+          return (dx * dx + dy * dy) <= 1.0;
         }
-
         if (piece.polygon && piece.polygon.length > 2) {
           const poly = piece.polygon;
           let inside = false;
-          let p1x = poly[0][0], p1y = poly[0][1];
-          const n = poly.length;
-          for (let i = 1; i <= n; i++) {
-            const p2x = poly[i % n][0];
-            const p2y = poly[i % n][1];
-            if (y > Math.min(p1y, p2y)) {
-              if (y <= Math.max(p1y, p2y)) {
-                if (x <= Math.max(p1x, p2x)) {
-                  if (p1y !== p2y) {
-                    const xinters = ((y - p1y) * (p2x - p1x)) / (p2y - p1y) + p1x;
-                    if (p1x === p2x || x <= xinters) {
-                      inside = !inside;
-                    }
-                  }
-                }
-              }
-            }
-            p1x = p2x;
-            p1y = p2y;
+          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const xi = poly[i][0], yi = poly[i][1];
+            const xj = poly[j][0], yj = poly[j][1];
+            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
           }
           return inside;
         }
-
         return false;
       }
 
-      _triggerAIScanAnimation() {
-        const line = document.getElementById("ai-scan-line");
-        if (line) {
-          line.classList.add("scanning");
-          this._showToast("IA REA: Escaneando ensamblaje y nervaduras...");
-          setTimeout(() => {
-            line.classList.remove("scanning");
-            const angleModel = this._getCurrentAngleModel();
-            this._showToast(`IA REA: ${angleModel.pieces.length} piezas reconocidas con precisión`);
-            this._renderCanvas();
-          }, 2000);
-        }
+      /* ======================================================================
+         RENDERIZADORES DE UI
+         ====================================================================== */
+      _renderSwatches() {
+        const grid = document.getElementById("oem-swatches-grid");
+        grid.innerHTML = "";
+        OEM_PALETTE.forEach(p => {
+          const btn = document.createElement("button");
+          btn.className = `swatch-btn ${this.currentColorHex.toLowerCase() === p.hex.toLowerCase() ? "active" : ""}`;
+          btn.style.backgroundColor = p.hex;
+          btn.title = p.name;
+          if (this.currentColorHex.toLowerCase() === p.hex.toLowerCase()) {
+            btn.innerHTML = `<span class="swatch-check">✓</span>`;
+          }
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".swatch-btn").forEach(b => {
+              b.classList.remove("active");
+              b.innerHTML = "";
+            });
+            btn.classList.add("active");
+            btn.innerHTML = `<span class="swatch-check">✓</span>`;
+            document.getElementById("native-color-picker").value = p.hex;
+            document.getElementById("hex-text-input").value = p.hex;
+            document.getElementById("badge-color-name").innerText = p.name;
+            this._applyCurrentColor(p.hex);
+          });
+          grid.appendChild(btn);
+        });
       }
 
-      _toggleBeforeAfter() {
+      _renderThumbnails() {
+        const list = document.getElementById("photo-thumbs-list");
+        list.innerHTML = "";
+        this.photos.forEach((p, idx) => {
+          const card = document.createElement("div");
+          card.className = `photo-thumb-card ${idx === this.currentPhotoIndex ? "active" : ""}`;
+          card.innerHTML = `
+            <img src="${p.src}" alt="${p.label}" />
+            <span class="thumb-badge">${idx + 1}</span>
+          `;
+          card.addEventListener("click", () => {
+            this.currentPhotoIndex = idx;
+            this._renderThumbnails();
+            this._updateUIState();
+            this._renderCanvas();
+          });
+          list.appendChild(card);
+        });
+      }
+
+      _updateUIState() {
         const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        const paintMap = this.photoPaints.get(photo.id);
-        if (!this._cachedBeforePaints) {
-          this._cachedBeforePaints = new Map(paintMap);
-          paintMap.clear();
-          this._showToast("Original (Antes)");
-        } else {
-          this._cachedBeforePaints.forEach((v, k) => paintMap.set(k, v));
-          this._cachedBeforePaints = null;
-          this._showToast("Personalizado (Después)");
-        }
-        this._renderLayersList();
-        this._renderCanvas();
-      }
+        const model = this._getCurrentAngleModel();
+        const activePiece = model.pieces.find(p => p.id === this.selectedPartId);
 
-      _loadStickerPreset(preset) {
-        const cv = document.createElement("canvas");
-        cv.width = 400;
-        cv.height = 140;
-        const ctx = cv.getContext("2d");
+        document.getElementById("label-car-angle").innerText = model.label;
+        document.getElementById("label-active-piece").innerText = `Pieza: ${activePiece ? activePiece.label : 'Carrocería'}`;
+        document.getElementById("badge-pieces-count").innerText = `${model.pieces.length} Piezas`;
 
-        if (preset === "logo_rayo") {
-          ctx.fillStyle = "#C8102E";
-          ctx.beginPath();
-          ctx.roundRect(20, 20, 360, 100, 14);
-          ctx.fill();
+        // Renderizar lista de piezas
+        const container = document.getElementById("pieces-list-container");
+        container.innerHTML = "";
+        const paintMap = this.photoPaints.get(photo.id) || new Map();
 
-          ctx.fillStyle = "#FFFFFF";
-          ctx.font = "900 32px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText("⚡ EL RAYO", 200, 68);
-          ctx.font = "bold 13px sans-serif";
-          ctx.fillText("AUTODESIGN & PERFORMANCE", 200, 94);
-        } else if (preset === "racing_stripes") {
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(50, 10, 40, 120);
-          ctx.fillRect(110, 10, 40, 120);
-        }
+        model.pieces.forEach(p => {
+          const row = document.createElement("div");
+          row.className = `piece-row ${p.id === this.selectedPartId ? "selected" : ""}`;
+          const paint = paintMap.get(p.id);
+          const colorDot = paint ? paint.color : "#CBD5E1";
 
-        const img = new Image();
-        img.onload = () => {
-          this.activeSticker = {
-            img,
-            normX: 0.56,
-            normY: 0.54,
-            scale: 0.45,
-            rotation: 0
-          };
-          this._renderCanvas();
-        };
-        img.src = cv.toDataURL("image/png");
-      }
+          row.innerHTML = `
+            <span class="piece-color-dot" style="background-color: ${colorDot};"></span>
+            <span class="piece-name">${p.label}</span>
+          `;
 
-      _loadCustomSticker(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            this.activeSticker = {
-              img,
-              normX: 0.56,
-              normY: 0.54,
-              scale: 0.55,
-              rotation: 0
-            };
-            this._showToast("Vinil cargado");
+          row.addEventListener("click", () => {
+            this.selectedPartId = p.id;
+            this._updateUIState();
             this._renderCanvas();
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
+          });
 
-      async _handleUploadedFiles(files) {
-        if (!files || files.length === 0) return;
-        this._showToast(`Procesando ${files.length} foto(s)...`);
-
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          const img = await this._fileToImage(file);
-          const newId = `custom_${Date.now()}_${i}`;
-
-          let detectedAngle = "rear";
-          const lower = file.name.toLowerCase();
-          if (lower.includes("frente") || lower.includes("front")) detectedAngle = "front";
-          else if (lower.includes("lado") || lower.includes("perfil") || lower.includes("side")) detectedAngle = "side";
-          else if (lower.includes("persp") || lower.includes("34")) detectedAngle = "front34";
-
-          const newPhoto = {
-            id: newId,
-            angle: detectedAngle,
-            label: files.length === 1 ? "Foto Vehículo Taller" : `Ángulo ${this.photos.length + 1}`,
-            src: img.src
-          };
-
-          this.photos.push(newPhoto);
-          this.loadedImages.set(newId, img);
-          this.photoPaints.set(newId, new Map());
-          this.customPieces.set(newId, []);
-        }
-
-        this.currentPhotoIndex = this.photos.length - 1;
-        this._initFilmstrip();
-        this._updateAngleAndPieces();
-        this._renderCanvas();
-        this._triggerAIScanAnimation();
-      }
-
-      _fileToImage(file) {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.src = e.target.result;
-          };
-          reader.readAsDataURL(file);
+          container.appendChild(row);
         });
       }
 
       _showToast(msg) {
-        const banner = document.getElementById("toast-banner");
-        const text = document.getElementById("toast-text");
-        if (banner && text) {
-          text.textContent = msg;
-          banner.classList.add("show");
-          clearTimeout(this._toastTimeout);
-          this._toastTimeout = setTimeout(() => {
-            banner.classList.remove("show");
-          }, 2800);
-        }
+        const toast = document.getElementById("studio-toast");
+        toast.innerText = msg;
+        toast.classList.add("show");
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+          toast.classList.remove("show");
+        }, 2200);
       }
     }
 
-    // Inicializar al cargar el DOM
+    // Inicializar Studio al cargar la página
     window.addEventListener("DOMContentLoaded", () => {
-      window.studioApp = new StudioApp();
+      window.studio = new ElRayoStudio();
     });
   </script>
 </body>
