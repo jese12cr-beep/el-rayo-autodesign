@@ -3,17 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>El Rayo AutoDesign Studio — Suite Vectorial CAD & Pintura IA</title>
+  <title>El Rayo AutoDesign Studio — Pintura Automotriz & Segmentación IA</title>
   <link rel="icon" type="image/png" href="./logo_el_rayo.png" />
   <style>
-    /* ======================================================================
-       1. VARIABLES & RESET INDUSTRIAL LIGHT GLASSMORPHISM
-       ====================================================================== */
     :root {
       --bg-studio: #EEF1F5;
-      --bg-panel: rgba(255, 255, 255, 0.90);
+      --bg-panel: rgba(255, 255, 255, 0.92);
       --bg-panel-solid: #FFFFFF;
-      --border-glass: rgba(226, 232, 240, 0.90);
+      --border-glass: rgba(226, 232, 240, 0.95);
       --border-focus: #0284C7;
       --text-main: #0F172A;
       --text-secondary: #475569;
@@ -49,10 +46,10 @@
     }
 
     /* ======================================================================
-       2. HEADER SUPERIOR ELEGANTE
+       HEADER SUPERIOR CON LOGO OFICIAL
        ====================================================================== */
     header#studio-header {
-      height: 56px;
+      height: 60px;
       background: var(--bg-panel);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -60,7 +57,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 18px;
       z-index: 50;
       flex-shrink: 0;
     }
@@ -68,26 +65,22 @@
     .brand-section {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 14px;
     }
 
-    .brand-logo-pill {
-      background: var(--accent-red);
-      color: #fff;
-      font-weight: 900;
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      letter-spacing: 0.6px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    .brand-official-logo {
+      height: 42px;
+      width: auto;
+      max-width: 135px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.10));
     }
 
     .brand-titles h1 {
       font-size: 13px;
       font-weight: 800;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       color: var(--text-main);
       line-height: 1.1;
     }
@@ -113,9 +106,9 @@
     }
 
     .scope-btn {
-      padding: 5px 12px;
+      padding: 6px 14px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       border-radius: 6px;
       border: none;
       background: transparent;
@@ -126,8 +119,8 @@
 
     .scope-btn.active {
       background: #FFFFFF;
-      color: var(--text-main);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+      color: var(--accent-red);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }
 
     .header-actions {
@@ -140,7 +133,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 8px;
       font-size: 11px;
       font-weight: 700;
@@ -166,7 +159,7 @@
     }
 
     /* ======================================================================
-       3. CONTENEDOR PRINCIPAL
+       CONTENEDOR PRINCIPAL
        ====================================================================== */
     main#studio-main {
       flex: 1;
@@ -175,9 +168,7 @@
       position: relative;
     }
 
-    /* ======================================================================
-       4. TOOLBAR LATERAL IZQUIERDA (SUITE PHOTOSHOP / CORELDRAW)
-       ====================================================================== */
+    /* TOOLBAR LATERAL IZQUIERDA */
     aside#left-toolbar {
       width: 50px;
       background: var(--bg-panel);
@@ -253,7 +244,7 @@
     }
 
     /* ======================================================================
-       5. ÁREA CENTRAL DEL CANVAS
+       ÁREA DEL CANVAS
        ====================================================================== */
     #canvas-area {
       flex: 1;
@@ -264,7 +255,6 @@
       background: radial-gradient(circle at center, #FFFFFF 0%, #F1F4F8 60%, #E2E6EC 100%);
     }
 
-    /* Barra flotante de información de pieza */
     .canvas-status-bar {
       position: absolute;
       top: 12px;
@@ -279,7 +269,7 @@
 
     .status-pill {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border: 1px solid var(--border-glass);
@@ -306,13 +296,13 @@
       background: var(--accent-green);
     }
 
-    /* Barra flotante de ingeniería vectorial (Pluma) */
+    /* Barra de ingeniería vectorial (Pluma) */
     .pen-engineering-bar {
       position: absolute;
-      top: 50px;
+      top: 48px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--border-glass);
@@ -354,16 +344,12 @@
       color: #FFF;
     }
 
-    .pen-bar-btn.primary:hover {
-      background: var(--accent-blue-hover);
-    }
-
     .pen-bar-btn.save-btn {
       background: var(--accent-green);
       color: #FFF;
     }
 
-    /* El Canvas HTML5 */
+    /* Viewport del Canvas */
     .canvas-viewport {
       flex: 1;
       width: 100%;
@@ -372,7 +358,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: default;
     }
 
     canvas#studio-main-canvas {
@@ -383,7 +368,7 @@
       border-radius: 8px;
     }
 
-    /* Carrusel de fotos en la parte inferior */
+    /* Carrusel de fotos */
     .photos-bottom-strip {
       height: 64px;
       background: var(--bg-panel);
@@ -451,29 +436,8 @@
       border-radius: 3px;
     }
 
-    .btn-add-photo {
-      height: 46px;
-      padding: 0 12px;
-      border-radius: 6px;
-      border: 1px dashed var(--border-focus);
-      background: rgba(2, 132, 199, 0.05);
-      color: var(--accent-blue);
-      font-size: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
-      transition: all 0.15s ease;
-    }
-
-    .btn-add-photo:hover {
-      background: rgba(2, 132, 199, 0.12);
-    }
-
     /* ======================================================================
-       6. SIDEBAR DERECHA (INSPECTOR DE PIEZAS & PINTURA)
+       SIDEBAR DERECHA: PINTURA, ACABADOS Y PIEZAS
        ====================================================================== */
     aside#right-sidebar {
       width: 310px;
@@ -488,7 +452,6 @@
       overflow: hidden;
     }
 
-    /* Pestañas superiores del sidebar */
     .sidebar-tabs {
       display: flex;
       border-bottom: 1px solid var(--border-glass);
@@ -565,7 +528,6 @@
       color: var(--text-secondary);
     }
 
-    /* Lista de piezas */
     .pieces-list {
       display: flex;
       flex-direction: column;
@@ -613,7 +575,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Paleta de pintura OEM */
     .swatches-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -649,7 +610,6 @@
       text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
 
-    /* Input HEX y picker */
     .hex-input-row {
       display: flex;
       gap: 8px;
@@ -678,7 +638,6 @@
       outline: none;
     }
 
-    /* Shaders de acabado de pintura */
     .finishes-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -708,7 +667,6 @@
       color: var(--accent-red);
     }
 
-    /* Toast Notification */
     #studio-toast {
       position: fixed;
       bottom: 80px;
@@ -732,7 +690,6 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    /* Responsive Móvil */
     @media (max-width: 768px) {
       aside#left-toolbar {
         position: absolute;
@@ -756,7 +713,6 @@
         border-radius: 16px 16px 0 0;
         border-left: none;
         border-top: 1px solid var(--border-glass);
-        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
       }
 
       .photos-bottom-strip {
@@ -767,20 +723,20 @@
 </head>
 <body>
 
-  <!-- 1. HEADER SUPERIOR -->
+  <!-- HEADER SUPERIOR CON LOGO OFICIAL -->
   <header id="studio-header">
     <div class="brand-section">
-      <div class="brand-logo-pill">⚡ EL RAYO</div>
+      <img src="./logo_el_rayo.png" alt="El Rayo Hojalatería y Pintura" class="brand-official-logo" />
       <div class="brand-titles">
         <h1>AUTODESIGN STUDIO</h1>
-        <div class="subtitle">Suite Vectorial Corel/Photoshop & Motor de Pintura IA</div>
+        <div class="subtitle">Hojalatería, Pintura & Segmentación IA</div>
       </div>
     </div>
 
     <div class="header-center-controls">
       <div class="scope-toggle-group">
-        <button class="scope-btn active" id="btn-scope-piece" title="Pinta solo la pieza seleccionada">Por Piezas</button>
-        <button class="scope-btn" id="btn-scope-full" title="Pinta todo el vehículo con el color actual">Auto Completo</button>
+        <button class="scope-btn" id="btn-scope-piece" title="Pinta solo la pieza seleccionada">Por Piezas</button>
+        <button class="scope-btn active" id="btn-scope-full" title="Pinta toda la carrocería preservando vidrios, luces y llantas">Auto Completo</button>
       </div>
     </div>
 
@@ -797,10 +753,10 @@
     </div>
   </header>
 
-  <!-- 2. CONTENIDO PRINCIPAL -->
+  <!-- CONTENIDO PRINCIPAL -->
   <main id="studio-main">
 
-    <!-- TOOLBAR IZQUIERDA (SUITE PHOTOSHOP / ILLUSTRATOR / CORELDRAW) -->
+    <!-- TOOLBAR IZQUIERDA -->
     <aside id="left-toolbar">
       <button class="tool-btn active" data-tool="select" title="Selección de piezas (V)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
@@ -840,19 +796,15 @@
           <span id="label-car-angle">Volkswagen Golf (Trasera 3/4)</span>
         </div>
         <div class="status-pill active">
-          <span id="label-active-piece">Pieza: Portón Trasero / Cajuela</span>
+          <span id="label-active-piece">Carrocería Completa (Sin vidrios ni faros)</span>
         </div>
       </div>
 
-      <!-- Barra de ingeniería asistida por IA (Se activa con la Pluma P) -->
+      <!-- Barra de ingeniería vectorial (Pluma) -->
       <div class="pen-engineering-bar hidden" id="pen-cad-bar">
         <button class="pen-bar-btn primary" id="btn-pen-smooth" title="Suaviza temblores y crea curvatura aerodinámica continua">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-3 5-10 9-10s6 7 9 10"/></svg>
           <span>Suavizado IA</span>
-        </button>
-        <button class="pen-bar-btn" id="btn-pen-snap" title="Ajusta los nodos magnéticamente a las ranuras de la chapa">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="3" x2="8" y2="3"/><line x1="16" y1="3" x2="20" y2="3"/></svg>
-          <span>Imán Chapa</span>
         </button>
         <button class="pen-bar-btn save-btn" id="btn-pen-save" title="Convierte el trazo en una pieza lista para pintar">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -890,7 +842,7 @@
           <div class="panel-card">
             <div class="card-title">
               <span>Paleta Automotriz OEM</span>
-              <span class="card-badge" id="badge-color-name">Rojo Rayo</span>
+              <span class="card-badge" id="badge-color-name">Verde Militar</span>
             </div>
             <div class="swatches-grid" id="oem-swatches-grid"></div>
           </div>
@@ -898,8 +850,8 @@
           <div class="panel-card">
             <div class="card-title">Tono Personalizado (HEX)</div>
             <div class="hex-input-row">
-              <input type="color" class="picker-box" id="native-color-picker" value="#C8102E" />
-              <input type="text" class="hex-text-box" id="hex-text-input" value="#C8102E" />
+              <input type="color" class="picker-box" id="native-color-picker" value="#3B4D3C" />
+              <input type="text" class="hex-text-box" id="hex-text-input" value="#3B4D3C" />
             </div>
           </div>
 
@@ -919,7 +871,7 @@
           <div class="panel-card">
             <div class="card-title">
               <span>Piezas Detectadas</span>
-              <span class="card-badge" id="badge-pieces-count">7 Piezas</span>
+              <span class="card-badge" id="badge-pieces-count">Carrocería</span>
             </div>
             <div class="pieces-list" id="pieces-list-container"></div>
           </div>
@@ -932,13 +884,8 @@
 
   <div id="studio-toast">Pintura aplicada</div>
 
-  <!-- ======================================================================
-       7. NÚCLEO DE INGENIERÍA JAVASCRIPT
-       ====================================================================== -->
+  <!-- SCRIPT CENTRAL DEL MOTOR -->
   <script>
-    /* ======================================================================
-       DATOS ANATÓMICOS CALIBRADOS CON PRECISIÓN MILIMÉTRICA
-       ====================================================================== */
     const VEHICLE_ANGLES = {
       "rear": {
         id: "rear",
@@ -947,14 +894,7 @@
           {
             id: "carroceria",
             label: "Carrocería Completa",
-            polygon: [
-              [0.120, 0.530], [0.170, 0.440], [0.260, 0.410], [0.320, 0.320],
-              [0.450, 0.250], [0.550, 0.250], [0.720, 0.280], [0.750, 0.380],
-              [0.850, 0.420], [0.880, 0.520], [0.870, 0.650], [0.820, 0.720],
-              [0.680, 0.730], [0.560, 0.720], [0.440, 0.700], [0.420, 0.540],
-              [0.360, 0.510], [0.290, 0.540], [0.280, 0.720], [0.240, 0.680],
-              [0.220, 0.520], [0.170, 0.500], [0.120, 0.550], [0.120, 0.600]
-            ]
+            isBody: true
           },
           {
             id: "porton_trasero",
@@ -982,36 +922,11 @@
             ]
           },
           {
-            id: "toldo_spoiler",
-            label: "Toldo Posterior & Alerón",
+            id: "puertas",
+            label: "Puertas Laterales",
             polygon: [
-              [0.450, 0.250], [0.720, 0.280], [0.740, 0.330], [0.550, 0.310],
-              [0.430, 0.320]
+              [0.190, 0.440], [0.420, 0.410], [0.420, 0.680], [0.220, 0.680]
             ]
-          },
-          {
-            id: "puerta_trasera",
-            label: "Puerta Trasera Pasajero",
-            polygon: [
-              [0.320, 0.420], [0.420, 0.410], [0.420, 0.680], [0.320, 0.680]
-            ]
-          },
-          {
-            id: "puerta_delantera",
-            label: "Puerta Delantera",
-            polygon: [
-              [0.200, 0.430], [0.320, 0.420], [0.320, 0.680], [0.220, 0.680]
-            ]
-          },
-          {
-            id: "rin_trasero",
-            label: "Rin de Aleación Trasero",
-            ellipse: { cx: 0.355, cy: 0.726, rx: 0.073, ry: 0.165, rot: 0 }
-          },
-          {
-            id: "rin_delantero",
-            label: "Rin Delantero",
-            ellipse: { cx: 0.168, cy: 0.671, rx: 0.055, ry: 0.125, rot: 0 }
           }
         ]
       },
@@ -1019,98 +934,37 @@
         id: "side",
         label: "Volkswagen Golf (Perfil Lateral 90°)",
         pieces: [
-          {
-            id: "carroceria",
-            label: "Carrocería Lateral Completa",
-            polygon: [
-              [0.05, 0.68], [0.06, 0.56], [0.15, 0.53], [0.34, 0.46], [0.45, 0.22],
-              [0.76, 0.25], [0.85, 0.42], [0.93, 0.56], [0.95, 0.68], [0.92, 0.79],
-              [0.85, 0.80], [0.76, 0.72], [0.68, 0.81], [0.35, 0.81], [0.31, 0.60],
-              [0.17, 0.66], [0.15, 0.82], [0.07, 0.81]
-            ]
-          },
-          {
-            id: "cofre",
-            label: "Cofre (Hood)",
-            polygon: [[0.15, 0.53], [0.34, 0.46], [0.35, 0.49], [0.18, 0.58], [0.15, 0.53]]
-          },
-          {
-            id: "puerta_del",
-            label: "Puerta Delantera",
-            polygon: [[0.35, 0.49], [0.52, 0.49], [0.52, 0.81], [0.36, 0.81], [0.35, 0.60]]
-          },
-          {
-            id: "puerta_tras",
-            label: "Puerta Trasera",
-            polygon: [[0.52, 0.49], [0.69, 0.49], [0.69, 0.62], [0.72, 0.65], [0.68, 0.81], [0.52, 0.81]]
-          },
-          {
-            id: "rin_del",
-            label: "Rin Delantero",
-            ellipse: { cx: 0.235, cy: 0.68, rx: 0.08, ry: 0.17, rot: 0 }
-          },
-          {
-            id: "rin_tras",
-            label: "Rin Trasero",
-            ellipse: { cx: 0.775, cy: 0.68, rx: 0.08, ry: 0.17, rot: 0 }
-          }
+          { id: "carroceria", label: "Carrocería Lateral Completa", isBody: true },
+          { id: "cofre", label: "Cofre", polygon: [[0.15, 0.53], [0.34, 0.46], [0.35, 0.49], [0.18, 0.58], [0.15, 0.53]] },
+          { id: "puertas", label: "Puertas", polygon: [[0.35, 0.49], [0.69, 0.49], [0.69, 0.81], [0.35, 0.81]] }
         ]
       },
       "front": {
         id: "front",
         label: "Volkswagen Golf (Frente Directo)",
         pieces: [
-          {
-            id: "carroceria",
-            label: "Carrocería Frontal Completa",
-            polygon: [
-              [0.18, 0.62], [0.26, 0.48], [0.34, 0.32], [0.66, 0.32], [0.74, 0.48],
-              [0.82, 0.62], [0.84, 0.74], [0.82, 0.82], [0.68, 0.84], [0.32, 0.84],
-              [0.18, 0.82], [0.16, 0.74]
-            ]
-          },
-          {
-            id: "cofre",
-            label: "Cofre Frontal",
-            polygon: [[0.28, 0.52], [0.35, 0.34], [0.65, 0.34], [0.72, 0.52], [0.50, 0.54]]
-          },
-          {
-            id: "fascia_del",
-            label: "Fascia Delantera",
-            polygon: [[0.18, 0.62], [0.82, 0.62], [0.82, 0.82], [0.18, 0.82]]
-          }
+          { id: "carroceria", label: "Carrocería Frontal Completa", isBody: true },
+          { id: "cofre", label: "Cofre Frontal", polygon: [[0.28, 0.52], [0.35, 0.34], [0.65, 0.34], [0.72, 0.52], [0.50, 0.54]] },
+          { id: "fascia_del", label: "Fascia Delantera", polygon: [[0.18, 0.62], [0.82, 0.62], [0.82, 0.82], [0.18, 0.82]] }
         ]
       },
       "front34": {
         id: "front34",
         label: "Volkswagen Golf (Perspectiva 3/4 Frontal)",
         pieces: [
-          {
-            id: "carroceria",
-            label: "Carrocería Frontal 3/4",
-            polygon: [
-              [0.12, 0.68], [0.15, 0.54], [0.28, 0.42], [0.44, 0.28], [0.72, 0.28],
-              [0.84, 0.46], [0.88, 0.62], [0.85, 0.78], [0.68, 0.82], [0.38, 0.82],
-              [0.26, 0.80], [0.14, 0.74]
-            ]
-          },
-          {
-            id: "cofre",
-            label: "Cofre",
-            polygon: [[0.28, 0.52], [0.42, 0.38], [0.68, 0.38], [0.62, 0.58], [0.32, 0.60]]
-          }
+          { id: "carroceria", label: "Carrocería Frontal 3/4", isBody: true },
+          { id: "cofre", label: "Cofre", polygon: [[0.28, 0.52], [0.42, 0.38], [0.68, 0.38], [0.62, 0.58], [0.32, 0.60]] }
         ]
       }
     };
 
-    /* PALETA OEM AUTOMOTRIZ */
     const OEM_PALETTE = [
+      { name: "Verde Militar Mate", hex: "#3B4D3C" },
       { name: "Rojo Rayo Deportivo", hex: "#C8102E" },
       { name: "Azul Eléctrico Cobalto", hex: "#1558C4" },
       { name: "Negro Obsidiana", hex: "#111317" },
       { name: "Blanco Glaciar Puro", hex: "#F8FAFC" },
       { name: "Amarillo Daytona Racing", hex: "#EAB308" },
-      { name: "Verde Militar Mate", hex: "#3B4D3C" },
       { name: "Naranja Sunset Fuego", hex: "#EA580C" },
       { name: "Gris Nardo Cemento", hex: "#6B7280" },
       { name: "Plata Titanio Metal", hex: "#94A3B8" },
@@ -1119,45 +973,66 @@
       { name: "Rojo Cereza Clásico", hex: "#831843" }
     ];
 
-    /* ======================================================================
-       MOTOR PRINCIPAL DE APLICACIÓN
-       ====================================================================== */
     class ElRayoStudio {
       constructor() {
         this.photos = [
-          { id: "p1", angle: "rear", label: "Trasera (3/4)", src: "./assets/test_car/angle_180_rear.jpg" },
-          { id: "p2", angle: "side", label: "Perfil (90°)", src: "./assets/test_car/angle_90_side.jpg" },
-          { id: "p3", angle: "front", label: "Frente (0°)", src: "./assets/test_car/angle_0_front.jpg" },
-          { id: "p4", angle: "front34", label: "3/4 Frontal", src: "./assets/test_car/angle_45_front34.jpg" }
+          {
+            id: "p1",
+            angle: "rear",
+            label: "Trasera (3/4)",
+            src: "./assets/test_car/angle_180_rear.jpg",
+            maskSrc: "./assets/test_car/masks/angle_180_rear_mask.png"
+          },
+          {
+            id: "p2",
+            angle: "side",
+            label: "Perfil (90°)",
+            src: "./assets/test_car/angle_90_side.jpg",
+            maskSrc: "./assets/test_car/masks/angle_90_side_mask.png"
+          },
+          {
+            id: "p3",
+            angle: "front",
+            label: "Frente (0°)",
+            src: "./assets/test_car/angle_0_front.jpg",
+            maskSrc: "./assets/test_car/masks/angle_0_front_mask.png"
+          },
+          {
+            id: "p4",
+            angle: "front34",
+            label: "3/4 Frontal",
+            src: "./assets/test_car/angle_45_front34.jpg",
+            maskSrc: "./assets/test_car/masks/angle_45_front34_mask.png"
+          }
         ];
 
         this.currentPhotoIndex = 0;
         this.loadedImages = new Map();
+        this.loadedMasks = new Map();
 
-        // Mapa de pinturas: photoId -> Map<pieceId, { color, finish }>
         this.photoPaints = new Map();
         this.photos.forEach(p => this.photoPaints.set(p.id, new Map()));
 
-        // Piezas personalizadas creadas con pluma
         this.customPieces = new Map();
         this.photos.forEach(p => this.customPieces.set(p.id, []));
 
-        // Estados activos
-        this.activeTool = "select"; // 'select' | 'pen' | 'node' | 'pipette'
-        this.paintScope = "piece";  // 'piece' | 'full'
-        this.selectedPartId = "porton_trasero";
+        this.activeTool = "select";
+        this.paintScope = "full"; // 'full' (Auto Completo) por defecto
+        this.selectedPartId = "carroceria";
         this.hoveredPartId = null;
-        this.currentColorHex = "#C8102E";
+        this.currentColorHex = "#3B4D3C";
         this.currentFinish = "metallic";
 
-        // Trazo de pluma
         this.penNodes = [];
         this.activeDraggingNodeIdx = -1;
 
-        // Referencias DOM
         this.canvas = document.getElementById("studio-main-canvas");
         this.ctx = this.canvas.getContext("2d");
         this.viewport = { dx: 0, dy: 0, dw: 0, dh: 0 };
+
+        // Canvas offscreen para composición de máscaras
+        this.offCanvas = document.createElement("canvas");
+        this.offCtx = this.offCanvas.getContext("2d");
 
         this._init();
       }
@@ -1166,26 +1041,33 @@
         this._setupEventListeners();
         this._renderSwatches();
         this._renderThumbnails();
-        await this._loadAllPhotos();
+        await this._loadAllPhotosAndMasks();
         this._updateUIState();
         this._renderCanvas();
       }
 
-      async _loadAllPhotos() {
-        const promises = this.photos.map(p => {
-          return new Promise(resolve => {
+      async _loadAllPhotosAndMasks() {
+        const promises = [];
+        this.photos.forEach(p => {
+          // Cargar imagen
+          promises.push(new Promise(resolve => {
             const img = new Image();
             img.crossOrigin = "anonymous";
-            img.onload = () => {
-              this.loadedImages.set(p.id, img);
-              resolve();
-            };
-            img.onerror = () => {
-              console.warn("No se pudo cargar", p.src);
-              resolve();
-            };
+            img.onload = () => { this.loadedImages.set(p.id, img); resolve(); };
+            img.onerror = () => { resolve(); };
             img.src = p.src;
-          });
+          }));
+
+          // Cargar máscara
+          if (p.maskSrc) {
+            promises.push(new Promise(resolve => {
+              const m = new Image();
+              m.crossOrigin = "anonymous";
+              m.onload = () => { this.loadedMasks.set(p.id, m); resolve(); };
+              m.onerror = () => { resolve(); };
+              m.src = p.maskSrc;
+            }));
+          }
         });
         await Promise.all(promises);
       }
@@ -1205,18 +1087,30 @@
       }
 
       /* ======================================================================
-         MOTOR DE PINTURA FOTORREALISTA (CORRECCIÓN INTEGRAL)
+         MOTOR DE PINTURA FOTORREALISTA CON MÁSCARA AUTOMOTRIZ
+         Protege al 100% Faros, Ventanas, Llantas y Placas
          ====================================================================== */
-      _applyPiecePaint(ctx, piece, hexColor, finish, dx, dy, dw, dh) {
-        ctx.save();
-        this._buildPiecePath(ctx, piece, dx, dy, dw, dh);
-        ctx.clip();
+      _applyPiecePaintWithMask(ctx, piece, hexColor, finish, dx, dy, dw, dh, maskImg) {
+        const cw = ctx.canvas.width;
+        const ch = ctx.canvas.height;
 
-        // Extraer componentes RGB y luminosidad para tratar neutros
+        this.offCanvas.width = cw;
+        this.offCanvas.height = ch;
+        const octx = this.offCtx;
+        octx.clearRect(0, 0, cw, ch);
+
+        // 1. Si es por pieza individual, recortar al polígono de la pieza
+        if (piece && piece.polygon && !piece.isBody) {
+          octx.save();
+          this._buildPiecePath(octx, piece, dx, dy, dw, dh);
+          octx.clip();
+        }
+
+        // 2. Extraer luminosidad y color
         const hex = hexColor.replace("#", "");
-        const r = parseInt(hex.substring(0, 2), 16) || 200;
-        const g = parseInt(hex.substring(2, 4), 16) || 16;
-        const b = parseInt(hex.substring(4, 6), 16) || 46;
+        const r = parseInt(hex.substring(0, 2), 16) || 59;
+        const g = parseInt(hex.substring(2, 4), 16) || 77;
+        const b = parseInt(hex.substring(4, 6), 16) || 60;
         const lum = (r * 299 + g * 587 + b * 114) / 1000;
         const maxC = Math.max(r, g, b);
         const minC = Math.min(r, g, b);
@@ -1225,77 +1119,74 @@
         const isBlack = isNeutral && lum < 50;
 
         if (isWhite) {
-          // BLANCO GLACIAR: Eleva luminancia sin perder oclusiones ni sombras de chapa
-          ctx.globalCompositeOperation = "screen";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
-          ctx.fillRect(dx, dy, dw, dh);
-
-          ctx.globalCompositeOperation = "soft-light";
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "screen";
+          octx.fillStyle = "rgba(255, 255, 255, 0.75)";
+          octx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "soft-light";
+          octx.fillStyle = "#FFFFFF";
+          octx.fillRect(dx, dy, dw, dh);
         } else if (isBlack) {
-          // NEGRO OBSIDIANA: Profundiza tonos bajos manteniendo reflejos
-          ctx.globalCompositeOperation = "multiply";
-          ctx.fillStyle = "rgba(12, 14, 18, 0.88)";
-          ctx.fillRect(dx, dy, dw, dh);
-
-          ctx.globalCompositeOperation = "color-burn";
-          ctx.fillStyle = "rgba(25, 28, 35, 0.45)";
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "multiply";
+          octx.fillStyle = "rgba(12, 14, 18, 0.88)";
+          octx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "color-burn";
+          octx.fillStyle = "rgba(25, 28, 35, 0.45)";
+          octx.fillRect(dx, dy, dw, dh);
         } else {
-          // COLORES VIBRANTES (Rojo, Azul, Amarillo, Verde, etc.)
-          // 1. "color" adopta el matiz y saturación preservando la luz 100%
-          ctx.globalCompositeOperation = "color";
-          ctx.fillStyle = hexColor;
-          ctx.globalAlpha = 1.0;
-          ctx.fillRect(dx, dy, dw, dh);
+          // Color Automotriz Puro
+          octx.globalCompositeOperation = "color";
+          octx.fillStyle = hexColor;
+          octx.globalAlpha = 1.0;
+          octx.fillRect(dx, dy, dw, dh);
 
-          // 2. "multiply" satura el pigmento automotriz
-          ctx.globalCompositeOperation = "multiply";
-          ctx.fillStyle = hexColor;
-          ctx.globalAlpha = 0.42;
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "multiply";
+          octx.fillStyle = hexColor;
+          octx.globalAlpha = 0.45;
+          octx.fillRect(dx, dy, dw, dh);
 
-          // 3. "overlay" para realzar contraste de chapa
-          ctx.globalCompositeOperation = "overlay";
-          ctx.fillStyle = hexColor;
-          ctx.globalAlpha = 0.35;
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "overlay";
+          octx.fillStyle = hexColor;
+          octx.globalAlpha = 0.38;
+          octx.fillRect(dx, dy, dw, dh);
         }
 
-        // ACABADO / SHADER DE BARNIZ
+        // Acabado de Barniz / Shaders
         if (finish === "metallic") {
-          ctx.globalCompositeOperation = "screen";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "screen";
+          octx.fillStyle = "rgba(255, 255, 255, 0.24)";
+          octx.fillRect(dx, dy, dw, dh);
         } else if (finish === "pearl") {
-          ctx.globalCompositeOperation = "screen";
-          ctx.fillStyle = "rgba(254, 240, 210, 0.25)";
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "screen";
+          octx.fillStyle = "rgba(254, 240, 210, 0.28)";
+          octx.fillRect(dx, dy, dw, dh);
         } else if (finish === "matte") {
-          ctx.globalCompositeOperation = "soft-light";
-          ctx.fillStyle = hexColor;
-          ctx.globalAlpha = 0.30;
-          ctx.fillRect(dx, dy, dw, dh);
+          octx.globalCompositeOperation = "soft-light";
+          octx.fillStyle = hexColor;
+          octx.globalAlpha = 0.35;
+          octx.fillRect(dx, dy, dw, dh);
         }
 
+        if (piece && piece.polygon && !piece.isBody) {
+          octx.restore();
+        }
+
+        // 3. AISLAMIENTO PERFECTO: Multiplicar por la Máscara de Carrocería (destination-in)
+        // Elimina al 100% pintura sobre Cristales, Faros, Llantas, Placas y Suelo
+        if (maskImg) {
+          octx.globalCompositeOperation = "destination-in";
+          octx.globalAlpha = 1.0;
+          octx.drawImage(maskImg, dx, dy, dw, dh);
+        }
+
+        // 4. Volcar sobre el canvas principal
+        ctx.save();
+        ctx.drawImage(this.offCanvas, 0, 0);
         ctx.restore();
       }
 
       _buildPiecePath(ctx, piece, dx, dy, dw, dh) {
         ctx.beginPath();
-        if (piece.ellipse) {
-          const el = piece.ellipse;
-          ctx.ellipse(
-            dx + el.cx * dw,
-            dy + el.cy * dh,
-            el.rx * dw,
-            el.ry * dh,
-            el.rot || 0,
-            0,
-            Math.PI * 2
-          );
-        } else if (piece.polygon && piece.polygon.length > 2) {
+        if (piece.polygon && piece.polygon.length > 2) {
           const poly = piece.polygon;
           ctx.moveTo(dx + poly[0][0] * dw, dy + poly[0][1] * dh);
           for (let i = 1; i < poly.length; i++) {
@@ -1306,7 +1197,7 @@
       }
 
       /* ======================================================================
-         RENDERIZADOR PRINCIPAL DEL CANVAS (SIN RELLENOS ROSADOS INVASIVOS)
+         RENDERIZADOR PRINCIPAL
          ====================================================================== */
       _renderCanvas() {
         const { canvas: c, ctx } = this;
@@ -1317,6 +1208,7 @@
 
         const photo = this._getCurrentPhoto();
         const img = photo ? this.loadedImages.get(photo.id) : null;
+        const maskImg = photo ? this.loadedMasks.get(photo.id) : null;
 
         if (!img) {
           ctx.fillStyle = "#E2E8F0";
@@ -1346,48 +1238,41 @@
 
         this.viewport = { dx, dy, dw, dh, scale };
 
-        // 1. DIBUJAR FOTOGRAFÍA ORIGINAL
+        // 1. DIBUJAR FOTO ORIGINAL
         ctx.drawImage(img, dx, dy, dw, dh);
 
-        // 2. APLICAR CAPAS DE PINTURA
+        // 2. APLICAR CAPAS DE PINTURA (AUTO COMPLETO O POR PIEZAS)
         const angleModel = this._getCurrentAngleModel();
         const paintMap = this.photoPaints.get(photo.id) || new Map();
 
-        angleModel.pieces.forEach(piece => {
-          const paint = paintMap.get(piece.id);
-          if (paint && paint.color) {
-            this._applyPiecePaint(ctx, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh);
+        if (this.paintScope === "full") {
+          const bodyPaint = paintMap.get("carroceria");
+          if (bodyPaint && bodyPaint.color) {
+            this._applyPiecePaintWithMask(ctx, { isBody: true }, bodyPaint.color, bodyPaint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
           }
-        });
+        } else {
+          // Por piezas
+          angleModel.pieces.forEach(piece => {
+            const paint = paintMap.get(piece.id);
+            if (paint && paint.color) {
+              this._applyPiecePaintWithMask(ctx, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
+            }
+          });
+        }
 
-        // 3. CONTORNO ELEGANTE DE SELECCIÓN (SIN RELLENO ROSADO QUE TAPE LA CHAPA)
-        if (this.activeTool === "select") {
-          // Hover
-          if (this.hoveredPartId && this.hoveredPartId !== this.selectedPartId) {
-            const hov = angleModel.pieces.find(p => p.id === this.hoveredPartId);
+        // 3. RESALTE DISCRETO SOLO AL PASAR EL MOUSE (SIN RELLENOS ROSADOS FEOS)
+        if (this.activeTool === "select" && this.paintScope === "piece") {
+          if (this.hoveredPartId) {
+            const hov = angleModel.pieces.find(p => p.id === this.hoveredPartId && !p.isBody);
             if (hov) {
               ctx.save();
               this._buildPiecePath(ctx, hov, dx, dy, dw, dh);
-              ctx.strokeStyle = "rgba(2, 132, 199, 0.70)";
+              ctx.strokeStyle = "rgba(2, 132, 199, 0.75)";
               ctx.lineWidth = 2.0;
               ctx.setLineDash([4, 4]);
               ctx.stroke();
               ctx.restore();
             }
-          }
-
-          // Pieza seleccionada activa
-          const sel = angleModel.pieces.find(p => p.id === this.selectedPartId);
-          if (sel) {
-            ctx.save();
-            this._buildPiecePath(ctx, sel, dx, dy, dw, dh);
-            ctx.strokeStyle = "rgba(200, 16, 46, 0.90)";
-            ctx.lineWidth = 2.0;
-            ctx.setLineDash([5, 4]);
-            ctx.shadowColor = "rgba(200, 16, 46, 0.4)";
-            ctx.shadowBlur = 8;
-            ctx.stroke();
-            ctx.restore();
           }
         }
 
@@ -1397,7 +1282,6 @@
         }
       }
 
-      /* OVERLAY VECTORIAL DE LA PLUMA (COREL/PHOTOSHOP) */
       _renderVectorCadOverlay(ctx, dx, dy, dw, dh) {
         if (this.penNodes.length === 0) return;
 
@@ -1415,7 +1299,6 @@
         ctx.setLineDash([]);
         ctx.stroke();
 
-        // Nodos (anclas)
         this.penNodes.forEach((pt, i) => {
           const px = dx + pt[0] * dw;
           const py = dy + pt[1] * dh;
@@ -1432,7 +1315,7 @@
       }
 
       /* ======================================================================
-         GESTIÓN DE COLOR Y APLICACIÓN
+         GESTIÓN DE COLOR
          ====================================================================== */
       _applyCurrentColor(hex) {
         this.currentColorHex = hex;
@@ -1441,16 +1324,9 @@
         const paintMap = this.photoPaints.get(photo.id);
 
         if (this.paintScope === "full") {
-          // Pinta la carrocería completa y todos los paneles
-          const model = this._getCurrentAngleModel();
-          model.pieces.forEach(p => {
-            if (p.id !== "rin_trasero" && p.id !== "rin_delantero" && p.id !== "rin_del" && p.id !== "rin_tras") {
-              paintMap.set(p.id, { color: hex, finish: this.currentFinish });
-            }
-          });
-          this._showToast(`Vehículo completo pintado en ${hex}`);
+          paintMap.set("carroceria", { color: hex, finish: this.currentFinish });
+          this._showToast(`Carrocería completa pintada en ${hex}`);
         } else {
-          // Pinta la pieza seleccionada
           paintMap.set(this.selectedPartId, { color: hex, finish: this.currentFinish });
           const model = this._getCurrentAngleModel();
           const p = model.pieces.find(x => x.id === this.selectedPartId);
@@ -1471,11 +1347,11 @@
       }
 
       /* ======================================================================
-         INTERACTIVIDAD DE LA PLUMA (INGENIERÍA IA)
+         PLUMA VECTORIAL
          ====================================================================== */
       _chaikinSmoothNodes() {
         if (this.penNodes.length < 3) {
-          this._showToast("Traza al menos 3 nodos para suavizar");
+          this._showToast("Coloca al menos 3 nodos para suavizar");
           return;
         }
         const pts = this.penNodes;
@@ -1488,7 +1364,7 @@
           smoothed.push([0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]]);
         }
         this.penNodes = smoothed;
-        this._showToast("Curva suavizada con IA");
+        this._showToast("Curva suavizada");
         this._renderCanvas();
       }
 
@@ -1502,42 +1378,45 @@
         const newId = `custom_piece_${Date.now()}`;
         const newPiece = {
           id: newId,
-          label: `Pieza Personalizada CAD (${customArr.length + 1})`,
+          label: `Pieza CAD (${customArr.length + 1})`,
           polygon: [...this.penNodes]
         };
         customArr.push(newPiece);
         this.selectedPartId = newId;
         this.penNodes = [];
         this.activeTool = "select";
+        this.paintScope = "piece";
+        document.getElementById("btn-scope-piece").classList.add("active");
+        document.getElementById("btn-scope-full").classList.remove("active");
 
-        // Aplica el color actual de inmediato
         this.photoPaints.get(photo.id).set(newId, { color: this.currentColorHex, finish: this.currentFinish });
 
-        this._showToast("¡Pieza personalizada guardada y pintada!");
+        this._showToast("Pieza personalizada creada y pintada");
         this._updateUIState();
         this._renderCanvas();
       }
 
       /* ======================================================================
-         EVENTOS Y CONTROLES UI
+         EVENTOS UI
          ====================================================================== */
       _setupEventListeners() {
-        // Selector de alcance (Por Piezas / Auto Completo)
         document.getElementById("btn-scope-piece").addEventListener("click", () => {
           this.paintScope = "piece";
           document.getElementById("btn-scope-piece").classList.add("active");
           document.getElementById("btn-scope-full").classList.remove("active");
           this._showToast("Modo: Pintura por Piezas");
+          this._updateUIState();
+          this._renderCanvas();
         });
 
         document.getElementById("btn-scope-full").addEventListener("click", () => {
           this.paintScope = "full";
           document.getElementById("btn-scope-full").classList.add("active");
           document.getElementById("btn-scope-piece").classList.remove("active");
-          this._showToast("Modo: Auto Completo");
+          this.selectedPartId = "carroceria";
+          this._applyCurrentColor(this.currentColorHex);
         });
 
-        // Herramientas de la barra izquierda
         document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
           btn.addEventListener("click", () => {
             const tool = btn.dataset.tool;
@@ -1559,19 +1438,14 @@
           this._clearCurrentPaints();
         });
 
-        // Botones de la barra de pluma
         document.getElementById("btn-pen-smooth").addEventListener("click", () => this._chaikinSmoothNodes());
-        document.getElementById("btn-pen-snap").addEventListener("click", () => {
-          this._showToast("Imantado a ranuras de chapa");
-        });
         document.getElementById("btn-pen-save").addEventListener("click", () => this._savePenAsPiece());
         document.getElementById("btn-pen-reset").addEventListener("click", () => {
           this.penNodes = [];
           this._renderCanvas();
-          this._showToast("Trazo vectorial borrado");
+          this._showToast("Trazo borrado");
         });
 
-        // Tabs del sidebar
         document.querySelectorAll(".tab-btn").forEach(t => {
           t.addEventListener("click", () => {
             document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
@@ -1582,7 +1456,6 @@
           });
         });
 
-        // Shaders de acabado
         document.querySelectorAll(".finish-btn").forEach(btn => {
           btn.addEventListener("click", () => {
             document.querySelectorAll(".finish-btn").forEach(b => b.classList.remove("active"));
@@ -1592,7 +1465,6 @@
           });
         });
 
-        // Color picker nativo e input texto
         const picker = document.getElementById("native-color-picker");
         const hexText = document.getElementById("hex-text-input");
 
@@ -1609,12 +1481,10 @@
           }
         });
 
-        // Clics e interacción sobre el Canvas
         this.canvas.addEventListener("mousedown", (e) => this._onCanvasMouseDown(e));
         this.canvas.addEventListener("mousemove", (e) => this._onCanvasMouseMove(e));
         window.addEventListener("mouseup", () => { this.activeDraggingNodeIdx = -1; });
 
-        // Subir foto personalizada
         const fileInput = document.getElementById("photo-upload-input");
         document.getElementById("btn-subir-foto").addEventListener("click", () => fileInput.click());
         fileInput.addEventListener("change", (e) => {
@@ -1625,7 +1495,7 @@
             const img = new Image();
             img.onload = () => {
               const newId = `custom_photo_${Date.now()}`;
-              this.photos.push({ id: newId, angle: "rear", label: "Foto de Usuario", src: ev.target.result });
+              this.photos.push({ id: newId, angle: "rear", label: "Foto de Taller", src: ev.target.result });
               this.loadedImages.set(newId, img);
               this.photoPaints.set(newId, new Map());
               this.customPieces.set(newId, []);
@@ -1633,20 +1503,19 @@
               this._renderThumbnails();
               this._updateUIState();
               this._renderCanvas();
-              this._showToast("Foto de tu vehículo cargada");
+              this._showToast("Foto cargada con éxito");
             };
             img.src = ev.target.result;
           };
           reader.readAsDataURL(file);
         });
 
-        // Exportar imagen
         document.getElementById("btn-export-4k").addEventListener("click", () => {
           const link = document.createElement("a");
           link.download = `el-rayo-autodesign-${Date.now()}.png`;
           link.href = this.canvas.toDataURL("image/png", 1.0);
           link.click();
-          this._showToast("Imagen guardada en alta resolución");
+          this._showToast("Imagen exportada con éxito");
         });
       }
 
@@ -1661,14 +1530,12 @@
         const normY = (mouseY - dy) / dh;
 
         if (this.activeTool === "pen") {
-          // Agregar nodo
           this.penNodes.push([normX, normY]);
           this._renderCanvas();
           return;
         }
 
         if (this.activeTool === "node") {
-          // Detectar nodo cercano para arrastrar
           this.penNodes.forEach((pt, i) => {
             const dist = Math.hypot(pt[0] - normX, pt[1] - normY);
             if (dist < 0.035) {
@@ -1679,14 +1546,12 @@
         }
 
         if (this.activeTool === "select") {
-          // Seleccionar pieza bajo el cursor
           const model = this._getCurrentAngleModel();
           let hitPiece = null;
 
-          // Buscar de la última pieza a la primera
           for (let i = model.pieces.length - 1; i >= 0; i--) {
             const p = model.pieces[i];
-            if (this._isPointInPiece(normX, normY, p)) {
+            if (!p.isBody && this._isPointInPiece(normX, normY, p)) {
               hitPiece = p;
               break;
             }
@@ -1694,6 +1559,9 @@
 
           if (hitPiece) {
             this.selectedPartId = hitPiece.id;
+            this.paintScope = "piece";
+            document.getElementById("btn-scope-piece").classList.add("active");
+            document.getElementById("btn-scope-full").classList.remove("active");
             this._updateUIState();
             this._renderCanvas();
             this._showToast(`Pieza: ${hitPiece.label}`);
@@ -1717,11 +1585,11 @@
           return;
         }
 
-        if (this.activeTool === "select") {
+        if (this.activeTool === "select" && this.paintScope === "piece") {
           const model = this._getCurrentAngleModel();
           let hit = null;
           for (let i = model.pieces.length - 1; i >= 0; i--) {
-            if (this._isPointInPiece(normX, normY, model.pieces[i])) {
+            if (!model.pieces[i].isBody && this._isPointInPiece(normX, normY, model.pieces[i])) {
               hit = model.pieces[i].id;
               break;
             }
@@ -1734,12 +1602,6 @@
       }
 
       _isPointInPiece(x, y, piece) {
-        if (piece.ellipse) {
-          const el = piece.ellipse;
-          const dx = (x - el.cx) / el.rx;
-          const dy = (y - el.cy) / el.ry;
-          return (dx * dx + dy * dy) <= 1.0;
-        }
         if (piece.polygon && piece.polygon.length > 2) {
           const poly = piece.polygon;
           let inside = false;
@@ -1754,9 +1616,6 @@
         return false;
       }
 
-      /* ======================================================================
-         RENDERIZADORES DE UI
-         ====================================================================== */
       _renderSwatches() {
         const grid = document.getElementById("oem-swatches-grid");
         grid.innerHTML = "";
@@ -1810,10 +1669,10 @@
         const activePiece = model.pieces.find(p => p.id === this.selectedPartId);
 
         document.getElementById("label-car-angle").innerText = model.label;
-        document.getElementById("label-active-piece").innerText = `Pieza: ${activePiece ? activePiece.label : 'Carrocería'}`;
-        document.getElementById("badge-pieces-count").innerText = `${model.pieces.length} Piezas`;
+        document.getElementById("label-active-piece").innerText = this.paintScope === "full"
+          ? "Carrocería Completa (Sin vidrios ni faros)"
+          : `Pieza: ${activePiece ? activePiece.label : 'Carrocería'}`;
 
-        // Renderizar lista de piezas
         const container = document.getElementById("pieces-list-container");
         container.innerHTML = "";
         const paintMap = this.photoPaints.get(photo.id) || new Map();
@@ -1831,6 +1690,14 @@
 
           row.addEventListener("click", () => {
             this.selectedPartId = p.id;
+            this.paintScope = p.isBody ? "full" : "piece";
+            if (this.paintScope === "full") {
+              document.getElementById("btn-scope-full").classList.add("active");
+              document.getElementById("btn-scope-piece").classList.remove("active");
+            } else {
+              document.getElementById("btn-scope-piece").classList.add("active");
+              document.getElementById("btn-scope-full").classList.remove("active");
+            }
             this._updateUIState();
             this._renderCanvas();
           });
@@ -1850,7 +1717,6 @@
       }
     }
 
-    // Inicializar Studio al cargar la página
     window.addEventListener("DOMContentLoaded", () => {
       window.studio = new ElRayoStudio();
     });
