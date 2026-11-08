@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>El Rayo AutoDesign Studio — Pintura Automotriz & Segmentación IA</title>
+  <title>El Rayo AutoDesign Studio — Pintura Automotriz & Detección IA</title>
   <link rel="icon" type="image/png" href="./logo_el_rayo.png" />
   <style>
     :root {
       --bg-studio: #EEF1F5;
-      --bg-panel: rgba(255, 255, 255, 0.92);
+      --bg-panel: rgba(255, 255, 255, 0.94);
       --bg-panel-solid: #FFFFFF;
       --border-glass: rgba(226, 232, 240, 0.95);
       --border-focus: #0284C7;
@@ -45,11 +45,9 @@
       flex-direction: column;
     }
 
-    /* ======================================================================
-       HEADER SUPERIOR CON LOGO OFICIAL
-       ====================================================================== */
+    /* HEADER CON LOGO OFICIAL */
     header#studio-header {
-      height: 60px;
+      height: 62px;
       background: var(--bg-panel);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -57,7 +55,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 18px;
+      padding: 0 20px;
       z-index: 50;
       flex-shrink: 0;
     }
@@ -69,12 +67,12 @@
     }
 
     .brand-official-logo {
-      height: 42px;
+      height: 44px;
       width: auto;
-      max-width: 135px;
+      max-width: 140px;
       object-fit: contain;
       display: block;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.10));
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
     }
 
     .brand-titles h1 {
@@ -158,9 +156,7 @@
       background: var(--accent-red-hover);
     }
 
-    /* ======================================================================
-       CONTENEDOR PRINCIPAL
-       ====================================================================== */
+    /* CONTENEDOR PRINCIPAL */
     main#studio-main {
       flex: 1;
       display: flex;
@@ -168,7 +164,7 @@
       position: relative;
     }
 
-    /* TOOLBAR LATERAL IZQUIERDA */
+    /* TOOLBAR IZQUIERDA */
     aside#left-toolbar {
       width: 50px;
       background: var(--bg-panel);
@@ -243,9 +239,7 @@
       margin: 4px 0;
     }
 
-    /* ======================================================================
-       ÁREA DEL CANVAS
-       ====================================================================== */
+    /* ÁREA DEL CANVAS */
     #canvas-area {
       flex: 1;
       display: flex;
@@ -296,7 +290,7 @@
       background: var(--accent-green);
     }
 
-    /* Barra de ingeniería vectorial (Pluma) */
+    /* Barra vectorial (Pluma) */
     .pen-engineering-bar {
       position: absolute;
       top: 48px;
@@ -349,7 +343,6 @@
       color: #FFF;
     }
 
-    /* Viewport del Canvas */
     .canvas-viewport {
       flex: 1;
       width: 100%;
@@ -368,7 +361,6 @@
       border-radius: 8px;
     }
 
-    /* Carrusel de fotos */
     .photos-bottom-strip {
       height: 64px;
       background: var(--bg-panel);
@@ -436,9 +428,7 @@
       border-radius: 3px;
     }
 
-    /* ======================================================================
-       SIDEBAR DERECHA: PINTURA, ACABADOS Y PIEZAS
-       ====================================================================== */
+    /* SIDEBAR DERECHA */
     aside#right-sidebar {
       width: 310px;
       background: var(--bg-panel);
@@ -1030,7 +1020,7 @@
         this.ctx = this.canvas.getContext("2d");
         this.viewport = { dx: 0, dy: 0, dw: 0, dh: 0 };
 
-        // Canvas offscreen para composición de máscaras
+        // Canvas offscreen para composición y recorte
         this.offCanvas = document.createElement("canvas");
         this.offCtx = this.offCanvas.getContext("2d");
 
@@ -1042,6 +1032,13 @@
         this._renderSwatches();
         this._renderThumbnails();
         await this._loadAllPhotosAndMasks();
+
+        // Aplicar Verde Militar inicial en modo Auto Completo
+        const firstPhoto = this._getCurrentPhoto();
+        if (firstPhoto) {
+          this.photoPaints.get(firstPhoto.id).set("carroceria", { color: this.currentColorHex, finish: this.currentFinish });
+        }
+
         this._updateUIState();
         this._renderCanvas();
       }
@@ -1049,7 +1046,6 @@
       async _loadAllPhotosAndMasks() {
         const promises = [];
         this.photos.forEach(p => {
-          // Cargar imagen
           promises.push(new Promise(resolve => {
             const img = new Image();
             img.crossOrigin = "anonymous";
@@ -1058,7 +1054,6 @@
             img.src = p.src;
           }));
 
-          // Cargar máscara
           if (p.maskSrc) {
             promises.push(new Promise(resolve => {
               const m = new Image();
@@ -1087,10 +1082,62 @@
       }
 
       /* ======================================================================
-         MOTOR DE PINTURA FOTORREALISTA CON MÁSCARA AUTOMOTRIZ
-         Protege al 100% Faros, Ventanas, Llantas y Placas
+         GENERADOR DE MÁSCARA AUTOMÁTICA PARA FOTOS SUBIDAS POR EL USUARIO
          ====================================================================== */
-      _applyPiecePaintWithMask(ctx, piece, hexColor, finish, dx, dy, dw, dh, maskImg) {
+      _generateDynamicCarMask(img) {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        const cx = c.getContext("2d");
+        cx.drawImage(img, 0, 0);
+
+        try {
+          const idata = cx.getImageData(0, 0, w, h);
+          const d = idata.data;
+          const maskData = cx.createImageData(w, h);
+          const md = maskData.data;
+
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i], g = d[i+1], b = d[i+2];
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            const y = Math.floor((i / 4) / w);
+            const x = (i / 4) % w;
+
+            // Exclusiones de seguridad: Faros, Ventanas, Llantas, Placa y Fondo
+            const isTaillight = (r > 65) && (r - g > 25) && (r - b > 25);
+            const isGlass = (lum < 80) && (y < h * 0.52);
+            const isTire = (lum < 45) && (y > h * 0.45);
+            const isPlate = (r > 150) && (g > 130) && (b < 70) && (y > h * 0.55);
+            const inCarBounds = (x > w * 0.08) && (x < w * 0.92) && (y > h * 0.20) && (y < h * 0.75);
+            const diff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+
+            if (inCarBounds && !isTaillight && !isGlass && !isTire && !isPlate && (y < h * 0.74) && diff < 35 && lum >= 65 && lum <= 245) {
+              md[i] = 255;
+              md[i+1] = 255;
+              md[i+2] = 255;
+              md[i+3] = 255; // Alpha = 255 (Pintar)
+            } else {
+              md[i] = 0;
+              md[i+1] = 0;
+              md[i+2] = 0;
+              md[i+3] = 0;   // Alpha = 0 (Transparente - Vidrios, Faros, Llantas, Suelo)
+            }
+          }
+          cx.putImageData(maskData, 0, 0);
+          const mImg = new Image();
+          mImg.src = c.toDataURL("image/png");
+          return mImg;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      /* ======================================================================
+         NÚCLEO DE PINTURA FOTORREALISTA CON AISLAMIENTO DE CHAPA
+         ====================================================================== */
+      _applyPiecePaintWithMask(ctx, baseImg, piece, hexColor, finish, dx, dy, dw, dh, maskImg) {
         const cw = ctx.canvas.width;
         const ch = ctx.canvas.height;
 
@@ -1099,14 +1146,11 @@
         const octx = this.offCtx;
         octx.clearRect(0, 0, cw, ch);
 
-        // 1. Si es por pieza individual, recortar al polígono de la pieza
-        if (piece && piece.polygon && !piece.isBody) {
-          octx.save();
-          this._buildPiecePath(octx, piece, dx, dy, dw, dh);
-          octx.clip();
-        }
+        // 1. PASO CLAVE: DIBUJAR LA FOTO ORIGINAL EN EL BUFFER OFFSCREEN
+        // Esto garantiza que el modo 'color' tenga píxeles reales de chapa para leer luz y textura
+        octx.drawImage(baseImg, dx, dy, dw, dh);
 
-        // 2. Extraer luminosidad y color
+        // 2. APLICAR SHADERS DE COLOR AUTOMOTRIZ
         const hex = hexColor.replace("#", "");
         const r = parseInt(hex.substring(0, 2), 16) || 59;
         const g = parseInt(hex.substring(2, 4), 16) || 77;
@@ -1133,7 +1177,7 @@
           octx.fillStyle = "rgba(25, 28, 35, 0.45)";
           octx.fillRect(dx, dy, dw, dh);
         } else {
-          // Color Automotriz Puro
+          // Color Automotriz de Taller
           octx.globalCompositeOperation = "color";
           octx.fillStyle = hexColor;
           octx.globalAlpha = 1.0;
@@ -1150,7 +1194,7 @@
           octx.fillRect(dx, dy, dw, dh);
         }
 
-        // Acabado de Barniz / Shaders
+        // Shaders de Acabado (Barniz / Laca)
         if (finish === "metallic") {
           octx.globalCompositeOperation = "screen";
           octx.fillStyle = "rgba(255, 255, 255, 0.24)";
@@ -1166,16 +1210,22 @@
           octx.fillRect(dx, dy, dw, dh);
         }
 
-        if (piece && piece.polygon && !piece.isBody) {
-          octx.restore();
-        }
-
-        // 3. AISLAMIENTO PERFECTO: Multiplicar por la Máscara de Carrocería (destination-in)
-        // Elimina al 100% pintura sobre Cristales, Faros, Llantas, Placas y Suelo
-        if (maskImg) {
+        // 3. PASO MAESTRO: AISLAMIENTO CON LA MÁSCARA ALFA RGBA (destination-in)
+        // Elimina al 100% la pintura de Cristales, Faros, Llantas, Placas y Fondo
+        if (maskImg && maskImg.complete && maskImg.naturalWidth > 0) {
           octx.globalCompositeOperation = "destination-in";
           octx.globalAlpha = 1.0;
           octx.drawImage(maskImg, dx, dy, dw, dh);
+        }
+
+        // Si se trata de una pieza individual seleccionada (ej. solo cajuela), recortar también al polígono
+        if (piece && piece.polygon && !piece.isBody) {
+          octx.globalCompositeOperation = "destination-in";
+          octx.save();
+          this._buildPiecePath(octx, piece, dx, dy, dw, dh);
+          octx.fillStyle = "#FFFFFF";
+          octx.fill();
+          octx.restore();
         }
 
         // 4. Volcar sobre el canvas principal
@@ -1208,7 +1258,7 @@
 
         const photo = this._getCurrentPhoto();
         const img = photo ? this.loadedImages.get(photo.id) : null;
-        const maskImg = photo ? this.loadedMasks.get(photo.id) : null;
+        let maskImg = photo ? this.loadedMasks.get(photo.id) : null;
 
         if (!img) {
           ctx.fillStyle = "#E2E8F0";
@@ -1216,11 +1266,24 @@
           ctx.fillStyle = "#64748B";
           ctx.font = "bold 16px sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText("Cargando modelo anatómico del vehículo...", w / 2, h / 2);
+          ctx.fillText("Cargando vehículo...", w / 2, h / 2);
           return;
         }
 
-        // Fondo de estudio
+        // Si es foto de usuario y no tiene máscara pre-cargada, generarla dinámicamente
+        if (!maskImg && !this._isGeneratingMask) {
+          this._isGeneratingMask = true;
+          const dynamicMask = this._generateDynamicCarMask(img);
+          if (dynamicMask) {
+            dynamicMask.onload = () => {
+              this.loadedMasks.set(photo.id, dynamicMask);
+              this._isGeneratingMask = false;
+              this._renderCanvas();
+            };
+          }
+        }
+
+        // Fondo de estudio fotográfico
         const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
         bgGrad.addColorStop(0, "#FFFFFF");
         bgGrad.addColorStop(0.7, "#F1F4F8");
@@ -1238,24 +1301,24 @@
 
         this.viewport = { dx, dy, dw, dh, scale };
 
-        // 1. DIBUJAR FOTO ORIGINAL
+        // 1. DIBUJAR FOTO ORIGINAL (INTACTA)
         ctx.drawImage(img, dx, dy, dw, dh);
 
-        // 2. APLICAR CAPAS DE PINTURA (AUTO COMPLETO O POR PIEZAS)
+        // 2. APLICAR CAPA DE PINTURA AUTOMOTRIZ (PROTEGIENDO VIDRIOS, LUCES Y LLANTAS)
         const angleModel = this._getCurrentAngleModel();
         const paintMap = this.photoPaints.get(photo.id) || new Map();
 
         if (this.paintScope === "full") {
           const bodyPaint = paintMap.get("carroceria");
           if (bodyPaint && bodyPaint.color) {
-            this._applyPiecePaintWithMask(ctx, { isBody: true }, bodyPaint.color, bodyPaint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
+            this._applyPiecePaintWithMask(ctx, img, { isBody: true }, bodyPaint.color, bodyPaint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
           }
         } else {
-          // Por piezas
+          // Modo Por Piezas
           angleModel.pieces.forEach(piece => {
             const paint = paintMap.get(piece.id);
             if (paint && paint.color) {
-              this._applyPiecePaintWithMask(ctx, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
+              this._applyPiecePaintWithMask(ctx, img, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
             }
           });
         }
