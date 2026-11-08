@@ -787,7 +787,7 @@
       <div class="canvas-status-bar">
         <div class="status-pill">
           <span class="indicator-dot"></span>
-          <span id="label-car-angle">Volkswagen Golf (Trasera 3/4)</span>
+          <span id="label-car-angle">Esperando vehículo (Sube una foto)</span>
         </div>
         <div class="status-pill active">
           <span id="label-active-piece">Carrocería Completa (Sin vidrios ni faros)</span>
@@ -969,37 +969,7 @@
 
     class ElRayoStudio {
       constructor() {
-        this.photos = [
-          {
-            id: "p1",
-            angle: "rear",
-            label: "Trasera (3/4)",
-            src: "./assets/test_car/angle_180_rear.jpg",
-            maskSrc: "./assets/test_car/masks/angle_180_rear_mask.png"
-          },
-          {
-            id: "p2",
-            angle: "side",
-            label: "Perfil (90°)",
-            src: "./assets/test_car/angle_90_side.jpg",
-            maskSrc: "./assets/test_car/masks/angle_90_side_mask.png"
-          },
-          {
-            id: "p3",
-            angle: "front",
-            label: "Frente (0°)",
-            src: "./assets/test_car/angle_0_front.jpg",
-            maskSrc: "./assets/test_car/masks/angle_0_front_mask.png"
-          },
-          {
-            id: "p4",
-            angle: "front34",
-            label: "3/4 Frontal",
-            src: "./assets/test_car/angle_45_front34.jpg",
-            maskSrc: "./assets/test_car/masks/angle_45_front34_mask.png"
-          }
-        ];
-
+        this.photos = [];
         this.currentPhotoIndex = 0;
         this.loadedImages = new Map();
         this.loadedMasks = new Map();
@@ -1072,12 +1042,23 @@
       }
 
       _getCurrentPhoto() {
-        return this.photos[this.currentPhotoIndex];
+        return (this.photos && this.photos.length > 0) ? this.photos[this.currentPhotoIndex] : null;
       }
 
       _getCurrentAngleModel() {
         const photo = this._getCurrentPhoto();
-        const base = VEHICLE_ANGLES[photo.angle] || VEHICLE_ANGLES["rear"];
+        if (!photo) {
+          return {
+            id: "custom",
+            label: "Vehículo Personalizado",
+            pieces: [{ id: "carroceria", label: "Carrocería Completa", isBody: true }]
+          };
+        }
+        const base = VEHICLE_ANGLES[photo.angle] || VEHICLE_ANGLES["rear"] || {
+          id: "custom",
+          label: "Vehículo Personalizado",
+          pieces: [{ id: "carroceria", label: "Carrocería Completa", isBody: true }]
+        };
         const custom = this.customPieces.get(photo.id) || [];
         return {
           ...base,
@@ -1323,12 +1304,70 @@
         let maskImg = photo ? this.loadedMasks.get(photo.id) : null;
 
         if (!img) {
-          ctx.fillStyle = "#E2E8F0";
+          // Fondo oscuro Glassmorphic tipo estudio CAD
+          const grad = ctx.createLinearGradient(0, 0, 0, h);
+          grad.addColorStop(0, "#0F172A");
+          grad.addColorStop(1, "#1E293B");
+          ctx.fillStyle = grad;
           ctx.fillRect(0, 0, w, h);
-          ctx.fillStyle = "#64748B";
-          ctx.font = "bold 16px sans-serif";
+
+          // Cuadrícula sutil CAD
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+          ctx.lineWidth = 1;
+          const gridSize = 40;
+          for (let x = 0; x < w; x += gridSize) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+          }
+          for (let y = 0; y < h; y += gridSize) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+          }
+
+          // Tarjeta central punteada
+          const boxW = 560, boxH = 260;
+          const boxX = (w - boxW) / 2, boxY = (h - boxH) / 2;
+          ctx.save();
+          ctx.strokeStyle = "rgba(200, 16, 46, 0.4)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([8, 8]);
+          ctx.strokeRect(boxX, boxY, boxW, boxH);
+          ctx.restore();
+
+          // Icono y texto de subida
           ctx.textAlign = "center";
-          ctx.fillText("Cargando vehículo...", w / 2, h / 2);
+          ctx.textBaseline = "middle";
+
+          // Rayo / Cámara
+          ctx.fillStyle = "#C8102E";
+          ctx.font = "bold 38px sans-serif";
+          ctx.fillText("⚡", w / 2, boxY + 55);
+
+          // Título principal
+          ctx.fillStyle = "#F8FAFC";
+          ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.fillText("Sube la fotografía de tu vehículo para comenzar", w / 2, boxY + 110);
+
+          // Subtítulo técnico
+          ctx.fillStyle = "#94A3B8";
+          ctx.font = "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.fillText("La IA (SegFormer ONNX) aislará automáticamente toda la lámina de la carrocería", w / 2, boxY + 145);
+          ctx.fillText("protegiendo al 100% cristales, calaveras, faros y llantas sin manchar el fondo.", w / 2, boxY + 170);
+
+          // Botón estilizado dentro del canvas
+          const btnW = 260, btnH = 42;
+          const btnX = (w - btnW) / 2, btnY = boxY + boxH - 55;
+          ctx.fillStyle = "#C8102E";
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(btnX, btnY, btnW, btnH, 8);
+          } else {
+            ctx.rect(btnX, btnY, btnW, btnH);
+          }
+          ctx.fill();
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 14px sans-serif";
+          ctx.fillText("📷  Seleccionar Fotografía", w / 2, btnY + btnH / 2);
+
           return;
         }
 
@@ -1385,7 +1424,28 @@
 
       _renderThumbnails() {
         const list = document.getElementById("photo-thumbs-list");
+        if (!list) return;
         list.innerHTML = "";
+
+        if (this.photos.length === 0) {
+          const emptyThumb = document.createElement("div");
+          emptyThumb.className = "photo-thumb-card";
+          emptyThumb.style.display = "flex";
+          emptyThumb.style.alignItems = "center";
+          emptyThumb.style.justifyContent = "center";
+          emptyThumb.style.border = "1px dashed rgba(255,255,255,0.2)";
+          emptyThumb.style.cursor = "pointer";
+          emptyThumb.style.padding = "4px";
+          emptyThumb.title = "Subir foto de auto";
+          emptyThumb.innerHTML = `<span style="font-size:11px; color:#94A3B8; text-align:center;">+ Subir Auto</span>`;
+          emptyThumb.addEventListener("click", () => {
+            const fi = document.getElementById("photo-upload-input");
+            if (fi) fi.click();
+          });
+          list.appendChild(emptyThumb);
+          return;
+        }
+
         this.photos.forEach((p, idx) => {
           const card = document.createElement("div");
           card.className = `photo-thumb-card ${idx === this.currentPhotoIndex ? "active" : ""}`;
@@ -1408,15 +1468,28 @@
         const model = this._getCurrentAngleModel();
         const activePiece = model.pieces.find(p => p.id === this.selectedPartId);
 
-        document.getElementById("label-car-angle").innerText = model.label;
-        document.getElementById("label-active-piece").innerText = this.paintScope === "full"
-          ? "Carrocería Completa (Sin vidrios ni faros)"
-          : `Pieza: ${activePiece ? activePiece.label : 'Carrocería'}`;
+        const lblAngle = document.getElementById("label-car-angle");
+        const lblPiece = document.getElementById("label-active-piece");
+
+        if (lblAngle) {
+          lblAngle.innerText = photo ? model.label : "Esperando vehículo (Sube una foto)";
+        }
+        if (lblPiece) {
+          lblPiece.innerText = photo
+            ? (this.paintScope === "full" ? "Carrocería Completa (Sin vidrios ni faros)" : `Pieza: ${activePiece ? activePiece.label : 'Carrocería'}`)
+            : "IA Lista para Escaneo";
+        }
 
         const container = document.getElementById("pieces-list-container");
+        if (!container) return;
         container.innerHTML = "";
-        const paintMap = this.photoPaints.get(photo.id) || new Map();
 
+        if (!photo) {
+          container.innerHTML = `<div style="padding:16px; text-align:center; color:#94A3B8; font-size:12px;">Sube una foto para listar las piezas detectadas por la IA</div>`;
+          return;
+        }
+
+        const paintMap = this.photoPaints.get(photo.id) || new Map();
         model.pieces.forEach(p => {
           const row = document.createElement("div");
           row.className = `piece-row ${p.id === this.selectedPartId ? "selected" : ""}`;
@@ -1431,13 +1504,7 @@
           row.addEventListener("click", () => {
             this.selectedPartId = p.id;
             this.paintScope = p.isBody ? "full" : "piece";
-            if (this.paintScope === "full") {
-              document.getElementById("btn-scope-full").classList.add("active");
-              document.getElementById("btn-scope-piece").classList.remove("active");
-            } else {
-              document.getElementById("btn-scope-piece").classList.add("active");
-              document.getElementById("btn-scope-full").classList.remove("active");
-            }
+            this._updateScopeButtons();
             this._updateUIState();
             this._renderCanvas();
           });
