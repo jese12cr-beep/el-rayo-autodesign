@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 import mimetypes
+import numpy as np
 
 mimetypes.init()
 mimetypes.add_type("application/javascript", ".js")
@@ -29,6 +30,17 @@ if str(PROJECT_ROOT) not in sys.path:
 from app.vision.preprocessor import VehicleImagePreprocessor
 from app.vision.segmenter import CarPartSegmenter
 from app.paint_engine.blender import PaintBlender
+from app.paint_engine.sam_paint_core import (
+    inicializar_ia,
+    generar_mascara_carroceria,
+    preservar_luminancia,
+    aplicar_color_blend,
+    recomponer_imagen,
+    renderizar_color_en_vehiculo
+)
+import base64
+import io
+from PIL import Image
 
 WEB_DIR = PROJECT_ROOT / "app" / "web_canvas"
 ASSETS_DIR = PROJECT_ROOT / "app" / "assets"
@@ -75,8 +87,89 @@ class RayoStudioRequestHandler(SimpleHTTPRequestHandler):
             self._handle_segment_api()
         elif self.path == "/api/blend":
             self._handle_blend_api()
+        elif self.path == "/api/sam/paint":
+            self._handle_sam_paint_api()
+        elif self.path == "/api/sam/segment":
+            self._handle_sam_segment_api()
         else:
             self.send_error(404, "Endpoint no encontrado")
+
+    def _handle_sam_paint_api(self):
+        """Execute the complete SAM 4-phase color rendering pipeline."""
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            data = json.loads(body.decode("utf-8"))
+
+            color_hex = data.get("color_hex", "#C8102E")
+            tipo = data.get("tipo", "overlay")
+            intensidad_brillo = int(data.get("intensidad_brillo", 200))
+
+            # Default test image if not provided
+            sample_img_path = PROJECT_ROOT / "assets" / "test_car" / "angle_180_rear.jpg"
+            pil_img = Image.open(str(sample_img_path)).convert("RGB")
+            rgb_arr = np.array(pil_img)
+            imagen_bgr = rgb_arr[:, :, ::-1]
+            h, w, _ = imagen_bgr.shape
+
+            input_point = data.get("input_point", [int(w * 0.65), int(h * 0.52)])
+
+            render_final_bgr, mask_uint8 = renderizar_color_en_vehiculo(
+                imagen_bgr,
+                input_point=input_point,
+                color_hex=color_hex,
+                tipo=tipo,
+                intensidad_brillo=intensidad_brillo
+            )
+
+            # Convert to base64
+            render_rgb = render_final_bgr[:, :, ::-1]
+            out_pil = Image.fromarray(render_rgb)
+            buf = io.BytesIO()
+            out_pil.save(buf, format="JPEG", quality=90)
+            b64_img = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+            self._send_json({
+                "success": True,
+                "rendered_image": f"data:image/jpeg;base64,{b64_img}",
+                "input_point": input_point,
+                "color_hex": color_hex,
+                "tipo": tipo
+            })
+        except Exception as e:
+            self._send_json({"success": False, "error": str(e)}, status=500)
+
+    def _handle_sam_segment_api(self):
+        """Execute SAM segmentation and return binary mask."""
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            data = json.loads(body.decode("utf-8"))
+
+            sample_img_path = PROJECT_ROOT / "assets" / "test_car" / "angle_180_rear.jpg"
+            pil_img = Image.open(str(sample_img_path)).convert("RGB")
+            rgb_arr = np.array(pil_img)
+            imagen_bgr = rgb_arr[:, :, ::-1]
+            h, w, _ = imagen_bgr.shape
+
+            input_point = data.get("input_point", [int(w * 0.65), int(h * 0.52)])
+
+            predictor = inicializar_ia()
+            mascara = generar_mascara_carroceria(imagen_bgr, predictor, input_point=input_point)
+
+            mask_pil = Image.fromarray(mascara)
+            buf = io.BytesIO()
+            mask_pil.save(buf, format="PNG")
+            b64_mask = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+            self._send_json({
+                "success": True,
+                "mask": f"data:image/png;base64,{b64_mask}",
+                "pixels_selected": int(np.count_nonzero(mascara)),
+                "input_point": input_point
+            })
+        except Exception as e:
+            self._send_json({"success": False, "error": str(e)}, status=500)
 
     def _handle_segment_api(self):
         """Execute SAM Segmentation and return SVG paths & metrics."""
