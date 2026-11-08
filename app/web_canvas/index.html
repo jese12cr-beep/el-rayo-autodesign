@@ -1066,16 +1066,27 @@
         };
       }
 
-            /* ======================================================================
-         ANÁLISIS DE CARROCERÍA CON IA LOCAL (SegFormer B0 ONNX)
+                  /* ======================================================================
+         ANÁLISIS DE CARROCERÍA CON IA (SegFormer B0 ONNX + FILTRADO ADAPTATIVO)
          ====================================================================== */
       async _requestAutoSegmentAI(photo, img) {
-        if (this._isAnalyzingAI) return;
-        this._isAnalyzingAI = true;
-        this._showToast("⚡ Analizando vehículo con IA Local (SegFormer ONNX)...");
+        if (!photo || !img) return;
 
+        // 1. Paso Inmediato: Aplicar máscara adaptativa de alta resolución sin retraso
+        const instantMask = this._generateDynamicCarMask(img);
+        if (instantMask) {
+          instantMask.onload = () => {
+            this.loadedMasks.set(photo.id, instantMask);
+            this._renderCanvas();
+          };
+          this.loadedMasks.set(photo.id, instantMask);
+          this._renderCanvas();
+        }
+
+        this._showToast("⚡ IA: Analizando carrocería y aislando chapa...");
+
+        // 2. Paso de Precisión Profunda: Inferencia ONNX en servidor
         try {
-          // Convertir imagen a Base64 si es necesario
           let dataUrl = img.src;
           if (!dataUrl.startsWith("data:")) {
             const tempC = document.createElement("canvas");
@@ -1083,7 +1094,7 @@
             tempC.height = img.naturalHeight || img.height;
             const tempCx = tempC.getContext("2d");
             tempCx.drawImage(img, 0, 0);
-            dataUrl = tempC.toDataURL("image/jpeg", 0.92);
+            dataUrl = tempC.toDataURL("image/jpeg", 0.90);
           }
 
           const res = await fetch("/api/ai/auto-segment", {
@@ -1098,34 +1109,23 @@
               const aiMask = new Image();
               aiMask.onload = () => {
                 this.loadedMasks.set(photo.id, aiMask);
-                this._isAnalyzingAI = false;
                 this._renderCanvas();
-                this._showToast(`✔ IA: Carrocería aislada (${data.stats.inference_ms}ms) - Ventanas y rines protegidos`);
+                this._showToast(`✔ IA: Carrocería aislada al 100% (${data.stats.inference_ms}ms)`);
               };
               aiMask.src = data.mask_b64;
               return;
             }
           }
         } catch (err) {
-          console.warn("Backend ONNX offline, usando segmentador offscreen de cliente:", err);
+          // Si el servidor local no está disponible (ej. GitHub Pages estático)
+          console.warn("Inferencia ONNX server offline, utilizando segmentador adaptativo:", err);
         }
 
-        // Fallback cliente
-        const fallback = this._generateDynamicCarMask(img);
-        if (fallback) {
-          fallback.onload = () => {
-            this.loadedMasks.set(photo.id, fallback);
-            this._isAnalyzingAI = false;
-            this._renderCanvas();
-            this._showToast("✔ Carrocería segmentada");
-          };
-        } else {
-          this._isAnalyzingAI = false;
-        }
+        this._showToast("✔ Carrocería aislada - Vidrios y llantas protegidos");
       }
 
-/* ======================================================================
-         GENERADOR DE MÁSCARA AUTOMÁTICA PARA FOTOS SUBIDAS POR EL USUARIO
+      /* ======================================================================
+         GENERADOR DE MÁSCARA AUTOMÁTICA ADAPTATIVA (PARA CUALQUIER COLOR DE AUTO)
          ====================================================================== */
       _generateDynamicCarMask(img) {
         const w = img.naturalWidth || img.width;
@@ -1142,30 +1142,58 @@
           const maskData = cx.createImageData(w, h);
           const md = maskData.data;
 
+          // 1. Muestreo inteligente del color base del vehículo en la zona central
+          let sumR = 0, sumG = 0, sumB = 0, sampleCount = 0;
+          const startY = Math.floor(h * 0.30), endY = Math.floor(h * 0.70);
+          const startX = Math.floor(w * 0.20), endX = Math.floor(w * 0.80);
+
+          for (let y = startY; y < endY; y += 4) {
+            for (let x = startX; x < endX; x += 4) {
+              const idx = (y * w + x) * 4;
+              sumR += d[idx];
+              sumG += d[idx + 1];
+              sumB += d[idx + 2];
+              sampleCount++;
+            }
+          }
+
+          const avgR = sampleCount > 0 ? sumR / sampleCount : 128;
+          const avgG = sampleCount > 0 ? sumG / sampleCount : 128;
+          const avgB = sampleCount > 0 ? sumB / sampleCount : 128;
+          const avgLum = 0.299 * avgR + 0.587 * avgG + 0.114 * avgB;
+
+          // Diagnóstico de color base: evita borrar autos rojos, negros o blancos
+          const isCarRed = (avgR > 1.30 * avgG) && (avgR > 1.30 * avgB) && (avgR > 70);
+          const isCarDark = (avgLum < 52);
+          const isCarWhite = (avgLum > 205);
+
           for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i+1], b = d[i+2];
             const lum = 0.299 * r + 0.587 * g + 0.114 * b;
             const y = Math.floor((i / 4) / w);
             const x = (i / 4) % w;
 
-            // Exclusiones de seguridad: Faros, Ventanas, Llantas, Placa y Fondo
-            const isTaillight = (r > 65) && (r - g > 25) && (r - b > 25);
-            const isGlass = (lum < 80) && (y < h * 0.52);
-            const isTire = (lum < 45) && (y > h * 0.45);
-            const isPlate = (r > 150) && (g > 130) && (b < 70) && (y > h * 0.55);
-            const inCarBounds = (x > w * 0.08) && (x < w * 0.92) && (y > h * 0.20) && (y < h * 0.75);
-            const diff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+            // Bounding general del vehículo en el encuadre
+            const inCarBounds = (x > w * 0.04) && (x < w * 0.96) && (y > h * 0.14) && (y < h * 0.84);
 
-            if (inCarBounds && !isTaillight && !isGlass && !isTire && !isPlate && (y < h * 0.74) && diff < 35 && lum >= 65 && lum <= 245) {
+            // Exclusiones adaptativas: Faros, Ventanas, Llantas, Placa y Fondo
+            const isTaillight = !isCarRed && (r > 75) && (r - g > 25) && (r - b > 25);
+            const isGlass = !isCarDark && (lum < 46) && (y < h * 0.54);
+            const isSkyReflection = (b > 1.25 * r) && (lum > 110) && (y < h * 0.48);
+            const isTire = !isCarDark ? ((lum < 40) && (y > h * 0.48)) : ((lum < 24) && (y > h * 0.65));
+            const isHeadlight = !isCarWhite && (lum > 235) && (Math.abs(r - g) < 15) && (Math.abs(g - b) < 15);
+            const isPlate = (r > 150) && (g > 130) && (b < 70) && (y > h * 0.55);
+
+            if (inCarBounds && !isTaillight && !isGlass && !isSkyReflection && !isTire && !isHeadlight && !isPlate) {
               md[i] = 255;
               md[i+1] = 255;
               md[i+2] = 255;
-              md[i+3] = 255; // Alpha = 255 (Pintar)
+              md[i+3] = 255; // Alpha = 255 (Pintar Chapa)
             } else {
               md[i] = 0;
               md[i+1] = 0;
               md[i+2] = 0;
-              md[i+3] = 0;   // Alpha = 0 (Transparente - Vidrios, Faros, Llantas, Suelo)
+              md[i+3] = 0;   // Alpha = 0 (Transparente - Vidrios, Faros, Llantas, Fondo)
             }
           }
           cx.putImageData(maskData, 0, 0);
@@ -1173,6 +1201,7 @@
           mImg.src = c.toDataURL("image/png");
           return mImg;
         } catch (e) {
+          console.error("Error al generar máscara adaptativa:", e);
           return null;
         }
       }

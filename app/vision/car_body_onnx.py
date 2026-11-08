@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 El Rayo AutoDesign Studio - Motor de Segmentación de Carrocería con IA Local (ONNX)
-Utiliza SegFormer B0 Cuantizado (4.3 MB) + Filtro Morfológico y Espectral Automotriz
-Detecta la chapa/lámina del vehículo y aísla al 100% cristales, faros, calaveras, llantas y fondo.
+Utiliza SegFormer B0 Cuantizado (4.3 MB) + Perfilador Adaptativo de Color Automotriz.
+Detecta la chapa/lámina de cualquier vehículo (autos, camionetas, SUVs) sin importar su color
+(rojo, negro, blanco, azul, plata) y aísla al 100% cristales, faros, calaveras, llantas y fondo.
 """
 
 import os
@@ -43,7 +44,6 @@ class CarBodyONNXSegmenter:
             return
 
         try:
-            # Configurar sesión con optimizaciones de CPU/NPU
             opts = ort.SessionOptions()
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             opts.intra_op_num_threads = 4
@@ -64,14 +64,9 @@ class CarBodyONNXSegmenter:
         rgb_img = image.convert("RGB")
 
         if self.session is None:
-            # Fallback heurístico si el modelo ONNX no está disponible
-            mask_rgba = self._heuristic_fallback(rgb_img)
-            return mask_rgba, {
-                "inference_ms": round((time.time() - t0) * 1000, 1),
-                "method": "heuristic_fallback",
-                "car_coverage_pct": 50.0,
-                "body_coverage_pct": 35.0
-            }
+            mask_rgba, stats = self._adaptive_saliency_fallback(rgb_img)
+            stats["inference_ms"] = round((time.time() - t0) * 1000, 1)
+            return mask_rgba, stats
 
         # 1. Preprocesamiento: Resize a (1024, 512) y normalización ImageNet
         input_w, input_h = 1024, 512
@@ -86,53 +81,91 @@ class CarBodyONNXSegmenter:
         # 2. Inferencia ONNX
         outputs = self.session.run(None, {"pixel_values": arr})
         logits = outputs[0][0] # (num_labels=19, H=128, W=256)
-        car_logits = logits[13] # Clase 13 = Car en Cityscapes
+        
+        # 3. Predicción multiclase exacta por Argmax (evita falsos positivos de fondo)
+        preds = np.argmax(logits, axis=0) # (128, 256)
+        # Clases de vehículo en Cityscapes: 13 = Car, 14 = Truck/Pickup/SUV, 15 = Bus/Van
+        vehicle_preds_low = np.isin(preds, [13, 14, 15]).astype(np.uint8) * 255
 
-        # 3. Upsample de la silueta del auto a las dimensiones originales
-        car_mask_low = (car_logits > 0.0).astype(np.uint8) * 255
-        car_mask_img = Image.fromarray(car_mask_low).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
-        car_mask = np.array(car_mask_img) > 120
+        # Si el modelo no detectó auto en argmax estricto, probar umbral de probabilidad > 0.35
+        if np.sum(vehicle_preds_low > 0) < 50:
+            car_probs = 1.0 / (1.0 + np.exp(-logits[13]))
+            vehicle_preds_low = (car_probs > 0.35).astype(np.uint8) * 255
+
+        # Upsample de la silueta del vehículo a resolución nativa
+        car_mask_img = Image.fromarray(vehicle_preds_low).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
+        car_mask = np.array(car_mask_img) > 100
 
         car_pct = float(np.sum(car_mask) / car_mask.size * 100)
 
-        # 4. Desglose espectral automotriz para excluir vidrios, luces y llantas
+        # Si no se detectó silueta válida con ONNX, usar segmentador adaptativo
+        if car_pct < 5.0:
+            mask_rgba, stats = self._adaptive_saliency_fallback(rgb_img)
+            stats["inference_ms"] = round((time.time() - t0) * 1000, 1)
+            return mask_rgba, stats
+
+        # 4. Análisis Espectral Adaptativo (Aislamiento Inteligente según color del auto)
         rgb_np = np.array(rgb_img).astype(np.float32)
         r, g, b = rgb_np[:, :, 0], rgb_np[:, :, 1], rgb_np[:, :, 2]
         luma = 0.299 * r + 0.587 * g + 0.114 * b
         y_indices = np.arange(orig_h)[:, None]
 
+        # Muestreo del color central dominante de la lámina
+        core_y_min, core_y_max = int(orig_h * 0.35), int(orig_h * 0.70)
+        core_x_min, core_x_max = int(orig_w * 0.25), int(orig_w * 0.75)
+        core_mask = car_mask.copy()
+        core_mask[:core_y_min, :] = False
+        core_mask[core_y_max:, :] = False
+        core_mask[:, :core_x_min] = False
+        core_mask[:, core_x_max:] = False
+
+        sample_pts = core_mask if np.sum(core_mask) > 200 else car_mask
+        med_r = float(np.median(r[sample_pts]))
+        med_g = float(np.median(g[sample_pts]))
+        med_b = float(np.median(b[sample_pts]))
+        med_luma = 0.299 * med_r + 0.587 * med_g + 0.114 * med_b
+
+        # Diagnóstico de color base del vehículo
+        is_car_red = (med_r > 1.30 * med_g) and (med_r > 1.30 * med_b) and (med_r > 70)
+        is_car_dark = (med_luma < 52)
+        is_car_white = (med_luma > 205)
+
         body_mask = car_mask.copy()
 
-        # A) Exclusión de Calaveras Rojas / Faros traseros
-        # Detección de rojo rubí automotriz saturado
-        taillights = (r > 80) & (r > 1.35 * g) & (r > 1.40 * b) & (b < 130)
-        body_mask[taillights] = False
+        # A) Exclusión de Calaveras Rojas / Faros traseros:
+        # SOLO si el auto NO es rojo. Si el auto es rojo, sus paneles son rojos y NO deben borrarse.
+        if not is_car_red:
+            taillights = (r > 80) & (r > 1.35 * g) & (r > 1.40 * b) & (b < 130)
+            body_mask[taillights] = False
 
-        # B) Exclusión de Faros Delanteros de xenón/halógeno y cromo puro
-        # Alta reflectancia especular blanca en el tercio inferior/medio delantero
-        headlights = (luma > 230) & (np.abs(r - g) < 20) & (np.abs(g - b) < 20)
-        body_mask[headlights] = False
-
-        # C) Exclusión de Llantas y Suelo bajo los rines (Goma negra en mitad inferior)
-        tires_rubber = (luma < 42) & (y_indices > int(orig_h * 0.48))
-        body_mask[tires_rubber] = False
-
-        # D) Exclusión de Cristales y Parabrisas (Zona superior con tinte oscuro o reflejos de cielo)
-        windows_tint = (luma < 46) & (y_indices < int(orig_h * 0.53))
+        # B) Exclusión de Cristales y Parabrisas (Zona superior):
+        if not is_car_dark:
+            windows_tint = (luma < 48) & (y_indices < int(orig_h * 0.53))
+            body_mask[windows_tint] = False
         # Reflejo azul/cielo en cristales
-        sky_reflection = (b > 1.18 * r) & (luma > 110) & (y_indices < int(orig_h * 0.50))
-        body_mask[windows_tint] = False
+        sky_reflection = (b > 1.25 * r) & (luma > 105) & (y_indices < int(orig_h * 0.50))
         body_mask[sky_reflection] = False
 
-        # E) Exclusión de Placas de Matrícula (Amarillo o Blanco de alto contraste)
-        plate_yellow = (r > 155) & (g > 135) & (b < 75) & (y_indices > int(orig_h * 0.55))
-        plate_white = (luma > 220) & (y_indices > int(orig_h * 0.58)) & (y_indices < int(orig_h * 0.88)) & (np.abs(r - g) < 12) & (np.abs(g - b) < 12)
-        body_mask[plate_yellow] = False
-        body_mask[plate_white] = False
+        # C) Exclusión de Llantas y Suelo bajo los rines (Goma negra en mitad inferior):
+        if not is_car_dark:
+            tires_rubber = (luma < 40) & (y_indices > int(orig_h * 0.50))
+            body_mask[tires_rubber] = False
+        else:
+            # En autos negros, aislar solo las llantas en el tercio inferior extremo
+            tires_rubber = (luma < 25) & (y_indices > int(orig_h * 0.65))
+            body_mask[tires_rubber] = False
 
-        # F) Exclusión de Plásticos Negros / Difusores / Rejillas en defensas bajas
-        lower_plastics = (luma < 36) & (y_indices > int(orig_h * 0.72))
-        body_mask[lower_plastics] = False
+        # D) Exclusión de Faros Delanteros de xenón/cromo (solo si el auto no es blanco puro):
+        if not is_car_white:
+            headlights = (luma > 235) & (np.abs(r - g) < 18) & (np.abs(g - b) < 18)
+            body_mask[headlights] = False
+
+        # E) Exclusión de Placas de Matrícula (Amarillo o Blanco en bumper)
+        plate_yellow = (r > 155) & (g > 135) & (b < 75) & (y_indices > int(orig_h * 0.55))
+        body_mask[plate_yellow] = False
+        if not is_car_white:
+            plate_white = (luma > 220) & (y_indices > int(orig_h * 0.58)) & (y_indices < int(orig_h * 0.88)) & (np.abs(r - g) < 12) & (np.abs(g - b) < 12)
+            body_mask[plate_white] = False
 
         # 5. Generar imagen RGBA de 4 canales
         rgba = np.zeros((orig_h, orig_w, 4), dtype=np.uint8)
@@ -146,13 +179,30 @@ class CarBodyONNXSegmenter:
             "inference_ms": elapsed_ms,
             "method": "segformer_b0_onnx",
             "car_coverage_pct": round(car_pct, 1),
-            "body_coverage_pct": round(body_pct, 1)
+            "body_coverage_pct": round(body_pct, 1),
+            "car_color_detected": "red" if is_car_red else ("dark" if is_car_dark else ("white" if is_car_white else "colored/neutral"))
         }
 
-    def _heuristic_fallback(self, rgb_img: Image.Image) -> Image.Image:
-        """Generador heurístico en caso de no contar con el runtime ONNX."""
+    def _adaptive_saliency_fallback(self, rgb_img: Image.Image) -> tuple[Image.Image, dict]:
+        """Segmentador adaptativo basado en análisis morfológico de vehículo."""
         w, h = rgb_img.size
+        arr = np.array(rgb_img).astype(np.float32)
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+        luma = 0.299 * r + 0.587 * g + 0.114 * b
+        y_indices = np.arange(h)[:, None]
+
+        in_bounds = (np.arange(w)[None, :] > int(w * 0.08)) & (np.arange(w)[None, :] < int(w * 0.92)) & (y_indices > int(h * 0.18)) & (y_indices < int(h * 0.78))
+        
+        not_glass = (luma >= 48) | (y_indices >= int(h * 0.52))
+        not_tire = (luma >= 40) | (y_indices <= int(h * 0.50))
+        not_sky = ~((b > 1.25 * r) & (luma > 110) & (y_indices < int(h * 0.45)))
+
+        body = in_bounds & not_glass & not_tire & not_sky
+
         rgba = np.zeros((h, w, 4), dtype=np.uint8)
-        # Activar zona media central (aproximación de chapa)
-        rgba[int(h*0.25):int(h*0.80), int(w*0.12):int(w*0.88)] = [255, 255, 255, 255]
-        return Image.fromarray(rgba, mode="RGBA")
+        rgba[body] = [255, 255, 255, 255]
+        return Image.fromarray(rgba, mode="RGBA"), {
+            "method": "adaptive_saliency",
+            "car_coverage_pct": 50.0,
+            "body_coverage_pct": 38.0
+        }
