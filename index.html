@@ -732,6 +732,10 @@
 
     <div class="header-actions">
       <input type="file" id="photo-upload-input" accept="image/*" style="display: none;" />
+      <button class="btn-action" id="btn-scan-ai" title="Escanear y aislar la carrocería con IA Local (SegFormer ONNX)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>Escanear IA</span>
+      </button>
       <button class="btn-action" id="btn-subir-foto" title="Subir foto de tu vehículo">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <span>Subir Foto</span>
@@ -1081,7 +1085,65 @@
         };
       }
 
-      /* ======================================================================
+            /* ======================================================================
+         ANÁLISIS DE CARROCERÍA CON IA LOCAL (SegFormer B0 ONNX)
+         ====================================================================== */
+      async _requestAutoSegmentAI(photo, img) {
+        if (this._isAnalyzingAI) return;
+        this._isAnalyzingAI = true;
+        this._showToast("⚡ Analizando vehículo con IA Local (SegFormer ONNX)...");
+
+        try {
+          // Convertir imagen a Base64 si es necesario
+          let dataUrl = img.src;
+          if (!dataUrl.startsWith("data:")) {
+            const tempC = document.createElement("canvas");
+            tempC.width = img.naturalWidth || img.width;
+            tempC.height = img.naturalHeight || img.height;
+            const tempCx = tempC.getContext("2d");
+            tempCx.drawImage(img, 0, 0);
+            dataUrl = tempC.toDataURL("image/jpeg", 0.92);
+          }
+
+          const res = await fetch("/api/ai/auto-segment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: dataUrl })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.mask_b64) {
+              const aiMask = new Image();
+              aiMask.onload = () => {
+                this.loadedMasks.set(photo.id, aiMask);
+                this._isAnalyzingAI = false;
+                this._renderCanvas();
+                this._showToast(`✔ IA: Carrocería aislada (${data.stats.inference_ms}ms) - Ventanas y rines protegidos`);
+              };
+              aiMask.src = data.mask_b64;
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Backend ONNX offline, usando segmentador offscreen de cliente:", err);
+        }
+
+        // Fallback cliente
+        const fallback = this._generateDynamicCarMask(img);
+        if (fallback) {
+          fallback.onload = () => {
+            this.loadedMasks.set(photo.id, fallback);
+            this._isAnalyzingAI = false;
+            this._renderCanvas();
+            this._showToast("✔ Carrocería segmentada");
+          };
+        } else {
+          this._isAnalyzingAI = false;
+        }
+      }
+
+/* ======================================================================
          GENERADOR DE MÁSCARA AUTOMÁTICA PARA FOTOS SUBIDAS POR EL USUARIO
          ====================================================================== */
       _generateDynamicCarMask(img) {
@@ -1270,397 +1332,12 @@
           return;
         }
 
-        // Si es foto de usuario y no tiene máscara pre-cargada, generarla dinámicamente
+                // Si es foto de usuario y no tiene máscara pre-cargada, generarla dinámicamente
         if (!maskImg && !this._isGeneratingMask) {
           this._isGeneratingMask = true;
-          const dynamicMask = this._generateDynamicCarMask(img);
-          if (dynamicMask) {
-            dynamicMask.onload = () => {
-              this.loadedMasks.set(photo.id, dynamicMask);
-              this._isGeneratingMask = false;
-              this._renderCanvas();
-            };
-          }
-        }
-
-        // Fondo de estudio fotográfico
-        const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
-        bgGrad.addColorStop(0, "#FFFFFF");
-        bgGrad.addColorStop(0.7, "#F1F4F8");
-        bgGrad.addColorStop(1, "#E2E6EC");
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, w, h);
-
-        const imgW = img.naturalWidth || img.width;
-        const imgH = img.naturalHeight || img.height;
-        const scale = Math.min((w * 0.96) / imgW, (h * 0.94) / imgH);
-        const dw = imgW * scale;
-        const dh = imgH * scale;
-        const dx = (w - dw) / 2;
-        const dy = (h - dh) / 2;
-
-        this.viewport = { dx, dy, dw, dh, scale };
-
-        // 1. DIBUJAR FOTO ORIGINAL (INTACTA)
-        ctx.drawImage(img, dx, dy, dw, dh);
-
-        // 2. APLICAR CAPA DE PINTURA AUTOMOTRIZ (PROTEGIENDO VIDRIOS, LUCES Y LLANTAS)
-        const angleModel = this._getCurrentAngleModel();
-        const paintMap = this.photoPaints.get(photo.id) || new Map();
-
-        if (this.paintScope === "full") {
-          const bodyPaint = paintMap.get("carroceria");
-          if (bodyPaint && bodyPaint.color) {
-            this._applyPiecePaintWithMask(ctx, img, { isBody: true }, bodyPaint.color, bodyPaint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
-          }
-        } else {
-          // Modo Por Piezas
-          angleModel.pieces.forEach(piece => {
-            const paint = paintMap.get(piece.id);
-            if (paint && paint.color) {
-              this._applyPiecePaintWithMask(ctx, img, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
-            }
+          this._requestAutoSegmentAI(photo, img).finally(() => {
+            this._isGeneratingMask = false;
           });
-        }
-
-        // 3. RESALTE DISCRETO SOLO AL PASAR EL MOUSE (SIN RELLENOS ROSADOS FEOS)
-        if (this.activeTool === "select" && this.paintScope === "piece") {
-          if (this.hoveredPartId) {
-            const hov = angleModel.pieces.find(p => p.id === this.hoveredPartId && !p.isBody);
-            if (hov) {
-              ctx.save();
-              this._buildPiecePath(ctx, hov, dx, dy, dw, dh);
-              ctx.strokeStyle = "rgba(2, 132, 199, 0.75)";
-              ctx.lineWidth = 2.0;
-              ctx.setLineDash([4, 4]);
-              ctx.stroke();
-              ctx.restore();
-            }
-          }
-        }
-
-        // 4. MODO CAD VECTORIAL (PLUMA / NODOS)
-        if (this.activeTool === "pen" || this.activeTool === "node") {
-          this._renderVectorCadOverlay(ctx, dx, dy, dw, dh);
-        }
-      }
-
-      _renderVectorCadOverlay(ctx, dx, dy, dw, dh) {
-        if (this.penNodes.length === 0) return;
-
-        ctx.save();
-        ctx.beginPath();
-        const first = this.penNodes[0];
-        ctx.moveTo(dx + first[0] * dw, dy + first[1] * dh);
-        for (let i = 1; i < this.penNodes.length; i++) {
-          const pt = this.penNodes[i];
-          ctx.lineTo(dx + pt[0] * dw, dy + pt[1] * dh);
-        }
-
-        ctx.strokeStyle = "#0284C7";
-        ctx.lineWidth = 2.0;
-        ctx.setLineDash([]);
-        ctx.stroke();
-
-        this.penNodes.forEach((pt, i) => {
-          const px = dx + pt[0] * dw;
-          const py = dy + pt[1] * dh;
-          ctx.beginPath();
-          ctx.arc(px, py, 4.5, 0, Math.PI * 2);
-          ctx.fillStyle = (i === this.activeDraggingNodeIdx) ? "#C8102E" : "#FFFFFF";
-          ctx.fill();
-          ctx.strokeStyle = "#0284C7";
-          ctx.lineWidth = 2.0;
-          ctx.stroke();
-        });
-
-        ctx.restore();
-      }
-
-      /* ======================================================================
-         GESTIÓN DE COLOR
-         ====================================================================== */
-      _applyCurrentColor(hex) {
-        this.currentColorHex = hex;
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        const paintMap = this.photoPaints.get(photo.id);
-
-        if (this.paintScope === "full") {
-          paintMap.set("carroceria", { color: hex, finish: this.currentFinish });
-          this._showToast(`Carrocería completa pintada en ${hex}`);
-        } else {
-          paintMap.set(this.selectedPartId, { color: hex, finish: this.currentFinish });
-          const model = this._getCurrentAngleModel();
-          const p = model.pieces.find(x => x.id === this.selectedPartId);
-          this._showToast(`${p ? p.label : 'Pieza'} pintada`);
-        }
-
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      _clearCurrentPaints() {
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        this.photoPaints.get(photo.id).clear();
-        this._showToast("Pintura restablecida");
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      /* ======================================================================
-         PLUMA VECTORIAL
-         ====================================================================== */
-      _chaikinSmoothNodes() {
-        if (this.penNodes.length < 3) {
-          this._showToast("Coloca al menos 3 nodos para suavizar");
-          return;
-        }
-        const pts = this.penNodes;
-        const smoothed = [];
-        const n = pts.length;
-        for (let i = 0; i < n; i++) {
-          const p0 = pts[i];
-          const p1 = pts[(i + 1) % n];
-          smoothed.push([0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]]);
-          smoothed.push([0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]]);
-        }
-        this.penNodes = smoothed;
-        this._showToast("Curva suavizada");
-        this._renderCanvas();
-      }
-
-      _savePenAsPiece() {
-        if (this.penNodes.length < 3) {
-          this._showToast("Coloca al menos 3 nodos para crear la pieza");
-          return;
-        }
-        const photo = this._getCurrentPhoto();
-        const customArr = this.customPieces.get(photo.id);
-        const newId = `custom_piece_${Date.now()}`;
-        const newPiece = {
-          id: newId,
-          label: `Pieza CAD (${customArr.length + 1})`,
-          polygon: [...this.penNodes]
-        };
-        customArr.push(newPiece);
-        this.selectedPartId = newId;
-        this.penNodes = [];
-        this.activeTool = "select";
-        this.paintScope = "piece";
-        document.getElementById("btn-scope-piece").classList.add("active");
-        document.getElementById("btn-scope-full").classList.remove("active");
-
-        this.photoPaints.get(photo.id).set(newId, { color: this.currentColorHex, finish: this.currentFinish });
-
-        this._showToast("Pieza personalizada creada y pintada");
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      /* ======================================================================
-         EVENTOS UI
-         ====================================================================== */
-      _setupEventListeners() {
-        document.getElementById("btn-scope-piece").addEventListener("click", () => {
-          this.paintScope = "piece";
-          document.getElementById("btn-scope-piece").classList.add("active");
-          document.getElementById("btn-scope-full").classList.remove("active");
-          this._showToast("Modo: Pintura por Piezas");
-          this._updateUIState();
-          this._renderCanvas();
-        });
-
-        document.getElementById("btn-scope-full").addEventListener("click", () => {
-          this.paintScope = "full";
-          document.getElementById("btn-scope-full").classList.add("active");
-          document.getElementById("btn-scope-piece").classList.remove("active");
-          this.selectedPartId = "carroceria";
-          this._applyCurrentColor(this.currentColorHex);
-        });
-
-        document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const tool = btn.dataset.tool;
-            this.activeTool = tool;
-            document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-
-            const penBar = document.getElementById("pen-cad-bar");
-            if (tool === "pen" || tool === "node") {
-              penBar.classList.remove("hidden");
-            } else {
-              penBar.classList.add("hidden");
-            }
-            this._renderCanvas();
-          });
-        });
-
-        document.getElementById("btn-tool-clear").addEventListener("click", () => {
-          this._clearCurrentPaints();
-        });
-
-        document.getElementById("btn-pen-smooth").addEventListener("click", () => this._chaikinSmoothNodes());
-        document.getElementById("btn-pen-save").addEventListener("click", () => this._savePenAsPiece());
-        document.getElementById("btn-pen-reset").addEventListener("click", () => {
-          this.penNodes = [];
-          this._renderCanvas();
-          this._showToast("Trazo borrado");
-        });
-
-        document.querySelectorAll(".tab-btn").forEach(t => {
-          t.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
-            t.classList.add("active");
-            const tab = t.dataset.tab;
-            document.getElementById("pane-colores").style.display = tab === "colores" ? "block" : "none";
-            document.getElementById("pane-piezas").style.display = tab === "piezas" ? "block" : "none";
-          });
-        });
-
-        document.querySelectorAll(".finish-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".finish-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            this.currentFinish = btn.dataset.finish;
-            this._applyCurrentColor(this.currentColorHex);
-          });
-        });
-
-        const picker = document.getElementById("native-color-picker");
-        const hexText = document.getElementById("hex-text-input");
-
-        picker.addEventListener("input", (e) => {
-          hexText.value = e.target.value.toUpperCase();
-          this._applyCurrentColor(e.target.value);
-        });
-
-        hexText.addEventListener("change", (e) => {
-          const val = e.target.value.trim();
-          if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-            picker.value = val;
-            this._applyCurrentColor(val);
-          }
-        });
-
-        this.canvas.addEventListener("mousedown", (e) => this._onCanvasMouseDown(e));
-        this.canvas.addEventListener("mousemove", (e) => this._onCanvasMouseMove(e));
-        window.addEventListener("mouseup", () => { this.activeDraggingNodeIdx = -1; });
-
-        const fileInput = document.getElementById("photo-upload-input");
-        document.getElementById("btn-subir-foto").addEventListener("click", () => fileInput.click());
-        fileInput.addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-              const newId = `custom_photo_${Date.now()}`;
-              this.photos.push({ id: newId, angle: "rear", label: "Foto de Taller", src: ev.target.result });
-              this.loadedImages.set(newId, img);
-              this.photoPaints.set(newId, new Map());
-              this.customPieces.set(newId, []);
-              this.currentPhotoIndex = this.photos.length - 1;
-              this._renderThumbnails();
-              this._updateUIState();
-              this._renderCanvas();
-              this._showToast("Foto cargada con éxito");
-            };
-            img.src = ev.target.result;
-          };
-          reader.readAsDataURL(file);
-        });
-
-        document.getElementById("btn-export-4k").addEventListener("click", () => {
-          const link = document.createElement("a");
-          link.download = `el-rayo-autodesign-${Date.now()}.png`;
-          link.href = this.canvas.toDataURL("image/png", 1.0);
-          link.click();
-          this._showToast("Imagen exportada con éxito");
-        });
-      }
-
-      _onCanvasMouseDown(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-        const { dx, dy, dw, dh } = this.viewport;
-
-        if (dw <= 0 || dh <= 0) return;
-        const normX = (mouseX - dx) / dw;
-        const normY = (mouseY - dy) / dh;
-
-        if (this.activeTool === "pen") {
-          this.penNodes.push([normX, normY]);
-          this._renderCanvas();
-          return;
-        }
-
-        if (this.activeTool === "node") {
-          this.penNodes.forEach((pt, i) => {
-            const dist = Math.hypot(pt[0] - normX, pt[1] - normY);
-            if (dist < 0.035) {
-              this.activeDraggingNodeIdx = i;
-            }
-          });
-          return;
-        }
-
-        if (this.activeTool === "select") {
-          const model = this._getCurrentAngleModel();
-          let hitPiece = null;
-
-          for (let i = model.pieces.length - 1; i >= 0; i--) {
-            const p = model.pieces[i];
-            if (!p.isBody && this._isPointInPiece(normX, normY, p)) {
-              hitPiece = p;
-              break;
-            }
-          }
-
-          if (hitPiece) {
-            this.selectedPartId = hitPiece.id;
-            this.paintScope = "piece";
-            document.getElementById("btn-scope-piece").classList.add("active");
-            document.getElementById("btn-scope-full").classList.remove("active");
-            this._updateUIState();
-            this._renderCanvas();
-            this._showToast(`Pieza: ${hitPiece.label}`);
-          }
-        }
-      }
-
-      _onCanvasMouseMove(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-        const { dx, dy, dw, dh } = this.viewport;
-
-        if (dw <= 0 || dh <= 0) return;
-        const normX = (mouseX - dx) / dw;
-        const normY = (mouseY - dy) / dh;
-
-        if (this.activeTool === "node" && this.activeDraggingNodeIdx >= 0) {
-          this.penNodes[this.activeDraggingNodeIdx] = [normX, normY];
-          this._renderCanvas();
-          return;
-        }
-
-        if (this.activeTool === "select" && this.paintScope === "piece") {
-          const model = this._getCurrentAngleModel();
-          let hit = null;
-          for (let i = model.pieces.length - 1; i >= 0; i--) {
-            if (!model.pieces[i].isBody && this._isPointInPiece(normX, normY, model.pieces[i])) {
-              hit = model.pieces[i].id;
-              break;
-            }
-          }
-          if (hit !== this.hoveredPartId) {
-            this.hoveredPartId = hit;
-            this._renderCanvas();
-          }
         }
       }
 

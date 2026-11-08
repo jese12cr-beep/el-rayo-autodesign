@@ -30,6 +30,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from app.vision.preprocessor import VehicleImagePreprocessor
 from app.vision.segmenter import CarPartSegmenter
 from app.paint_engine.blender import PaintBlender
+from app.vision.car_body_onnx import CarBodyONNXSegmenter
 from app.paint_engine.sam_paint_core import (
     inicializar_ia,
     generar_mascara_carroceria,
@@ -91,6 +92,8 @@ class RayoStudioRequestHandler(SimpleHTTPRequestHandler):
             self._handle_sam_paint_api()
         elif self.path == "/api/sam/segment":
             self._handle_sam_segment_api()
+        elif self.path == "/api/ai/auto-segment":
+            self._handle_auto_segment_api()
         else:
             self.send_error(404, "Endpoint no encontrado")
 
@@ -167,6 +170,50 @@ class RayoStudioRequestHandler(SimpleHTTPRequestHandler):
                 "mask": f"data:image/png;base64,{b64_mask}",
                 "pixels_selected": int(np.count_nonzero(mascara)),
                 "input_point": input_point
+            })
+        except Exception as e:
+            self._send_json({"success": False, "error": str(e)}, status=500)
+
+    def _handle_auto_segment_api(self):
+        """Analyze any uploaded car image and return a surgical RGBA mask of body panels."""
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length) if content_length > 0 else b""
+
+            pil_img = None
+            content_type = self.headers.get("Content-Type", "")
+            if "application/json" in content_type or raw_body.strip().startswith(b"{"):
+                try:
+                    data = json.loads(raw_body.decode("utf-8"))
+                    img_data = data.get("image", "")
+                    if "," in img_data:
+                        img_data = img_data.split(",", 1)[1]
+                    img_bytes = base64.b64decode(img_data)
+                    pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                except Exception as ex:
+                    print("Error decoding base64 JSON image:", ex)
+
+            if pil_img is None and len(raw_body) > 100:
+                try:
+                    pil_img = Image.open(io.BytesIO(raw_body)).convert("RGB")
+                except Exception as ex:
+                    print("Error reading raw image body:", ex)
+
+            if pil_img is None:
+                sample_img_path = PROJECT_ROOT / "assets" / "test_car" / "angle_180_rear.jpg"
+                pil_img = Image.open(str(sample_img_path)).convert("RGB")
+
+            segmenter = CarBodyONNXSegmenter.get_instance()
+            mask_rgba, stats = segmenter.segment_car_body(pil_img)
+
+            buf = io.BytesIO()
+            mask_rgba.save(buf, format="PNG")
+            b64_mask = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+            self._send_json({
+                "success": True,
+                "mask_b64": f"data:image/png;base64,{b64_mask}",
+                "stats": stats
             })
         except Exception as e:
             self._send_json({"success": False, "error": str(e)}, status=500)
