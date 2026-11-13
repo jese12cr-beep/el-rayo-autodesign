@@ -70,7 +70,27 @@ PART_LABELS_ES = {
     "roof": ("Toldo / Techo", 15),
     "left_mirror": ("Espejo Retrovisor (Izq)", 16),
     "right_mirror": ("Espejo Retrovisor (Der)", 17),
+    "pillars": ("Postes y Marcos (A/C)", 18),
 }
+
+
+def _bfs_grow_mask(seed_mask: np.ndarray, allowed_mask: np.ndarray, luma: np.ndarray, step_tol: float = 28.0, max_iters: int = 65) -> np.ndarray:
+    """Crece geodésicamente desde la máscara semilla sin cruzar bordes bruscos ni salir de la carrocería."""
+    cur = seed_mask.copy()
+    for _ in range(max_iters):
+        up = np.zeros_like(cur)
+        up[1:, :] = cur[:-1, :] & (np.abs(luma[1:, :] - luma[:-1, :]) <= step_tol)
+        dn = np.zeros_like(cur)
+        dn[:-1, :] = cur[1:, :] & (np.abs(luma[:-1, :] - luma[1:, :]) <= step_tol)
+        lf = np.zeros_like(cur)
+        lf[:, 1:] = cur[:, :-1] & (np.abs(luma[:, 1:] - luma[:, :-1]) <= step_tol)
+        rt = np.zeros_like(cur)
+        rt[:, :-1] = cur[:, 1:] & (np.abs(luma[:, :-1] - luma[:, 1:]) <= step_tol)
+        nxt = cur | ((up | dn | lf | rt) & allowed_mask)
+        if np.array_equal(nxt, cur):
+            break
+        cur = nxt
+    return cur
 
 
 def _mask_to_rgba_b64(mask_bool: np.ndarray) -> str:
@@ -256,14 +276,15 @@ class CarBodyONNXSegmenter:
         px2 = int(round((pad_x + nw) * sx_m))
         py2 = int(round((pad_y + nh) * sy_m))
 
-        exclude_full = np.zeros((orig_h, orig_w), dtype=bool)
+        hard_excl = np.zeros((orig_h, orig_w), dtype=bool)
+        grille_cand = np.zeros((orig_h, orig_w), dtype=bool)
         paint_parts: dict[str, np.ndarray] = {}
         part_confs: dict[str, float] = {}
         wheels_count = 0
         car_mask_region = None
         if car_mask is not None:
             car_mask_region = (
-                np.array(Image.fromarray((car_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(21))) > 128
+                np.array(Image.fromarray((car_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(11))) > 128
             )
 
         for i in final_idx:
@@ -284,33 +305,93 @@ class CarBodyONNXSegmenter:
             unpadded = Image.fromarray(crop_u8[py1:py2, px1:px2]).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
             m_full = np.array(unpadded) > 128
 
-            if car_mask_region is not None and cname not in EXCLUDE_CLASSES:
-                m_full &= car_mask_region
-
-            area_pct = float(m_full.mean() * 100.0)
-            if area_pct < 0.08:
-                continue
-
-            if cname in EXCLUDE_CLASSES:
-                exclude_full |= m_full
-                if "wheel" in cname:
-                    wheels_count += 1
-            else:
+            if cname not in EXCLUDE_CLASSES:
+                if car_mask_region is not None:
+                    m_full &= car_mask_region
+                if float(m_full.mean() * 100.0) < 0.08:
+                    continue
                 if cname not in paint_parts:
                     paint_parts[cname] = m_full
                     part_confs[cname] = conf
                 else:
                     paint_parts[cname] |= m_full
                     part_confs[cname] = max(part_confs[cname], conf)
+            else:
+                if float(m_full.mean() * 100.0) < 0.01:
+                    continue
+                if cname == "grille":
+                    grille_cand |= m_full
+                else:
+                    hard_excl |= m_full
+                if "wheel" in cname:
+                    wheels_count += 1
 
-        # Dilatar 2px las exclusiones para evitar halos en gomas de vidrios/faros/rines
-        excl_dilated = (
-            np.array(Image.fromarray((exclude_full * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 128
-        )
+        # Muestrear color real de la carrocería en paneles principales (cofre, puertas, salpicaderas)
+        r = rgb_np[:, :, 0]
+        g = rgb_np[:, :, 1]
+        b = rgb_np[:, :, 2]
+        pix_sat = np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b)
+        pix_cb = r - g
+        pix_cy = 0.5 * (r + g) - b
+
+        core_mask = np.zeros((orig_h, orig_w), dtype=bool)
+        for ck in (
+            "hood", "left_fender", "right_fender",
+            "left_front-door", "right_front-door", "left_back-door", "right_back-door",
+            "left_quarter-panel", "right_quarter-panel",
+        ):
+            if ck in paint_parts:
+                core_mask |= paint_parts[ck]
+        if not np.any(core_mask):
+            for m in paint_parts.values():
+                core_mask |= m
+
+        if not np.any(core_mask):
+            rgba = np.zeros((orig_h, orig_w, 4), dtype=np.uint8)
+            return Image.fromarray(rgba, mode="RGBA"), {
+                "inference_ms": round((time.time() - t0) * 1000, 1),
+                "method": "yolo26_carparts_onnx",
+                "vehicle_detected": False,
+                "car_coverage_pct": 0.0,
+                "body_coverage_pct": 0.0,
+                "wheels_protected": wheels_count,
+                "parts": [],
+            }
+
+        sample_mask = core_mask & (~hard_excl) & (luma > 48.0)
+        if np.sum(sample_mask) < 50:
+            sample_mask = core_mask & (~hard_excl)
+        if not np.any(sample_mask):
+            sample_mask = core_mask
+
+        med_r = float(np.median(r[sample_mask]))
+        med_g = float(np.median(g[sample_mask]))
+        med_b = float(np.median(b[sample_mask]))
+        med_sat = float(np.median(pix_sat[sample_mask]))
+        med_luma = float(np.median(luma[sample_mask]))
+        chroma_dist = np.hypot(pix_cb - (med_r - med_g), pix_cy - (0.5 * (med_r + med_g) - med_b))
+        is_chromatic_car = (med_sat >= 34.0 and med_luma >= 65.0) or (med_sat >= 58.0)
+
+        # Proteger parrilla solo donde realmente es oscura/cromada, nunca cuando YOLO confunde defensa pintada
+        if is_chromatic_car:
+            grille_real = grille_cand & (~((pix_sat > 20.0) & (chroma_dist < 68.0)))
+        else:
+            grille_real = grille_cand & (luma < (med_luma * 0.72 if med_luma > 95.0 else 95.0))
+
+        full_excl = hard_excl | grille_real
+        exclude_full = full_excl
 
         body_mask = np.zeros((orig_h, orig_w), dtype=bool)
         for k in list(paint_parts.keys()):
-            paint_parts[k] &= ~excl_dilated
+            paint_parts[k] &= ~full_excl
+            if is_chromatic_car:
+                non_paint = (luma < 36.0) | ((pix_sat < max(14.0, med_sat * 0.14)) & (luma < 175.0))
+                if k in ("front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel", "left_fender", "right_fender"):
+                    paint_parts[k] &= ~non_paint
+            else:
+                if med_luma >= 90.0 and k in ("front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel"):
+                    paint_parts[k] &= ~(luma < 45.0)
+
             if paint_parts[k].mean() * 100.0 < 0.15:
                 del paint_parts[k]
             else:
@@ -328,47 +409,55 @@ class CarBodyONNXSegmenter:
                 "parts": [],
             }
 
-        # Limpiar hule negro del poste B en zona de ventanas superiores + rellenar postes A/C
         ys_b, xs_b = np.where(body_mask)
         by0, by1 = int(ys_b.min()), int(ys_b.max())
         bx0, bx1 = int(xs_b.min()), int(xs_b.max())
         bh, bw = max(1, by1 - by0), max(1, bx1 - bx0)
+        pad_bx, pad_by = int(bw * 0.03), int(bh * 0.03)
         yy, xx = np.ogrid[:orig_h, :orig_w]
+        car_box = (
+            (yy >= max(0, by0 - pad_by)) & (yy <= min(orig_h - 1, by1 + pad_by))
+            & (xx >= max(0, bx0 - pad_bx)) & (xx <= min(orig_w - 1, bx1 + pad_bx))
+        )
+        body_dilated = (
+            np.array(Image.fromarray((body_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(25))) > 128
+        )
+        car_allow = car_mask_region if car_mask_region is not None else body_dilated
+        car_strict = (car_mask > 0.5) if car_mask is not None else body_dilated
 
-        med_rgb = np.median(rgb_np[body_mask], axis=0)
-        med_luma = float(0.299 * med_rgb[0] + 0.587 * med_rgb[1] + 0.114 * med_rgb[2])
-        upper_zone = yy < (by0 + 0.48 * bh)
-        dark_rubber = upper_zone & (luma < (30.0 if med_luma < 60.0 else 52.0))
-        body_mask &= ~dark_rubber
-
-        for k in paint_parts:
-            if "door" in k or "roof" in k:
-                paint_parts[k] &= ~dark_rubber
-
-        if car_mask is not None:
-            # Rellenar postes A/C conectados estrictamente alrededor de las piezas pintables del auto principal
-            tight_box = (yy >= by0) & (yy <= by1) & (xx >= bx0) & (xx <= bx1)
-            body_dilated = np.array(
-                Image.fromarray((body_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(35))
-            ) > 128
-            car_eroded = np.array(
-                Image.fromarray((car_mask * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5))
-            ) > 128
-            med_sat = float(med_rgb.max() - med_rgb.min())
-            pix_sat = rgb_np.max(axis=2) - rgb_np.min(axis=2)
-            chroma_close = (np.abs(pix_sat - med_sat) < 28.0) if med_sat < 30.0 else (np.linalg.norm(rgb_np - med_rgb, axis=2) < 85.0)
-            pillar_fill = (
-                car_eroded
-                & tight_box
-                & body_dilated
-                & (~excl_dilated)
-                & (~dark_rubber)
-                & (luma > (38.0 if med_luma < 60.0 else 58.0))
-                & chroma_close
-                & (yy >= by0 + 0.04 * bh)
-                & (yy <= by0 + 0.65 * bh)
+        orig_body_mask = body_mask.copy()
+        if is_chromatic_car:
+            allowed_grow = car_allow & car_box & (~full_excl) & (chroma_dist < 68.0) & (pix_sat >= 16.0) & (luma >= 26.0)
+            pillar_seed = (
+                car_strict & body_dilated & car_box & (~full_excl)
+                & (chroma_dist < 62.0) & (pix_sat >= 18.0) & (luma >= 26.0)
+                & (yy >= by0) & (yy <= by0 + 0.58 * bh)
             )
-            body_mask |= pillar_fill
+        else:
+            upper_zone = yy < (by0 + 0.48 * bh)
+            dark_rubber = upper_zone & (luma < (30.0 if med_luma < 60.0 else 52.0))
+            body_mask &= ~dark_rubber
+            orig_body_mask &= ~dark_rubber
+            for k in paint_parts:
+                if "door" in k or "roof" in k:
+                    paint_parts[k] &= ~dark_rubber
+            luma_tol = 125.0 if med_luma >= 90.0 else 72.0
+            min_l = 38.0 if med_luma < 60.0 else 58.0
+            allowed_grow = (
+                car_allow & car_box & (~full_excl) & (~dark_rubber)
+                & (pix_sat < 28.0) & (np.abs(luma - med_luma) < luma_tol) & (luma > min_l)
+            )
+            pillar_seed = (
+                car_strict & body_dilated & car_box & (~full_excl) & (~dark_rubber)
+                & (pix_sat < 26.0) & (np.abs(luma - med_luma) < luma_tol) & (luma > min_l)
+                & (yy >= by0) & (yy <= by0 + 0.58 * bh)
+            )
+
+        body_mask = _bfs_grow_mask(body_mask | pillar_seed, allowed_grow, luma, step_tol=28.0, max_iters=65)
+        recovered = body_mask & (~orig_body_mask)
+        if float(recovered.mean() * 100.0) >= 0.25:
+            paint_parts["pillars"] = recovered
+            part_confs["pillars"] = 0.85
 
         mapped_parts = []
         sorted_keys = sorted(paint_parts.keys(), key=lambda x: PART_LABELS_ES.get(x, (x, 99))[1])

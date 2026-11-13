@@ -1475,7 +1475,8 @@
       "back-bumper": ["Defensa Trasera", 14],
       "roof": ["Toldo / Techo", 15],
       "left_mirror": ["Espejo Retrovisor (Izq)", 16],
-      "right_mirror": ["Espejo Retrovisor (Der)", 17]
+      "right_mirror": ["Espejo Retrovisor (Der)", 17],
+      "pillars": ["Postes y Marcos (A/C)", 18]
     };
 
     const FINISH_LABELS_ES = {
@@ -1712,8 +1713,7 @@
 
         if (onProgress) onProgress("Detectando silueta vehicular y aislando fondo...");
         const carMask = await this._runSegformerMask(imgEl, origW, origH);
-        // Región dilatada para no cortar bordes suaves de YOLO con la malla de SegFormer
-        const carMaskRegion = this._dilateBool(carMask, origW, origH, 10);
+        const carMaskRegion = this._dilateBool(carMask, origW, origH, 5);
 
         if (onProgress) onProgress("Mapeando piezas pintables, vidrios, rines y faros...");
         const sz = 768;
@@ -1838,7 +1838,8 @@
         fullScaleCtx.imageSmoothingEnabled = true;
 
         const nPix = origW * origH;
-        const excludeFull = new Uint8Array(nPix);
+        const hardExcl = new Uint8Array(nPix);
+        const grilleCand = new Uint8Array(nPix);
         const paintParts = {};
         const partConfs = {};
         let wheelsCount = 0;
@@ -1884,10 +1885,15 @@
               count++;
             }
           }
-          if ((count / nPix) * 100.0 < 0.08) continue;
+          const minPct = isExcl ? 0.01 : 0.08;
+          if ((count / nPix) * 100.0 < minPct) continue;
 
           if (isExcl) {
-            for (let i = 0; i < nPix; i++) if (mFull[i]) excludeFull[i] = 1;
+            if (cname === "grille") {
+              for (let i = 0; i < nPix; i++) if (mFull[i]) grilleCand[i] = 1;
+            } else {
+              for (let i = 0; i < nPix; i++) if (mFull[i]) hardExcl[i] = 1;
+            }
             if (cname.includes("wheel")) wheelsCount++;
           } else {
             if (!paintParts[cname]) {
@@ -1901,15 +1907,104 @@
           }
         }
 
-        const exclDilated = this._dilateBool(excludeFull, origW, origH, 2);
+        // Precalcular luma y saturación + muestrear color base en paneles centrales
+        const lumaArr = new Float32Array(nPix);
+        const satArr = new Float32Array(nPix);
+        for (let i = 0; i < nPix; i++) {
+          const j = i << 2;
+          const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+          lumaArr[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+          satArr[i] = Math.max(r, g, b) - Math.min(r, g, b);
+        }
+
+        const coreKeys = [
+          "hood", "left_fender", "right_fender",
+          "left_front-door", "right_front-door", "left_back-door", "right_back-door",
+          "left_quarter-panel", "right_quarter-panel"
+        ];
+        const coreMask = new Uint8Array(nPix);
+        let coreCnt = 0;
+        for (const ck of coreKeys) {
+          const arr = paintParts[ck];
+          if (arr) {
+            for (let i = 0; i < nPix; i++) if (arr[i] && !coreMask[i]) { coreMask[i] = 1; coreCnt++; }
+          }
+        }
+        if (coreCnt === 0) {
+          for (const arr of Object.values(paintParts)) {
+            for (let i = 0; i < nPix; i++) if (arr[i] && !coreMask[i]) { coreMask[i] = 1; coreCnt++; }
+          }
+        }
+
+        if (coreCnt === 0) {
+          return {
+            maskCanvas: this._boolToMaskCanvas(new Uint8Array(nPix), origW, origH),
+            vehicleDetected: false,
+            bodyCoveragePct: 0,
+            wheelsProtected: wheelsCount,
+            parts: [],
+            inferenceMs: Math.round(performance.now() - t0),
+            method: "wasm_yolo26_carparts"
+          };
+        }
+
+        const sampIdx = [];
+        for (let i = 0; i < nPix; i++) {
+          if (coreMask[i] && !hardExcl[i] && lumaArr[i] > 48) sampIdx.push(i);
+        }
+        if (sampIdx.length < 50) {
+          sampIdx.length = 0;
+          for (let i = 0; i < nPix; i++) if (coreMask[i] && !hardExcl[i]) sampIdx.push(i);
+        }
+        if (sampIdx.length === 0) {
+          for (let i = 0; i < nPix; i++) if (coreMask[i]) sampIdx.push(i);
+        }
+        const stride = Math.max(1, Math.floor(sampIdx.length / 4096));
+        const sR = [], sG = [], sB = [], sSat = [], sLuma = [];
+        for (let k = 0; k < sampIdx.length; k += stride) {
+          const idx = sampIdx[k], j = idx << 2;
+          sR.push(origPx[j]); sG.push(origPx[j + 1]); sB.push(origPx[j + 2]);
+          sSat.push(satArr[idx]); sLuma.push(lumaArr[idx]);
+        }
+        const medOf = a => { a.sort((x, y) => x - y); return a[a.length >> 1] || 0; };
+        const medR = medOf(sR), medG = medOf(sG), medB = medOf(sB);
+        const medSat = medOf(sSat), medLuma = medOf(sLuma);
+        const medCb = medR - medG, medCy = 0.5 * (medR + medG) - medB;
+        const isChromaticCar = (medSat >= 34 && medLuma >= 65) || (medSat >= 58);
+
+        const fullExcl = new Uint8Array(nPix);
+        const grilleLumaLim = medLuma > 95 ? medLuma * 0.72 : 95;
+        for (let i = 0; i < nPix; i++) {
+          if (hardExcl[i]) {
+            fullExcl[i] = 1;
+          } else if (grilleCand[i]) {
+            if (isChromaticCar) {
+              const j = i << 2;
+              const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+              const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+              if (!(satArr[i] > 20 && cd < 68)) fullExcl[i] = 1;
+            } else if (lumaArr[i] < grilleLumaLim) {
+              fullExcl[i] = 1;
+            }
+          }
+        }
+
+        const trimParts = new Set(["front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel", "left_fender", "right_fender"]);
+        const achromTrimParts = new Set(["front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel"]);
+        const minNonPaintSat = Math.max(14, medSat * 0.14);
         const bodyMask = new Uint8Array(nPix);
 
         for (const k of Object.keys(paintParts)) {
           const arr = paintParts[k];
+          const stripChroma = isChromaticCar && trimParts.has(k);
+          const stripAchrom = !isChromaticCar && medLuma >= 90 && achromTrimParts.has(k);
           let keptCnt = 0;
           for (let i = 0; i < nPix; i++) {
-            if (exclDilated[i]) arr[i] = 0;
-            if (arr[i]) keptCnt++;
+            if (!arr[i]) continue;
+            if (fullExcl[i]) { arr[i] = 0; continue; }
+            if (stripChroma && (lumaArr[i] < 36 || (satArr[i] < minNonPaintSat && lumaArr[i] < 175))) { arr[i] = 0; continue; }
+            if (stripAchrom && lumaArr[i] < 45) { arr[i] = 0; continue; }
+            keptCnt++;
           }
           if ((keptCnt / nPix) * 100.0 < 0.15) {
             delete paintParts[k];
@@ -1919,15 +2014,12 @@
         }
 
         let by0 = origH, by1 = 0, bx0 = origW, bx1 = 0, bodyCount = 0;
-        let sumR = 0, sumG = 0, sumB = 0;
         for (let y = 0; y < origH; y++) {
+          const row = y * origW;
           for (let x = 0; x < origW; x++) {
-            const idx = y * origW + x;
-            if (bodyMask[idx]) {
+            if (bodyMask[row + x]) {
               if (y < by0) by0 = y; if (y > by1) by1 = y;
               if (x < bx0) bx0 = x; if (x > bx1) bx1 = x;
-              const j = idx << 2;
-              sumR += origPx[j]; sumG += origPx[j + 1]; sumB += origPx[j + 2];
               bodyCount++;
             }
           }
@@ -1945,52 +2037,109 @@
           };
         }
 
-        const bh = Math.max(1, by1 - by0);
-        const avgR = sumR / bodyCount, avgG = sumG / bodyCount, avgB = sumB / bodyCount;
-        const avgLuma = 0.299 * avgR + 0.587 * avgG + 0.114 * avgB;
-        const avgSat = Math.max(avgR, avgG, avgB) - Math.min(avgR, avgG, avgB);
-        const rubberCutY = by0 + 0.48 * bh;
-        const darkThresh = avgLuma < 60 ? 30 : 52;
-        const darkRubber = new Uint8Array(nPix);
+        const bh = Math.max(1, by1 - by0), bw = Math.max(1, bx1 - bx0);
+        const padBx = Math.floor(bw * 0.03), padBy = Math.floor(bh * 0.03);
+        const boxY0 = Math.max(0, by0 - padBy), boxY1 = Math.min(origH - 1, by1 + padBy);
+        const boxX0 = Math.max(0, bx0 - padBx), boxX1 = Math.min(origW - 1, bx1 + padBx);
 
-        for (let y = 0; y < origH; y++) {
-          for (let x = 0; x < origW; x++) {
-            const idx = y * origW + x;
-            const j = idx << 2;
-            const luma = 0.299 * origPx[j] + 0.587 * origPx[j + 1] + 0.114 * origPx[j + 2];
-            if (y < rubberCutY && luma < darkThresh) {
-              darkRubber[idx] = 1;
-              bodyMask[idx] = 0;
+        const origBodyMask = new Uint8Array(bodyMask);
+        const darkRubber = new Uint8Array(nPix);
+        if (!isChromaticCar) {
+          const rubberCutY = by0 + 0.48 * bh;
+          const darkThresh = medLuma < 60 ? 30 : 52;
+          for (let y = 0; y < Math.min(origH, Math.ceil(rubberCutY)); y++) {
+            const row = y * origW;
+            for (let x = 0; x < origW; x++) {
+              const idx = row + x;
+              if (lumaArr[idx] < darkThresh) {
+                darkRubber[idx] = 1;
+                bodyMask[idx] = 0;
+                origBodyMask[idx] = 0;
+              }
+            }
+          }
+          for (const k of Object.keys(paintParts)) {
+            if (k.includes("door") || k.includes("roof")) {
+              const arr = paintParts[k];
+              for (let i = 0; i < nPix; i++) if (darkRubber[i]) arr[i] = 0;
             }
           }
         }
-        for (const k of Object.keys(paintParts)) {
-          if (k.includes("door") || k.includes("roof")) {
-            const arr = paintParts[k];
-            for (let i = 0; i < nPix; i++) if (darkRubber[i]) arr[i] = 0;
+
+        const bodyDilated = this._dilateBool(bodyMask, origW, origH, 12);
+        const allowedGrow = new Uint8Array(nPix);
+        const q = new Int32Array(nPix);
+        const qDist = new Uint8Array(nPix);
+        let qHead = 0, qTail = 0;
+        const pMaxY = by0 + 0.58 * bh;
+        const lumaTol = medLuma >= 90 ? 125 : 72;
+        const minAchromL = medLuma < 60 ? 38 : 58;
+
+        for (let y = boxY0; y <= boxY1; y++) {
+          const row = y * origW;
+          for (let x = boxX0; x <= boxX1; x++) {
+            const idx = row + x;
+            if (bodyMask[idx]) {
+              q[qTail++] = idx;
+              qDist[idx] = 1;
+            }
+            if (!carMaskRegion[idx] || fullExcl[idx]) continue;
+            if (isChromaticCar) {
+              const j = idx << 2;
+              const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+              const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+              if (cd < 68 && satArr[idx] >= 16 && lumaArr[idx] >= 26) {
+                allowedGrow[idx] = 1;
+                if (!bodyMask[idx] && carMask[idx] && bodyDilated[idx] && y >= by0 && y <= pMaxY && cd < 62 && satArr[idx] >= 18) {
+                  bodyMask[idx] = 1;
+                  q[qTail++] = idx;
+                  qDist[idx] = 1;
+                }
+              }
+            } else if (!darkRubber[idx] && satArr[idx] < 28 && Math.abs(lumaArr[idx] - medLuma) < lumaTol && lumaArr[idx] > minAchromL) {
+              allowedGrow[idx] = 1;
+              if (!bodyMask[idx] && carMask[idx] && bodyDilated[idx] && y >= by0 && y <= pMaxY && satArr[idx] < 26) {
+                bodyMask[idx] = 1;
+                q[qTail++] = idx;
+                qDist[idx] = 1;
+              }
+            }
           }
         }
 
-        const bodyDilated = this._dilateBool(bodyMask, origW, origH, 16);
-        const carEroded = this._erodeBool(carMask, origW, origH, 2);
-        const pMinY = by0 + 0.04 * bh, pMaxY = by0 + 0.65 * bh;
-        const pLumaMin = avgLuma < 60 ? 38 : 58;
-
-        for (let y = Math.floor(pMinY); y <= Math.ceil(pMaxY); y++) {
-          if (y < 0 || y >= origH) continue;
-          for (let x = bx0; x <= bx1; x++) {
-            const idx = y * origW + x;
-            if (!carEroded[idx] || !bodyDilated[idx] || exclDilated[idx] || darkRubber[idx]) continue;
-            const j = idx << 2;
-            const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
-            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-            if (luma <= pLumaMin) continue;
-            const pSat = Math.max(r, g, b) - Math.min(r, g, b);
-            const close = avgSat < 30
-              ? Math.abs(pSat - avgSat) < 28
-              : Math.hypot(r - avgR, g - avgG, b - avgB) < 85;
-            if (close) bodyMask[idx] = 1;
+        // BFS geodésico (máx 65 pasos) con freno por salto brusco de luminancia
+        const stepTol = 28;
+        while (qHead < qTail) {
+          const cur = q[qHead++];
+          const d = qDist[cur];
+          if (d >= 66) continue;
+          const lC = lumaArr[cur];
+          const cx = cur % origW, cy = (cur / origW) | 0;
+          const nbrs = [
+            cy > 0 ? cur - origW : -1,
+            cy < origH - 1 ? cur + origW : -1,
+            cx > 0 ? cur - 1 : -1,
+            cx < origW - 1 ? cur + 1 : -1
+          ];
+          for (let ni = 0; ni < 4; ni++) {
+            const nb = nbrs[ni];
+            if (nb < 0 || bodyMask[nb] || !allowedGrow[nb]) continue;
+            if (Math.abs(lumaArr[nb] - lC) <= stepTol) {
+              bodyMask[nb] = 1;
+              qDist[nb] = d + 1;
+              q[qTail++] = nb;
+            }
           }
+        }
+
+        const recovered = new Uint8Array(nPix);
+        let recCnt = 0;
+        for (let i = 0; i < nPix; i++) {
+          if (bodyMask[i] && !origBodyMask[i]) { recovered[i] = 1; recCnt++; }
+        }
+        if ((recCnt / nPix) * 100.0 >= 0.25) {
+          paintParts["pillars"] = recovered;
+          partConfs["pillars"] = 0.85;
         }
 
         const sortedIds = Object.keys(paintParts).sort((a, b) => {
