@@ -21,6 +21,7 @@ mimetypes.add_type("application/javascript", ".mjs")
 mimetypes.add_type("image/png", ".png")
 mimetypes.add_type("image/jpeg", ".jpg")
 mimetypes.add_type("image/jpeg", ".jpeg")
+mimetypes.add_type("application/octet-stream", ".onnx")
 
 # Set project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -71,9 +72,11 @@ class RayoStudioRequestHandler(SimpleHTTPRequestHandler):
             return
 
         elif self.path.startswith("/assets/"):
-            # Serve from assets directory
+            # Serve from app/assets or root assets directory
             rel_path = self.path[8:]
             asset_file = ASSETS_DIR / rel_path
+            if not asset_file.exists():
+                asset_file = PROJECT_ROOT / "assets" / rel_path
             if asset_file.exists():
                 self._serve_file(asset_file)
                 return
