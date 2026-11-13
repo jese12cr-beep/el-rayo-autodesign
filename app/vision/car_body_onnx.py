@@ -93,6 +93,92 @@ def _bfs_grow_mask(seed_mask: np.ndarray, allowed_mask: np.ndarray, luma: np.nda
     return cur
 
 
+def _filter_hero_vehicle(
+    boxes: np.ndarray, cls_ids: np.ndarray, confs: np.ndarray, final_idx: list[int], sz: float = 768.0
+) -> list[int]:
+    """Agrupa piezas conectadas borde con borde y aísla únicamente el vehículo protagonista."""
+    majors = [
+        i for i in final_idx
+        if CARPART_NAMES[int(cls_ids[i])] not in EXCLUDE_CLASSES and confs[i] >= 0.30
+    ]
+    if not majors:
+        return final_idx
+
+    best_i = max(
+        majors,
+        key=lambda i: max(1.0, (boxes[i, 2] - boxes[i, 0]) * (boxes[i, 3] - boxes[i, 1]))
+        * max(0.30, 1.0 - 0.60 * (abs(0.5 * (boxes[i, 0] + boxes[i, 2]) / sz - 0.5) + abs(0.5 * (boxes[i, 1] + boxes[i, 3]) / sz - 0.55))),
+    )
+
+    best_cx = 0.5 * (boxes[best_i, 0] + boxes[best_i, 2])
+    best_cy = 0.5 * (boxes[best_i, 1] + boxes[best_i, 3])
+    unique_single = {
+        "hood", "roof", "trunk", "front-bumper", "back-bumper", "windshield", "back-windshield",
+        "left_quarter-panel", "right_quarter-panel", "left_fender", "right_fender",
+        "left_back-door", "right_back-door", "left_front-door", "right_front-door",
+    }
+    by_cls: dict[str, list[int]] = {}
+    for i in final_idx:
+        cname = CARPART_NAMES[int(cls_ids[i])]
+        if cname in unique_single:
+            by_cls.setdefault(cname, []).append(i)
+
+    rejected = set()
+    for idxs in by_cls.values():
+        if len(idxs) <= 1:
+            continue
+        prim = max(
+            idxs,
+            key=lambda i: ((boxes[i, 2] - boxes[i, 0]) * (boxes[i, 3] - boxes[i, 1]))
+            * float(confs[i])
+            / (1.0 + float(np.hypot(0.5 * (boxes[i, 0] + boxes[i, 2]) - best_cx, 0.5 * (boxes[i, 1] + boxes[i, 3]) - best_cy)) / (sz * 0.4)),
+        )
+        px0, py0, px1, py1 = boxes[prim]
+        for i in idxs:
+            if i == prim:
+                continue
+            bx0, by0, bx1, by1 = boxes[i]
+            if max(bx0, px0) > min(bx1, px1) + 20.0 or max(by0, py0) > min(py1, py1) + 20.0:
+                rejected.add(i)
+
+    pool = [i for i in final_idx if i not in rejected]
+    gap = 28.0
+    cluster = {best_i}
+    q = [best_i]
+    while q:
+        cur = q.pop()
+        cx0, cy0, cx1, cy1 = boxes[cur]
+        for j in pool:
+            if j in cluster:
+                continue
+            jx0, jy0, jx1, jy1 = boxes[j]
+            if min(cx1, jx1) + gap >= max(cx0, jx0) and min(cy1, jy1) + gap >= max(cy0, jy0):
+                cluster.add(j)
+                q.append(j)
+
+    c_boxes = np.array([boxes[k] for k in cluster])
+    vx0, vy0 = float(c_boxes[:, 0].min()), float(c_boxes[:, 1].min())
+    vx1, vy1 = float(c_boxes[:, 2].max()), float(c_boxes[:, 3].max())
+    vw, vh = max(40.0, vx1 - vx0), max(40.0, vy1 - vy0)
+    mx, my = max(24.0, vw * 0.08), max(24.0, vh * 0.08)
+
+    kept = []
+    for i in pool:
+        if i in cluster:
+            kept.append(i)
+            continue
+        bx1, by1, bx2, by2 = boxes[i]
+        cx, cy = 0.5 * (bx1 + bx2), 0.5 * (by1 + by2)
+        bh_i = by2 - by1
+        if (vx0 - mx <= cx <= vx1 + mx) and (vy0 - my <= cy <= vy1 + my):
+            if cy < vy0 + 0.22 * vh and bh_i < 0.22 * vh and CARPART_NAMES[int(cls_ids[i])] not in (
+                "roof", "windshield", "back-windshield", "left_mirror", "right_mirror"
+            ):
+                continue
+            kept.append(i)
+    return kept
+
+
 def _mask_to_rgba_b64(mask_bool: np.ndarray) -> str:
     h, w = mask_bool.shape
     rgba = np.zeros((h, w, 4), dtype=np.uint8)
@@ -186,11 +272,15 @@ class CarBodyONNXSegmenter:
         """
         t0 = time.time()
         orig_w, orig_h = image.size
-        rgb_img = image.convert("RGB")
+        src_img = image.convert("RGB")
+        work_scale = min(1.0, 1024.0 / max(1, orig_w, orig_h))
+        w = max(64, int(round(orig_w * work_scale)))
+        h = max(64, int(round(orig_h * work_scale)))
+        rgb_img = src_img if (w == orig_w and h == orig_h) else src_img.resize((w, h), Image.Resampling.BILINEAR)
         rgb_np = np.array(rgb_img, dtype=np.float32)
         luma = 0.299 * rgb_np[:, :, 0] + 0.587 * rgb_np[:, :, 1] + 0.114 * rgb_np[:, :, 2]
 
-        car_mask = self._segformer_car_mask(rgb_img, orig_w, orig_h)
+        car_mask = self._segformer_car_mask(rgb_img, w, h)
 
         if self.yolo_sess is None:
             rgba = np.zeros((orig_h, orig_w, 4), dtype=np.uint8)
@@ -206,8 +296,8 @@ class CarBodyONNXSegmenter:
 
         # 1. Letterbox 768x768 para YOLO26 Car-Parts
         sz = 768
-        scale = min(sz / orig_w, sz / orig_h)
-        nw, nh = int(round(orig_w * scale)), int(round(orig_h * scale))
+        scale = min(sz / w, sz / h)
+        nw, nh = int(round(w * scale)), int(round(h * scale))
         pad_x, pad_y = (sz - nw) // 2, (sz - nh) // 2
         canvas = Image.new("RGB", (sz, sz), (114, 114, 114))
         canvas.paste(rgb_img.resize((nw, nh), Image.Resampling.BILINEAR), (pad_x, pad_y))
@@ -221,7 +311,7 @@ class CarBodyONNXSegmenter:
         cls_scores = preds[:, 4:37]
         cls_ids = np.argmax(cls_scores, axis=1)
         confs = cls_scores[np.arange(len(preds)), cls_ids]
-        keep = confs >= 0.24
+        keep = confs >= 0.20
         preds, cls_ids, confs = preds[keep], cls_ids[keep], confs[keep]
 
         if len(preds) == 0:
@@ -248,25 +338,8 @@ class CarBodyONNXSegmenter:
             kept = _nms_boxes(boxes[cmask], confs[cmask], 0.50)
             final_idx.extend(cmask[kept])
 
-        # Filtrar detecciones pequeñas lejanas de la masa del vehículo principal
-        major_boxes = [
-            boxes[i]
-            for i in final_idx
-            if CARPART_NAMES[int(cls_ids[i])] not in EXCLUDE_CLASSES and confs[i] >= 0.42
-        ]
-        if major_boxes:
-            mb = np.array(major_boxes)
-            vx0, vy0 = float(mb[:, 0].min()), float(mb[:, 1].min())
-            vx1, vy1 = float(mb[:, 2].max()), float(mb[:, 3].max())
-            margin_x = max(24.0, (vx1 - vx0) * 0.14)
-            margin_y = max(24.0, (vy1 - vy0) * 0.14)
-            filtered_idx = []
-            for i in final_idx:
-                cx = 0.5 * (boxes[i, 0] + boxes[i, 2])
-                cy = 0.5 * (boxes[i, 1] + boxes[i, 3])
-                if (vx0 - margin_x <= cx <= vx1 + margin_x) and (vy0 - margin_y <= cy <= vy1 + margin_y):
-                    filtered_idx.append(i)
-            final_idx = filtered_idx
+        # Aislar únicamente al vehículo protagonista conectado borde con borde
+        final_idx = _filter_hero_vehicle(boxes, cls_ids, confs, final_idx, sz=float(sz))
 
         mh, mw = protos.shape[1], protos.shape[2]
         protos_flat = protos.reshape(32, -1)
@@ -276,16 +349,11 @@ class CarBodyONNXSegmenter:
         px2 = int(round((pad_x + nw) * sx_m))
         py2 = int(round((pad_y + nh) * sy_m))
 
-        hard_excl = np.zeros((orig_h, orig_w), dtype=bool)
-        grille_cand = np.zeros((orig_h, orig_w), dtype=bool)
+        hard_excl = np.zeros((h, w), dtype=bool)
+        grille_cand = np.zeros((h, w), dtype=bool)
         paint_parts: dict[str, np.ndarray] = {}
         part_confs: dict[str, float] = {}
         wheels_count = 0
-        car_mask_region = None
-        if car_mask is not None:
-            car_mask_region = (
-                np.array(Image.fromarray((car_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(11))) > 128
-            )
 
         for i in final_idx:
             cname = CARPART_NAMES[int(cls_ids[i])]
@@ -302,13 +370,11 @@ class CarBodyONNXSegmenter:
 
             crop_u8 = np.zeros((mh, mw), dtype=np.uint8)
             crop_u8[my1:my2, mx1:mx2] = np.clip(prob192[my1:my2, mx1:mx2] * 255.0, 0, 255).astype(np.uint8)
-            unpadded = Image.fromarray(crop_u8[py1:py2, px1:px2]).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
-            m_full = np.array(unpadded) > 128
+            unpadded = Image.fromarray(crop_u8[py1:py2, px1:px2]).resize((w, h), Image.Resampling.BILINEAR)
+            m_full = np.array(unpadded) > 122
 
             if cname not in EXCLUDE_CLASSES:
-                if car_mask_region is not None:
-                    m_full &= car_mask_region
-                if float(m_full.mean() * 100.0) < 0.08:
+                if float(m_full.mean() * 100.0) < 0.06:
                     continue
                 if cname not in paint_parts:
                     paint_parts[cname] = m_full
@@ -334,11 +400,11 @@ class CarBodyONNXSegmenter:
         pix_cb = r - g
         pix_cy = 0.5 * (r + g) - b
 
-        core_mask = np.zeros((orig_h, orig_w), dtype=bool)
+        core_mask = np.zeros((h, w), dtype=bool)
         for ck in (
             "hood", "left_fender", "right_fender",
             "left_front-door", "right_front-door", "left_back-door", "right_back-door",
-            "left_quarter-panel", "right_quarter-panel",
+            "left_quarter-panel", "right_quarter-panel", "trunk",
         ):
             if ck in paint_parts:
                 core_mask |= paint_parts[ck]
@@ -381,18 +447,18 @@ class CarBodyONNXSegmenter:
         full_excl = hard_excl | grille_real
         exclude_full = full_excl
 
-        body_mask = np.zeros((orig_h, orig_w), dtype=bool)
+        body_mask = np.zeros((h, w), dtype=bool)
         for k in list(paint_parts.keys()):
             paint_parts[k] &= ~full_excl
-            if is_chromatic_car:
-                non_paint = (luma < 36.0) | ((pix_sat < max(14.0, med_sat * 0.14)) & (luma < 175.0))
-                if k in ("front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel", "left_fender", "right_fender"):
-                    paint_parts[k] &= ~non_paint
-            else:
-                if med_luma >= 90.0 and k in ("front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel"):
-                    paint_parts[k] &= ~(luma < 45.0)
+            if k in ("front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel", "left_fender", "right_fender"):
+                if is_chromatic_car and med_sat >= 75.0:
+                    paint_parts[k] &= ~((luma < 36.0) | ((pix_sat < 14.0) & (luma < 72.0)))
+                elif is_chromatic_car:
+                    paint_parts[k] &= ~(luma < 30.0)
+                elif med_luma >= 90.0 and k in ("front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel"):
+                    paint_parts[k] &= ~(luma < 40.0)
 
-            if paint_parts[k].mean() * 100.0 < 0.15:
+            if paint_parts[k].mean() * 100.0 < 0.12:
                 del paint_parts[k]
             else:
                 body_mask |= paint_parts[k]
@@ -413,25 +479,38 @@ class CarBodyONNXSegmenter:
         by0, by1 = int(ys_b.min()), int(ys_b.max())
         bx0, bx1 = int(xs_b.min()), int(xs_b.max())
         bh, bw = max(1, by1 - by0), max(1, bx1 - bx0)
-        pad_bx, pad_by = int(bw * 0.03), int(bh * 0.03)
-        yy, xx = np.ogrid[:orig_h, :orig_w]
-        car_box = (
-            (yy >= max(0, by0 - pad_by)) & (yy <= min(orig_h - 1, by1 + pad_by))
-            & (xx >= max(0, bx0 - pad_bx)) & (xx <= min(orig_w - 1, bx1 + pad_bx))
+        pad_bx, pad_by = int(bw * 0.025), int(bh * 0.025)
+        yy, xx = np.ogrid[:h, :w]
+        hero_box = (
+            (yy >= max(0, by0 - pad_by)) & (yy <= min(h - 1, by1 + pad_by))
+            & (xx >= max(0, bx0 - pad_bx)) & (xx <= min(w - 1, bx1 + pad_bx))
         )
-        body_dilated = (
-            np.array(Image.fromarray((body_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(25))) > 128
+        body_wide_halo = (
+            np.array(Image.fromarray((body_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(51))) > 128
         )
-        car_allow = car_mask_region if car_mask_region is not None else body_dilated
-        car_strict = (car_mask > 0.5) if car_mask is not None else body_dilated
+        body_mid_halo = (
+            np.array(Image.fromarray((body_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(31))) > 128
+        )
+        if car_mask is not None:
+            car_eroded = np.array(
+                Image.fromarray((car_mask * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5))
+            ) > 128
+            car_region = np.array(
+                Image.fromarray((car_mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))
+            ) > 128
+            car_strict = car_mask
+        else:
+            car_eroded = body_wide_halo
+            car_region = body_wide_halo
+            car_strict = body_wide_halo
 
         orig_body_mask = body_mask.copy()
         if is_chromatic_car:
-            allowed_grow = car_allow & car_box & (~full_excl) & (chroma_dist < 68.0) & (pix_sat >= 16.0) & (luma >= 26.0)
+            allowed_grow = car_region & hero_box & (~full_excl) & (chroma_dist < 68.0) & (pix_sat >= 16.0) & (luma >= 26.0)
             pillar_seed = (
-                car_strict & body_dilated & car_box & (~full_excl)
-                & (chroma_dist < 62.0) & (pix_sat >= 18.0) & (luma >= 26.0)
-                & (yy >= by0) & (yy <= by0 + 0.58 * bh)
+                car_eroded & body_wide_halo & hero_box & (~full_excl)
+                & (chroma_dist < 62.0) & (pix_sat >= 18.0) & (luma >= 28.0)
+                & (yy >= by0) & (yy <= by0 + 0.65 * bh)
             )
         else:
             upper_zone = yy < (by0 + 0.48 * bh)
@@ -441,19 +520,27 @@ class CarBodyONNXSegmenter:
             for k in paint_parts:
                 if "door" in k or "roof" in k:
                     paint_parts[k] &= ~dark_rubber
-            luma_tol = 125.0 if med_luma >= 90.0 else 72.0
-            min_l = 38.0 if med_luma < 60.0 else 58.0
+            luma_tol = 135.0 if med_luma >= 90.0 else 75.0
+            min_l = 38.0 if med_luma < 60.0 else 56.0
             allowed_grow = (
-                car_allow & car_box & (~full_excl) & (~dark_rubber)
-                & (pix_sat < 28.0) & (np.abs(luma - med_luma) < luma_tol) & (luma > min_l)
+                car_strict & hero_box & (~full_excl) & (~dark_rubber)
+                & (pix_sat < 58.0) & (chroma_dist < 56.0) & (np.abs(luma - med_luma) < luma_tol) & (luma > min_l)
             )
             pillar_seed = (
-                car_strict & body_dilated & car_box & (~full_excl) & (~dark_rubber)
-                & (pix_sat < 26.0) & (np.abs(luma - med_luma) < luma_tol) & (luma > min_l)
-                & (yy >= by0) & (yy <= by0 + 0.58 * bh)
+                car_eroded & body_wide_halo & hero_box & (~full_excl) & (~dark_rubber)
+                & (pix_sat < 54.0) & (chroma_dist < 52.0) & (np.abs(luma - med_luma) < luma_tol) & (luma > min_l)
+                & (yy >= by0 + 0.03 * bh) & (yy <= by0 + 0.62 * bh)
             )
+            rocker_seed = (
+                car_eroded & body_mid_halo & hero_box & (~full_excl)
+                & (pix_sat < 42.0) & (chroma_dist < 46.0)
+                & (np.abs(luma - med_luma) < (115.0 if med_luma >= 90.0 else 65.0))
+                & (luma > (42.0 if med_luma < 60.0 else 68.0))
+                & (yy >= by0 + 0.55 * bh) & (yy <= by1)
+            )
+            pillar_seed |= rocker_seed
 
-        body_mask = _bfs_grow_mask(body_mask | pillar_seed, allowed_grow, luma, step_tol=28.0, max_iters=65)
+        body_mask = _bfs_grow_mask(body_mask | pillar_seed, allowed_grow, luma, step_tol=24.0, max_iters=80)
         recovered = body_mask & (~orig_body_mask)
         if float(recovered.mean() * 100.0) >= 0.25:
             paint_parts["pillars"] = recovered
@@ -475,17 +562,20 @@ class CarBodyONNXSegmenter:
                 "mask_b64": _mask_to_rgba_b64(m),
             })
 
-        rgba = np.zeros((orig_h, orig_w, 4), dtype=np.uint8)
+        rgba = np.zeros((h, w, 4), dtype=np.uint8)
         rgba[body_mask] = [255, 255, 255, 255]
+        out_img = Image.fromarray(rgba, mode="RGBA")
+        if w != orig_w or h != orig_h:
+            out_img = out_img.resize((orig_w, orig_h), Image.Resampling.BILINEAR)
         car_cov = float(car_mask.mean() * 100.0) if car_mask is not None else float((body_mask | exclude_full).mean() * 100.0)
 
-        return Image.fromarray(rgba, mode="RGBA"), {
+        return out_img, {
             "inference_ms": round((time.time() - t0) * 1000, 1),
             "method": "yolo26_carparts_onnx",
             "vehicle_detected": True,
             "car_coverage_pct": round(car_cov, 1),
             "body_coverage_pct": round(float(body_mask.mean() * 100.0), 1),
             "wheels_protected": wheels_count,
-            "bbox": [bx0, by0, bx1, by1],
+            "bbox": [int(round(bx0 / work_scale)), int(round(by0 / work_scale)), int(round(bx1 / work_scale)), int(round(by1 / work_scale))],
             "parts": mapped_parts,
         }

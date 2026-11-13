@@ -357,6 +357,8 @@
 
     canvas#studio-main-canvas {
       display: block;
+      width: auto;
+      height: auto;
       max-width: 100%;
       max-height: 100%;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
@@ -1698,28 +1700,124 @@
         return fullMask;
       },
 
+      _filterHeroVehicle(candBoxes, candCls, candConfs, finalItems, sz = 768) {
+        const majors = finalItems.filter(i => !EXCLUDE_PART_CLASSES.has(CARPART_NAMES[candCls[i]]) && candConfs[i] >= 0.30);
+        if (majors.length === 0) return finalItems;
+
+        let bestI = majors[0], bestScore = -1;
+        for (const i of majors) {
+          const b = candBoxes[i];
+          const area = Math.max(1, (b[2] - b[0]) * (b[3] - b[1]));
+          const cxN = 0.5 * (b[0] + b[2]) / sz, cyN = 0.5 * (b[1] + b[3]) / sz;
+          const sc = area * Math.max(0.30, 1.0 - 0.60 * (Math.abs(cxN - 0.5) + Math.abs(cyN - 0.55)));
+          if (sc > bestScore) { bestScore = sc; bestI = i; }
+        }
+
+        const bestB = candBoxes[bestI];
+        const bestCx = 0.5 * (bestB[0] + bestB[2]), bestCy = 0.5 * (bestB[1] + bestB[3]);
+        const uniqueSingle = new Set([
+          "hood", "roof", "trunk", "front-bumper", "back-bumper", "windshield", "back-windshield",
+          "left_quarter-panel", "right_quarter-panel", "left_fender", "right_fender",
+          "left_back-door", "right_back-door", "left_front-door", "right_front-door"
+        ]);
+        const byCls = {};
+        for (const i of finalItems) {
+          const cname = CARPART_NAMES[candCls[i]];
+          if (uniqueSingle.has(cname)) {
+            if (!byCls[cname]) byCls[cname] = [];
+            byCls[cname].push(i);
+          }
+        }
+        const rejected = new Set();
+        for (const idxs of Object.values(byCls)) {
+          if (idxs.length <= 1) continue;
+          let prim = idxs[0], pBest = -1;
+          for (const i of idxs) {
+            const b = candBoxes[i];
+            const area = (b[2] - b[0]) * (b[3] - b[1]);
+            const dist = Math.hypot(0.5 * (b[0] + b[2]) - bestCx, 0.5 * (b[1] + b[3]) - bestCy);
+            const sc = (area * candConfs[i]) / (1.0 + dist / (sz * 0.4));
+            if (sc > pBest) { pBest = sc; prim = i; }
+          }
+          const [px0, py0, px1, py1] = candBoxes[prim];
+          for (const i of idxs) {
+            if (i === prim) continue;
+            const [bx0, by0, bx1, by1] = candBoxes[i];
+            if (Math.max(bx0, px0) > Math.min(bx1, px1) + 20 || Math.max(by0, py0) > Math.min(py1, py1) + 20) {
+              rejected.add(i);
+            }
+          }
+        }
+
+        const pool = finalItems.filter(i => !rejected.has(i));
+        const cluster = new Set([bestI]);
+        const q = [bestI];
+        const gap = 28;
+        while (q.length > 0) {
+          const cur = q.pop();
+          const [cx0, cy0, cx1, cy1] = candBoxes[cur];
+          for (const j of pool) {
+            if (cluster.has(j)) continue;
+            const [jx0, jy0, jx1, jy1] = candBoxes[j];
+            if (Math.min(cx1, jx1) + gap >= Math.max(cx0, jx0) && Math.min(cy1, jy1) + gap >= Math.max(cy0, jy0)) {
+              cluster.add(j);
+              q.push(j);
+            }
+          }
+        }
+
+        let vx0 = 1e9, vy0 = 1e9, vx1 = -1e9, vy1 = -1e9;
+        for (const k of cluster) {
+          const b = candBoxes[k];
+          if (b[0] < vx0) vx0 = b[0]; if (b[1] < vy0) vy0 = b[1];
+          if (b[2] > vx1) vx1 = b[2]; if (b[3] > vy1) vy1 = b[3];
+        }
+        const vw = Math.max(40, vx1 - vx0), vh = Math.max(40, vy1 - vy0);
+        const mx = Math.max(24, vw * 0.08), my = Math.max(24, vh * 0.08);
+
+        const kept = [];
+        for (const i of pool) {
+          if (cluster.has(i)) { kept.push(i); continue; }
+          const [bx1, by1, bx2, by2] = candBoxes[i];
+          const cx = 0.5 * (bx1 + bx2), cy = 0.5 * (by1 + by2), bhI = by2 - by1;
+          if (cx >= vx0 - mx && cx <= vx1 + mx && cy >= vy0 - my && cy <= vy1 + my) {
+            const cn = CARPART_NAMES[candCls[i]];
+            if (cy < vy0 + 0.22 * vh && bhI < 0.22 * vh &&
+                cn !== "roof" && cn !== "windshield" && cn !== "back-windshield" && cn !== "left_mirror" && cn !== "right_mirror") {
+              continue;
+            }
+            kept.push(i);
+          }
+        }
+        return kept;
+      },
+
       async segmentImage(imgEl, onProgress) {
         const t0 = performance.now();
         await this.ensureLoaded(onProgress);
 
         const origW = imgEl.naturalWidth || imgEl.width;
         const origH = imgEl.naturalHeight || imgEl.height;
+        const workScale = Math.min(1.0, 1024.0 / Math.max(1, origW, origH));
+        const w = Math.max(64, Math.round(origW * workScale));
+        const h = Math.max(64, Math.round(origH * workScale));
 
         const origC = document.createElement("canvas");
-        origC.width = origW; origC.height = origH;
+        origC.width = w; origC.height = h;
         const octx = origC.getContext("2d");
-        octx.drawImage(imgEl, 0, 0, origW, origH);
-        const origPx = octx.getImageData(0, 0, origW, origH).data;
+        octx.drawImage(imgEl, 0, 0, w, h);
+        const origPx = octx.getImageData(0, 0, w, h).data;
 
         if (onProgress) onProgress("Detectando silueta vehicular y aislando fondo...");
-        const carMask = await this._runSegformerMask(imgEl, origW, origH);
-        const carMaskRegion = this._dilateBool(carMask, origW, origH, 5);
+        const carMask = await this._runSegformerMask(imgEl, w, h);
+        const carMaskRegion = this._dilateBool(carMask, w, h, 4);
+        const carEroded = this._erodeBool(carMask, w, h, 2);
 
         if (onProgress) onProgress("Mapeando piezas pintables, vidrios, rines y faros...");
         const sz = 768;
-        const scale = Math.min(sz / origW, sz / origH);
-        const nw = Math.round(origW * scale);
-        const nh = Math.round(origH * scale);
+        const scale = Math.min(sz / w, sz / h);
+        const nw = Math.round(w * scale);
+        const nh = Math.round(h * scale);
         const padX = Math.floor((sz - nw) / 2);
         const padY = Math.floor((sz - nh) / 2);
 
@@ -1758,7 +1856,7 @@
             const v = predData[(4 + c) * numAnch + a];
             if (v > bestConf) { bestConf = v; bestC = c; }
           }
-          if (bestConf >= 0.24) {
+          if (bestConf >= 0.20) {
             const cx = predData[0 * numAnch + a];
             const cy = predData[1 * numAnch + a];
             const bw = predData[2 * numAnch + a];
@@ -1770,9 +1868,10 @@
           }
         }
 
+        const nPix = w * h;
         if (candIndices.length === 0) {
           return {
-            maskCanvas: this._boolToMaskCanvas(new Uint8Array(origW * origH), origW, origH),
+            maskCanvas: this._boolToMaskCanvas(new Uint8Array(nPix), w, h),
             vehicleDetected: false,
             bodyCoveragePct: 0,
             wheelsProtected: 0,
@@ -1800,27 +1899,7 @@
           }
         }
 
-        const majorBoxes = [];
-        for (const idx of finalItems) {
-          const cname = CARPART_NAMES[candCls[idx]];
-          if (!EXCLUDE_PART_CLASSES.has(cname) && candConfs[idx] >= 0.42) {
-            majorBoxes.push(candBoxes[idx]);
-          }
-        }
-        if (majorBoxes.length > 0) {
-          let vx0 = 1e9, vy0 = 1e9, vx1 = -1e9, vy1 = -1e9;
-          for (const b of majorBoxes) {
-            if (b[0] < vx0) vx0 = b[0]; if (b[1] < vy0) vy0 = b[1];
-            if (b[2] > vx1) vx1 = b[2]; if (b[3] > vy1) vy1 = b[3];
-          }
-          const mx = Math.max(24, (vx1 - vx0) * 0.14);
-          const my = Math.max(24, (vy1 - vy0) * 0.14);
-          finalItems = finalItems.filter(idx => {
-            const b = candBoxes[idx];
-            const cx = 0.5 * (b[0] + b[2]), cy = 0.5 * (b[1] + b[3]);
-            return cx >= vx0 - mx && cx <= vx1 + mx && cy >= vy0 - my && cy <= vy1 + my;
-          });
-        }
+        finalItems = this._filterHeroVehicle(candBoxes, candCls, candConfs, finalItems, sz);
 
         const sxm = mw / sz, sym = mh / sz;
         const px1 = Math.round(padX * sxm), py1 = Math.round(padY * sym);
@@ -1833,11 +1912,10 @@
         const tmpImg = tmpMctx.createImageData(mw, mh);
 
         const fullScaleC = document.createElement("canvas");
-        fullScaleC.width = origW; fullScaleC.height = origH;
+        fullScaleC.width = w; fullScaleC.height = h;
         const fullScaleCtx = fullScaleC.getContext("2d");
         fullScaleCtx.imageSmoothingEnabled = true;
 
-        const nPix = origW * origH;
         const hardExcl = new Uint8Array(nPix);
         const grilleCand = new Uint8Array(nPix);
         const paintParts = {};
@@ -1872,20 +1950,20 @@
           }
           tmpMctx.putImageData(tmpImg, 0, 0);
 
-          fullScaleCtx.clearRect(0, 0, origW, origH);
-          fullScaleCtx.drawImage(tmpMC, px1, py1, upW, upH, 0, 0, origW, origH);
-          const fData = fullScaleCtx.getImageData(0, 0, origW, origH).data;
+          fullScaleCtx.clearRect(0, 0, w, h);
+          fullScaleCtx.drawImage(tmpMC, px1, py1, upW, upH, 0, 0, w, h);
+          const fData = fullScaleCtx.getImageData(0, 0, w, h).data;
 
           const mFull = new Uint8Array(nPix);
           let count = 0;
           const isExcl = EXCLUDE_PART_CLASSES.has(cname);
           for (let i = 0; i < nPix; i++) {
-            if (fData[i << 2] > 128 && (isExcl || carMaskRegion[i])) {
+            if (fData[i << 2] > 122) {
               mFull[i] = 1;
               count++;
             }
           }
-          const minPct = isExcl ? 0.01 : 0.08;
+          const minPct = isExcl ? 0.01 : 0.06;
           if ((count / nPix) * 100.0 < minPct) continue;
 
           if (isExcl) {
@@ -1907,7 +1985,6 @@
           }
         }
 
-        // Precalcular luma y saturación + muestrear color base en paneles centrales
         const lumaArr = new Float32Array(nPix);
         const satArr = new Float32Array(nPix);
         for (let i = 0; i < nPix; i++) {
@@ -1920,7 +1997,7 @@
         const coreKeys = [
           "hood", "left_fender", "right_fender",
           "left_front-door", "right_front-door", "left_back-door", "right_back-door",
-          "left_quarter-panel", "right_quarter-panel"
+          "left_quarter-panel", "right_quarter-panel", "trunk"
         ];
         const coreMask = new Uint8Array(nPix);
         let coreCnt = 0;
@@ -1938,7 +2015,7 @@
 
         if (coreCnt === 0) {
           return {
-            maskCanvas: this._boolToMaskCanvas(new Uint8Array(nPix), origW, origH),
+            maskCanvas: this._boolToMaskCanvas(new Uint8Array(nPix), w, h),
             vehicleDetected: false,
             bodyCoveragePct: 0,
             wheelsProtected: wheelsCount,
@@ -1991,32 +2068,34 @@
 
         const trimParts = new Set(["front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel", "left_fender", "right_fender"]);
         const achromTrimParts = new Set(["front-bumper", "back-bumper", "left_rocker-panel", "right_rocker-panel"]);
-        const minNonPaintSat = Math.max(14, medSat * 0.14);
         const bodyMask = new Uint8Array(nPix);
 
         for (const k of Object.keys(paintParts)) {
           const arr = paintParts[k];
-          const stripChroma = isChromaticCar && trimParts.has(k);
-          const stripAchrom = !isChromaticCar && medLuma >= 90 && achromTrimParts.has(k);
+          const inTrim = trimParts.has(k);
+          const vividChroma = isChromaticCar && medSat >= 75 && inTrim;
+          const subtleChroma = isChromaticCar && medSat < 75 && inTrim;
+          const achromTrim = !isChromaticCar && medLuma >= 90 && achromTrimParts.has(k);
           let keptCnt = 0;
           for (let i = 0; i < nPix; i++) {
             if (!arr[i]) continue;
             if (fullExcl[i]) { arr[i] = 0; continue; }
-            if (stripChroma && (lumaArr[i] < 36 || (satArr[i] < minNonPaintSat && lumaArr[i] < 175))) { arr[i] = 0; continue; }
-            if (stripAchrom && lumaArr[i] < 45) { arr[i] = 0; continue; }
+            if (vividChroma && (lumaArr[i] < 36 || (satArr[i] < 14 && lumaArr[i] < 72))) { arr[i] = 0; continue; }
+            if (subtleChroma && lumaArr[i] < 30) { arr[i] = 0; continue; }
+            if (achromTrim && lumaArr[i] < 40) { arr[i] = 0; continue; }
             keptCnt++;
           }
-          if ((keptCnt / nPix) * 100.0 < 0.15) {
+          if ((keptCnt / nPix) * 100.0 < 0.12) {
             delete paintParts[k];
           } else {
             for (let i = 0; i < nPix; i++) if (arr[i]) bodyMask[i] = 1;
           }
         }
 
-        let by0 = origH, by1 = 0, bx0 = origW, bx1 = 0, bodyCount = 0;
-        for (let y = 0; y < origH; y++) {
-          const row = y * origW;
-          for (let x = 0; x < origW; x++) {
+        let by0 = h, by1 = 0, bx0 = w, bx1 = 0, bodyCount = 0;
+        for (let y = 0; y < h; y++) {
+          const row = y * w;
+          for (let x = 0; x < w; x++) {
             if (bodyMask[row + x]) {
               if (y < by0) by0 = y; if (y > by1) by1 = y;
               if (x < bx0) bx0 = x; if (x > bx1) bx1 = x;
@@ -2027,7 +2106,7 @@
 
         if (bodyCount === 0) {
           return {
-            maskCanvas: this._boolToMaskCanvas(bodyMask, origW, origH),
+            maskCanvas: this._boolToMaskCanvas(bodyMask, w, h),
             vehicleDetected: false,
             bodyCoveragePct: 0,
             wheelsProtected: wheelsCount,
@@ -2038,18 +2117,18 @@
         }
 
         const bh = Math.max(1, by1 - by0), bw = Math.max(1, bx1 - bx0);
-        const padBx = Math.floor(bw * 0.03), padBy = Math.floor(bh * 0.03);
-        const boxY0 = Math.max(0, by0 - padBy), boxY1 = Math.min(origH - 1, by1 + padBy);
-        const boxX0 = Math.max(0, bx0 - padBx), boxX1 = Math.min(origW - 1, bx1 + padBx);
+        const padBx = Math.floor(bw * 0.025), padBy = Math.floor(bh * 0.025);
+        const boxY0 = Math.max(0, by0 - padBy), boxY1 = Math.min(h - 1, by1 + padBy);
+        const boxX0 = Math.max(0, bx0 - padBx), boxX1 = Math.min(w - 1, bx1 + padBx);
 
         const origBodyMask = new Uint8Array(bodyMask);
         const darkRubber = new Uint8Array(nPix);
         if (!isChromaticCar) {
           const rubberCutY = by0 + 0.48 * bh;
           const darkThresh = medLuma < 60 ? 30 : 52;
-          for (let y = 0; y < Math.min(origH, Math.ceil(rubberCutY)); y++) {
-            const row = y * origW;
-            for (let x = 0; x < origW; x++) {
+          for (let y = 0; y < Math.min(h, Math.ceil(rubberCutY)); y++) {
+            const row = y * w;
+            for (let x = 0; x < w; x++) {
               const idx = row + x;
               if (lumaArr[idx] < darkThresh) {
                 darkRubber[idx] = 1;
@@ -2066,60 +2145,70 @@
           }
         }
 
-        const bodyDilated = this._dilateBool(bodyMask, origW, origH, 12);
+        const bodyWideHalo = this._dilateBool(bodyMask, w, h, 25);
+        const bodyMidHalo = this._dilateBool(bodyMask, w, h, 15);
         const allowedGrow = new Uint8Array(nPix);
         const q = new Int32Array(nPix);
         const qDist = new Uint8Array(nPix);
         let qHead = 0, qTail = 0;
-        const pMaxY = by0 + 0.58 * bh;
-        const lumaTol = medLuma >= 90 ? 125 : 72;
-        const minAchromL = medLuma < 60 ? 38 : 58;
+        const pMinY = by0 + 0.03 * bh, pMaxY = by0 + (isChromaticCar ? 0.65 : 0.62) * bh;
+        const rMinY = by0 + 0.55 * bh;
+        const lumaTol = medLuma >= 90 ? 135 : 75;
+        const rLumaTol = medLuma >= 90 ? 115 : 65;
+        const minAchromL = medLuma < 60 ? 38 : 56;
+        const minRockerL = medLuma < 60 ? 42 : 68;
 
         for (let y = boxY0; y <= boxY1; y++) {
-          const row = y * origW;
+          const row = y * w;
           for (let x = boxX0; x <= boxX1; x++) {
             const idx = row + x;
             if (bodyMask[idx]) {
               q[qTail++] = idx;
               qDist[idx] = 1;
             }
-            if (!carMaskRegion[idx] || fullExcl[idx]) continue;
+            if (fullExcl[idx]) continue;
+            const j = idx << 2;
+            const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+            const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
             if (isChromaticCar) {
-              const j = idx << 2;
-              const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
-              const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+              if (!carMaskRegion[idx]) continue;
               if (cd < 68 && satArr[idx] >= 16 && lumaArr[idx] >= 26) {
                 allowedGrow[idx] = 1;
-                if (!bodyMask[idx] && carMask[idx] && bodyDilated[idx] && y >= by0 && y <= pMaxY && cd < 62 && satArr[idx] >= 18) {
+                if (!bodyMask[idx] && carEroded[idx] && bodyWideHalo[idx] && y >= by0 && y <= pMaxY && cd < 62 && satArr[idx] >= 18 && lumaArr[idx] >= 28) {
                   bodyMask[idx] = 1;
                   q[qTail++] = idx;
                   qDist[idx] = 1;
                 }
               }
-            } else if (!darkRubber[idx] && satArr[idx] < 28 && Math.abs(lumaArr[idx] - medLuma) < lumaTol && lumaArr[idx] > minAchromL) {
-              allowedGrow[idx] = 1;
-              if (!bodyMask[idx] && carMask[idx] && bodyDilated[idx] && y >= by0 && y <= pMaxY && satArr[idx] < 26) {
-                bodyMask[idx] = 1;
-                q[qTail++] = idx;
-                qDist[idx] = 1;
+            } else {
+              if (!carMask[idx] || darkRubber[idx]) continue;
+              const dL = Math.abs(lumaArr[idx] - medLuma);
+              if (satArr[idx] < 58 && cd < 56 && dL < lumaTol && lumaArr[idx] > minAchromL) {
+                allowedGrow[idx] = 1;
+                const isPillar = carEroded[idx] && bodyWideHalo[idx] && y >= pMinY && y <= pMaxY && satArr[idx] < 54 && cd < 52;
+                const isRocker = carEroded[idx] && bodyMidHalo[idx] && y >= rMinY && y <= by1 && satArr[idx] < 42 && cd < 46 && dL < rLumaTol && lumaArr[idx] > minRockerL;
+                if (!bodyMask[idx] && (isPillar || isRocker)) {
+                  bodyMask[idx] = 1;
+                  q[qTail++] = idx;
+                  qDist[idx] = 1;
+                }
               }
             }
           }
         }
 
-        // BFS geodésico (máx 65 pasos) con freno por salto brusco de luminancia
-        const stepTol = 28;
+        const stepTol = 24;
         while (qHead < qTail) {
           const cur = q[qHead++];
           const d = qDist[cur];
-          if (d >= 66) continue;
+          if (d >= 81) continue;
           const lC = lumaArr[cur];
-          const cx = cur % origW, cy = (cur / origW) | 0;
+          const cx = cur % w, cy = (cur / w) | 0;
           const nbrs = [
-            cy > 0 ? cur - origW : -1,
-            cy < origH - 1 ? cur + origW : -1,
+            cy > 0 ? cur - w : -1,
+            cy < h - 1 ? cur + w : -1,
             cx > 0 ? cur - 1 : -1,
-            cx < origW - 1 ? cur + 1 : -1
+            cx < w - 1 ? cur + 1 : -1
           ];
           for (let ni = 0; ni < 4; ni++) {
             const nb = nbrs[ni];
@@ -2160,7 +2249,7 @@
             label: (PART_LABELS_ES[pid] || [pid, 99])[0],
             area_pct: apct,
             confidence: Math.round((partConfs[pid] || 0.8) * 100) / 100,
-            maskCanvas: this._boolToMaskCanvas(arr, origW, origH)
+            maskCanvas: this._boolToMaskCanvas(arr, w, h)
           });
         }
 
@@ -2168,11 +2257,11 @@
         for (let i = 0; i < nPix; i++) if (bodyMask[i]) finalBodyCnt++;
 
         return {
-          maskCanvas: this._boolToMaskCanvas(bodyMask, origW, origH),
+          maskCanvas: this._boolToMaskCanvas(bodyMask, w, h),
           vehicleDetected: true,
           bodyCoveragePct: Math.round((finalBodyCnt / nPix) * 1000) / 10,
           wheelsProtected: wheelsCount,
-          bbox: [bx0, by0, bx1, by1],
+          bbox: [Math.round(bx0 / workScale), Math.round(by0 / workScale), Math.round(bx1 / workScale), Math.round(by1 / workScale)],
           parts: mappedParts,
           inferenceMs: Math.round(performance.now() - t0),
           method: "wasm_yolo26_carparts"
@@ -3854,8 +3943,8 @@
       _syncCanvasDimensions() {
         const vp = document.getElementById("canvas-viewport");
         if (!vp) return;
-        const w = Math.max(640, vp.clientWidth);
-        const h = Math.max(400, vp.clientHeight);
+        const w = Math.max(240, vp.clientWidth);
+        const h = Math.max(200, vp.clientHeight);
         if (this.canvas.width !== w || this.canvas.height !== h) {
           this.canvas.width = w;
           this.canvas.height = h;
