@@ -1158,38 +1158,83 @@
           </div>
         </div>
 
-        <!-- PANEL FICHA TÉCNICA DE MATERIALES & IMPRESIÓN PDF -->
+        <!-- PANEL FICHA TÉCNICA, PRESUPUESTO & ACTA DE ENTREGA PDF -->
         <div class="tab-pane" id="pane-ficha" style="display: none;">
           <div class="panel-card">
             <div class="card-title">
-              <span>Orden de Pedido & Taller</span>
-              <span class="card-badge" id="ficha-folio-badge">ORD-001</span>
+              <span>1. Datos del Cliente y Vehículo</span>
+              <input type="text" class="card-badge" id="ficha-folio-input" value="ER-2026-001" style="width:82px; text-align:center; border:1px solid #CBD5E1; font-weight:800;" title="Número de Folio / Orden" />
             </div>
             <div class="ficha-field-row">
-              <span>Cliente / Razón Social</span>
-              <input type="text" class="ficha-input" id="ficha-client-name" placeholder="Ej. Juan Pérez" />
+              <span>Nombre del Cliente o Empresa</span>
+              <input type="text" class="ficha-input" id="ficha-client-name" placeholder="Ej. Juan Pérez / Flotilla" />
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+              <div class="ficha-field-row">
+                <span>Teléfono</span>
+                <input type="text" class="ficha-input" id="ficha-client-phone" placeholder="55 0000 0000" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Correo Electrónico</span>
+                <input type="text" class="ficha-input" id="ficha-client-email" placeholder="cliente@correo.com" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Marca</span>
+                <input type="text" class="ficha-input" id="ficha-marca" placeholder="Chevrolet" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Modelo</span>
+                <input type="text" class="ficha-input" id="ficha-vehicle-model" placeholder="Blazer RS" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Año</span>
+                <input type="text" class="ficha-input" id="ficha-anio" placeholder="2024" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Kilometraje</span>
+                <input type="text" class="ficha-input" id="ficha-km" placeholder="45,000 km" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Placas</span>
+                <input type="text" class="ficha-input" id="ficha-placas" placeholder="ABC-123-D" />
+              </div>
+              <div class="ficha-field-row">
+                <span>VIN / Nº Serie</span>
+                <input type="text" class="ficha-input" id="ficha-vin" placeholder="3GNK..." />
+              </div>
             </div>
             <div class="ficha-field-row">
-              <span>Vehículo / Año / Placas</span>
-              <input type="text" class="ficha-input" id="ficha-vehicle-model" placeholder="Ej. Chevrolet Blazer RS" />
-            </div>
-            <div class="ficha-field-row">
-              <span>Notas / Acabado Especial</span>
-              <input type="text" class="ficha-input" id="ficha-notes" placeholder="Ej. Bicapa perlado + vinil lateral" />
+              <span>Notas / Trabajos Extra</span>
+              <input type="text" class="ficha-input" id="ficha-notes" placeholder="Hojalatería, preparación bicapa/tricapa y pulido" />
             </div>
           </div>
 
           <div class="panel-card">
             <div class="card-title">
-              <span>Ficha de Materiales Estimados</span>
-              <span class="card-badge">Automático</span>
+              <span>2. Cotización y Materiales (Automático)</span>
+              <span class="card-badge">+ IVA 16%</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+              <div class="ficha-field-row">
+                <span>Precio Materiales ($)</span>
+                <input type="number" class="ficha-input" id="ficha-price-mat" value="4800" min="0" step="100" />
+              </div>
+              <div class="ficha-field-row">
+                <span>Mano de Obra ($)</span>
+                <input type="number" class="ficha-input" id="ficha-price-mo" value="3500" min="0" step="100" />
+              </div>
             </div>
             <div id="ficha-materials-summary" style="font-size:11px; color:var(--text-secondary);">
               Sube y pinta un vehículo para calcular piezas, colores, litros de pintura, transparente y viniles.
             </div>
-            <button class="finish-btn active" id="btn-print-pdf" style="width:100%; padding:10px; font-size:11px;">
-              Imprimir / Guardar Ficha en PDF
-            </button>
+            <div style="display:grid; grid-template-columns:1fr; gap:6px;">
+              <button class="finish-btn active" id="btn-print-pdf" style="width:100%; padding:9px; font-size:11px;">
+                Imprimir / PDF: Presupuesto Oficial
+              </button>
+              <button class="finish-btn" id="btn-print-acta" style="width:100%; padding:9px; font-size:11px; border-color:#12507B; color:#12507B; background:#F0F9FF;">
+                Imprimir / PDF: Acta de Conformidad y Entrega
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2490,11 +2535,16 @@
         // Curves LUT events (Photoshop Ctrl+M style)
         this._setupCurveEvents();
 
-        // Ficha de Materiales & PDF Print
-        ["ficha-client-name", "ficha-vehicle-model", "ficha-notes"].forEach(id => {
+        // Ficha de Materiales, Presupuesto & Acta de Entrega PDF
+        [
+          "ficha-folio-input", "ficha-client-name", "ficha-client-phone", "ficha-client-email",
+          "ficha-marca", "ficha-vehicle-model", "ficha-anio", "ficha-km", "ficha-placas",
+          "ficha-vin", "ficha-notes", "ficha-price-mat", "ficha-price-mo"
+        ].forEach(id => {
           document.getElementById(id)?.addEventListener("input", () => this._updateFichaSummary());
         });
-        document.getElementById("btn-print-pdf")?.addEventListener("click", () => this.printOrderPDF());
+        document.getElementById("btn-print-pdf")?.addEventListener("click", () => this.printOrderPDF("presupuesto"));
+        document.getElementById("btn-print-acta")?.addEventListener("click", () => this.printOrderPDF("acta"));
         document.getElementById("btn-export-4k")?.addEventListener("click", () => this.exportCompositePNG());
 
         // Keyboard shortcuts (Illustrator / Photoshop)
@@ -3380,14 +3430,29 @@
         const catalizador = Math.round(totalClear * 0.5);
         const primerMl = Math.round(totalBase * 0.45);
 
+        const val = id => (document.getElementById(id)?.value || "").trim();
+        const priceMat = Math.max(0, Number(document.getElementById("ficha-price-mat")?.value || 0));
+        const priceMo = Math.max(0, Number(document.getElementById("ficha-price-mo")?.value || 0));
+        const subtotalGen = priceMat + priceMo;
+        const iva = subtotalGen * 0.16;
+        const totalPagar = subtotalGen + iva;
+
         return {
-          client: (document.getElementById("ficha-client-name")?.value || "").trim() || "Cliente Mostrador",
-          vehicle: (document.getElementById("ficha-vehicle-model")?.value || "").trim() || photo.label,
-          notes: (document.getElementById("ficha-notes")?.value || "").trim() || "Preparación de lámina, fondeo, aplicación bicapa/tricapa y pulido espejo.",
-          folio: document.getElementById("ficha-folio-badge")?.textContent || "ORD-001",
+          folio: val("ficha-folio-input") || "ER-2026-001",
+          client: val("ficha-client-name") || "____________________________",
+          phone: val("ficha-client-phone") || "________________",
+          email: val("ficha-client-email") || "____________________",
+          marca: val("ficha-marca") || "________",
+          vehicle: val("ficha-vehicle-model") || photo.label,
+          anio: val("ficha-anio") || "______",
+          km: val("ficha-km") || "________",
+          placas: val("ficha-placas") || "________",
+          vin: val("ficha-vin") || "__________________",
+          notes: val("ficha-notes") || "Hojalatería, preparación de lámina, pintura automotriz y pulido acabado espejo.",
+          colorApplied: items.length ? `${items[0].hex} (${items[0].acabado})` : `${this.selectedColor} (${FINISH_LABELS_ES[this.selectedFinish] || this.selectedFinish})`,
           items,
           stickers: photo.stickers || [],
-          totals: { totalBase, totalRed, totalClear, catalizador, primerMl }
+          totals: { totalBase, totalRed, totalClear, catalizador, primerMl, priceMat, priceMo, subtotalGen, iva, totalPagar }
         };
       }
 
@@ -3395,12 +3460,13 @@
         const box = document.getElementById("ficha-materials-summary");
         if (!box) return;
         const spec = this._buildMaterialsSpec();
-        if (!spec || (spec.items.length === 0 && spec.stickers.length === 0)) {
-          box.innerHTML = `<div style="color:var(--text-muted); padding:6px 0;">Sube un vehículo y aplica al menos un color o sticker para generar la lista de materiales.</div>`;
+        if (!spec) {
+          box.innerHTML = `<div style="color:var(--text-muted); padding:6px 0;">Sube un vehículo y aplica pintura o stickers para calcular insumos y totales automáticamente.</div>`;
           return;
         }
+        const fmt = n => "$" + Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        let html = `<table class="ficha-table"><thead><tr><th>Pieza</th><th>Color</th><th>Base / Laca</th></tr></thead><tbody>`;
+        let html = `<table class="ficha-table"><thead><tr><th>Pieza</th><th>Color</th><th>Base</th></tr></thead><tbody>`;
         for (const it of spec.items) {
           html += `<tr>
             <td>${it.pieza}</td>
@@ -3409,105 +3475,229 @@
           </tr>`;
         }
         html += `</tbody></table>
-        <div style="margin-top:8px; padding:8px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0; line-height:1.5;">
-          <div><b>Base Color Total:</b> ${(spec.totals.totalBase / 1000).toFixed(2)} L</div>
-          <div><b>Reductor Acrílico / Uretano:</b> ${(spec.totals.totalRed / 1000).toFixed(2)} L</div>
-          <div><b>Transparente / Barniz 2K:</b> ${(spec.totals.totalClear / 1000).toFixed(2)} L</div>
-          <div><b>Catalizador 2K (2:1):</b> ${(spec.totals.catalizador / 1000).toFixed(2)} L</div>
-          <div><b>Primer / Rellenador:</b> ${(spec.totals.primerMl / 1000).toFixed(2)} L</div>
-          <div><b>Viniles / Stickers:</b> ${spec.stickers.length} pieza(s)</div>
+        <div style="margin-top:8px; padding:8px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0; line-height:1.55;">
+          <div><b>Insumos:</b> Base ${(spec.totals.totalBase / 1000).toFixed(2)}L · Reductor ${(spec.totals.totalRed / 1000).toFixed(2)}L · Barniz 2K ${(spec.totals.totalClear / 1000).toFixed(2)}L · Cat. ${(spec.totals.catalizador / 1000).toFixed(2)}L · Primer ${(spec.totals.primerMl / 1000).toFixed(2)}L</div>
+          <div><b>Stickers:</b> ${spec.stickers.length} pieza(s)</div>
+          <div style="margin-top:4px; border-top:1px solid #CBD5E1; padding-top:4px; display:flex; justify-content:space-between;">
+            <span>Subtotal + IVA (16%):</span>
+            <b style="color:#12507B;">${fmt(spec.totals.totalPagar)} MXN</b>
+          </div>
         </div>`;
         box.innerHTML = html;
       }
 
-      printOrderPDF() {
+      printOrderPDF(docType = "presupuesto") {
         const spec = this._buildMaterialsSpec();
         const photo = this.activePhoto;
         if (!spec || !photo) {
-          this.showToast("Sube un vehículo primero para generar la Ficha PDF.");
+          this.showToast("Sube un vehículo primero para generar el documento PDF.");
           return;
         }
         const compositeUrl = this.exportCompositePNG(true);
         const sheet = document.getElementById("print-order-sheet");
         if (!sheet) return;
 
-        const fecha = new Date().toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" });
-        const rowsHtml = spec.items.map(it => `
-          <tr>
-            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.pieza}</td>
-            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">
-              <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${it.hex};border:1px solid #475569;vertical-align:middle;margin-right:6px;"></span>
-              ${it.hex}
-            </td>
-            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.acabado}</td>
-            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.baseMl} ml</td>
-            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.clearMl} ml</td>
-          </tr>
-        `).join("");
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, "0");
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const yyyy = now.getFullYear();
+        const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+        const fmtMoney = n => "$" + Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const footerHtml = pNum => `
+          <div style="display:flex; justify-content:space-between; border-top:1px solid #CBD5E1; padding-top:8px; margin-top:18px; font-size:10px; color:#64748B;">
+            <span>Hojalatería y Pintura "El Rayo" — Pedro, Juan, Aaron</span>
+            <span>Página ${pNum} de 2</span>
+          </div>`;
 
-        const stickersHtml = spec.stickers.length
-          ? spec.stickers.map(s => `<li>${s.name} (Escala ${Math.round(s.scale * 100)}%, Rotación ${s.rotationDeg}°, ${s.clipToBody ? "Recortado a lámina" : "Libre"})</li>`).join("")
-          : "<li>Sin calcomanías ni franjas adicionales</li>";
+        if (docType === "acta") {
+          const descResumen = spec.items.map(i => `${i.pieza} [${i.hex} ${i.acabado}]`).join(", ") || "Repintado y personalización estética";
+          const stkResumen = spec.stickers.length ? ` · Calcomanías/Viniles: ${spec.stickers.map(s => s.name).join(", ")}` : "";
+          sheet.innerHTML = `
+            <div style="max-width:780px; margin:0 auto;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #12507B; padding-bottom:10px; margin-bottom:10px;">
+                <img src="./logo_el_rayo.png" style="height:62px; width:auto;" />
+                <div style="text-align:right;">
+                  <div style="font-size:21px; font-weight:900; color:#C8102E; letter-spacing:0.3px;">ACTA DE CONFORMIDAD Y ENTREGA</div>
+                  <div style="font-size:12px; color:#334155;">Hojalatería y Pintura "El Rayo"</div>
+                  <div style="font-size:12px; color:#0F172A;"><b>Orden de Servicio / Folio:</b> ${spec.folio}</div>
+                </div>
+              </div>
+              <div style="text-align:right; font-size:12px; margin-bottom:12px;">
+                <b>Fecha de entrega:</b> ${dd} de ${meses[now.getMonth()]} de ${yyyy}
+              </div>
 
-        sheet.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #C8102E; padding-bottom:12px; margin-bottom:14px;">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <img src="./logo_el_rayo.png" style="height:48px; width:auto;" />
-              <div>
-                <div style="font-size:18px; font-weight:900; color:#0F172A;">EL RAYO AUTODESIGN STUDIO</div>
-                <div style="font-size:11px; color:#475569;">Orden de Pintura Automotriz, Viniles & Ficha de Materiales</div>
+              <div style="font-size:13px; font-weight:800; color:#12507B; border-bottom:1px solid #CBD5E1; padding-bottom:4px; margin-bottom:8px;">1. DATOS DEL CLIENTE Y VEHÍCULO</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 18px; font-size:12px; margin-bottom:14px;">
+                <div style="grid-column:1 / -1; border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Nombre del Cliente o Empresa:</b> ${spec.client}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Teléfono de Contacto:</b> ${spec.phone}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Correo Electrónico:</b> ${spec.email}</div>
+                <div style="display:flex; gap:14px; grid-column:1 / -1; border-bottom:1px solid #CBD5E1; padding-bottom:4px;">
+                  <span style="flex:1;"><b>Marca:</b> ${spec.marca}</span>
+                  <span style="flex:1;"><b>Modelo:</b> ${spec.vehicle}</span>
+                  <span style="flex:0.7;"><b>Año:</b> ${spec.anio}</span>
+                </div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Placas:</b> ${spec.placas}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>VIN / Número de Serie:</b> ${spec.vin}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Color Original / Aplicado:</b> ${spec.colorApplied}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Kilometraje Actual:</b> ${spec.km}</div>
+              </div>
+
+              <div style="font-size:13px; font-weight:800; color:#12507B; border-bottom:1px solid #CBD5E1; padding-bottom:4px; margin-bottom:6px;">2. RESUMEN DE TRABAJOS REALIZADOS</div>
+              <div style="font-size:11.5px; line-height:1.5; padding:8px 10px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; margin-bottom:10px;">
+                <b>Descripción General de la Reparación (Piezas reparadas/cambiadas, código de color, etc.):</b><br/>
+                ${descResumen}${stkResumen}.<br/>
+                <i>${spec.notes}</i>
+              </div>
+              <div style="text-align:center; margin-bottom:12px;">
+                <img src="${compositeUrl}" style="max-width:100%; max-height:190px; border-radius:6px; border:1px solid #CBD5E1;" />
+              </div>
+
+              <div style="font-size:13px; font-weight:800; color:#12507B; border-bottom:1px solid #CBD5E1; padding-bottom:4px; margin-bottom:8px;">3. INSPECCIÓN FÍSICA (A MARCAR POR EL CLIENTE)</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px 14px; font-size:11.5px; margin-bottom:14px;">
+                <div>☐ Tono y textura de pintura conformes.</div>
+                <div>☐ Cuadre y ajuste de piezas correctos.</div>
+                <div>☐ Limpieza interior y exterior aceptable.</div>
+                <div>☐ Funcionamiento de luces/accesorios reparados.</div>
+                <div>☐ Entrega de piezas reemplazadas (si aplica).</div>
+                <div>☐ Sin rayones ni daños adicionales al ingreso.</div>
+              </div>
+
+              <div style="font-size:13px; font-weight:800; color:#12507B; border-bottom:1px solid #CBD5E1; padding-bottom:4px; margin-bottom:6px;">4. DECLARACIÓN DE SATISFACCIÓN Y GARANTÍA</div>
+              <p style="font-size:11.5px; line-height:1.5; margin:0 0 8px 0;">
+                Por medio del presente documento, el cliente manifiesta que ha recibido el vehículo descrito en este formato, habiendo realizado una inspección visual y física detallada de los trabajos de hojalatería, pintura y armado solicitados a <b>Hojalatería y Pintura "El Rayo"</b>.
+              </p>
+              <p style="font-size:11.5px; line-height:1.5; margin:0;">
+                El cliente declara su <b>entera satisfacción</b> con el servicio prestado, liberando al taller de cualquier reclamación posterior referente a daños visibles, rayones, faltantes en el inventario de ingreso, o ajustes estéticos menores que debieron ser reportados en el momento de esta entrega.
+              </p>
+              ${footerHtml(1)}
+
+              <div style="page-break-before: always; padding-top:24px;">
+                <p style="font-size:12px; line-height:1.65; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:14px;">
+                  <b>Garantía:</b> Los trabajos de pintura realizados cuentan con una garantía de <b>6 meses</b> contra defectos exclusivos de aplicación (tales como desprendimiento, pérdida prematura de brillo o burbujas). Esta garantía queda anulada si la pieza reparada sufre golpes, rayones, fricciones, alteraciones por terceros, mal uso o exposición a químicos abrasivos y corrosivos (ácidos, solventes fuertes, etc.) posteriores a la entrega del vehículo.
+                </p>
+                <div style="display:flex; justify-content:space-between; margin-top:70px; font-size:12px;">
+                  <div style="width:42%; border-top:1.5px solid #0F172A; padding-top:6px; text-align:center;">
+                    <b>FIRMA DE CONFORMIDAD DEL CLIENTE</b><br/><span style="font-size:10.5px; color:#64748B;">Nombre y Firma</span>
+                  </div>
+                  <div style="width:42%; border-top:1.5px solid #0F172A; padding-top:6px; text-align:center;">
+                    <b>ENTREGA POR PARTE DEL TALLER</b><br/><span style="font-size:10.5px; color:#64748B;">Representante de "El Rayo"</span>
+                  </div>
+                </div>
+                ${footerHtml(2)}
               </div>
             </div>
-            <div style="text-align:right; font-size:11px;">
-              <div><b>Folio:</b> ${spec.folio}</div>
-              <div><b>Fecha:</b> ${fecha}</div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:#F8FAFC; padding:10px 14px; border:1px solid #CBD5E1; border-radius:8px; font-size:12px; margin-bottom:14px;">
-            <div><b>Cliente:</b> ${spec.client}</div>
-            <div><b>Vehículo:</b> ${spec.vehicle}</div>
-            <div style="grid-column:1 / -1;"><b>Notas de Taller:</b> ${spec.notes}</div>
-          </div>
-
-          <div style="text-align:center; margin-bottom:14px;">
-            <img src="${compositeUrl}" style="max-width:100%; max-height:310px; border-radius:8px; border:1px solid #CBD5E1;" />
-          </div>
-
-          <h3 style="font-size:13px; margin:0 0 6px 0; text-transform:uppercase; color:#C8102E;">Desglose de Piezas y Pintura</h3>
-          <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:14px;">
-            <thead>
-              <tr style="background:#F1F5F9; text-align:left;">
-                <th style="padding:6px;">Pieza / Panel</th>
-                <th style="padding:6px;">Código Color</th>
-                <th style="padding:6px;">Sistema / Acabado</th>
-                <th style="padding:6px;">Base Color</th>
-                <th style="padding:6px;">Barniz 2K</th>
+          `;
+        } else {
+          // PRESUPUESTO OFICIAL (2 PÁGINAS)
+          const unitMat = spec.items.length ? Math.round(spec.totals.priceMat / Math.max(1, spec.items.length + (spec.stickers.length ? 1 : 0))) : spec.totals.priceMat;
+          const matRowsHtml = [
+            ...spec.items.map((it, idx) => `
+              <tr>
+                <td style="padding:5px; border:1px solid #CBD5E1; text-align:center;">1</td>
+                <td style="padding:5px; border:1px solid #CBD5E1;">${it.pieza} — Pintura ${it.hex} (${it.acabado}) · Base ${(it.baseMl/1000).toFixed(2)}L + Barniz ${(it.clearMl/1000).toFixed(2)}L</td>
+                <td style="padding:5px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(idx === 0 ? spec.totals.priceMat - unitMat * Math.max(0, spec.items.length - 1 + (spec.stickers.length ? 1 : 0)) : unitMat)}</td>
+                <td style="padding:5px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(idx === 0 ? spec.totals.priceMat - unitMat * Math.max(0, spec.items.length - 1 + (spec.stickers.length ? 1 : 0)) : unitMat)}</td>
               </tr>
-            </thead>
-            <tbody>${rowsHtml || '<tr><td colspan="5" style="padding:8px;">Color original conservado (solo viniles/gráficos)</td></tr>'}</tbody>
-          </table>
+            `),
+            ...(spec.stickers.length ? [`
+              <tr>
+                <td style="padding:5px; border:1px solid #CBD5E1; text-align:center;">${spec.stickers.length}</td>
+                <td style="padding:5px; border:1px solid #CBD5E1;">Viniles / Calcomanías (${spec.stickers.map(s => s.name).join(", ")})</td>
+                <td style="padding:5px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(unitMat)}</td>
+                <td style="padding:5px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(unitMat)}</td>
+              </tr>
+            `] : [])
+          ].join("") || `<tr><td colspan="4" style="padding:6px; border:1px solid #CBD5E1;">Kit de Materiales y Consumibles</td></tr>`;
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:11px; margin-bottom:18px;">
-            <div style="padding:10px; border:1px solid #CBD5E1; border-radius:6px;">
-              <div style="font-weight:800; margin-bottom:4px; color:#0F172A;">Resumen de Insumos a Surtir</div>
-              <div>• Base Color Automotriz: <b>${(spec.totals.totalBase / 1000).toFixed(2)} L</b></div>
-              <div>• Reductor Uretano: <b>${(spec.totals.totalRed / 1000).toFixed(2)} L</b></div>
-              <div>• Transparente / Laca 2K HS: <b>${(spec.totals.totalClear / 1000).toFixed(2)} L</b></div>
-              <div>• Catalizador 2K: <b>${(spec.totals.catalizador / 1000).toFixed(2)} L</b></div>
-              <div>• Primer Rellenador: <b>${(spec.totals.primerMl / 1000).toFixed(2)} L</b></div>
-            </div>
-            <div style="padding:10px; border:1px solid #CBD5E1; border-radius:6px;">
-              <div style="font-weight:800; margin-bottom:4px; color:#0F172A;">Stickers & Calcomanías en Vinil</div>
-              <ul style="margin:0; padding-left:16px;">${stickersHtml}</ul>
-            </div>
-          </div>
+          sheet.innerHTML = `
+            <div style="max-width:780px; margin:0 auto;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #12507B; padding-bottom:10px; margin-bottom:12px;">
+                <img src="./logo_el_rayo.png" style="height:64px; width:auto;" />
+                <div style="text-align:right;">
+                  <div style="font-size:24px; font-weight:900; color:#C8102E; letter-spacing:0.5px;">PRESUPUESTO</div>
+                  <div style="font-size:12px; color:#0F172A;"><b>Folio:</b> ${spec.folio}</div>
+                  <div style="font-size:12px; color:#0F172A;"><b>Fecha:</b> ${dd}/${mm}/${yyyy}</div>
+                </div>
+              </div>
 
-          <div style="display:flex; justify-content:space-between; margin-top:26px; font-size:11px; color:#475569;">
-            <div style="width:42%; border-top:1px solid #64748B; padding-top:4px; text-align:center;">Firma de Autorización del Cliente</div>
-            <div style="width:42%; border-top:1px solid #64748B; padding-top:4px; text-align:center;">Responsable de Colorimetría / Taller El Rayo</div>
-          </div>
-        `;
+              <div style="font-size:13px; font-weight:800; color:#12507B; border-bottom:1px solid #CBD5E1; padding-bottom:4px; margin-bottom:8px;">1. DATOS DEL CLIENTE Y VEHÍCULO</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 18px; font-size:12px; margin-bottom:12px;">
+                <div style="grid-column:1 / -1; border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Nombre del Cliente o Empresa:</b> ${spec.client}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Teléfono:</b> ${spec.phone}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Correo Electrónico:</b> ${spec.email}</div>
+                <div style="display:flex; gap:10px; grid-column:1 / -1; border-bottom:1px solid #CBD5E1; padding-bottom:4px;">
+                  <span style="flex:1;"><b>Marca:</b> ${spec.marca}</span>
+                  <span style="flex:1;"><b>Modelo:</b> ${spec.vehicle}</span>
+                  <span style="flex:0.6;"><b>Año:</b> ${spec.anio}</span>
+                  <span style="flex:1.1;"><b>Color:</b> ${spec.colorApplied}</span>
+                </div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>Placas:</b> ${spec.placas}</div>
+                <div style="border-bottom:1px solid #CBD5E1; padding-bottom:4px;"><b>VIN / Número de Serie:</b> ${spec.vin}</div>
+              </div>
+
+              <div style="font-size:13px; font-weight:800; color:#12507B; margin-bottom:6px;">2. REFACCIONES Y MATERIALES</div>
+              <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:12px;">
+                <thead>
+                  <tr style="background:#12507B; color:#FFFFFF;">
+                    <th style="padding:6px; width:55px; text-align:center;">Cant.</th>
+                    <th style="padding:6px; text-align:left;">Descripción (Piezas, Pintura, Consumibles)</th>
+                    <th style="padding:6px; width:95px; text-align:right;">Precio Unit.</th>
+                    <th style="padding:6px; width:95px; text-align:right;">Importe</th>
+                  </tr>
+                </thead>
+                <tbody>${matRowsHtml}</tbody>
+              </table>
+
+              <div style="font-size:13px; font-weight:800; color:#12507B; margin-bottom:6px;">3. MANO DE OBRA</div>
+              <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:10px;">
+                <thead>
+                  <tr style="background:#12507B; color:#FFFFFF;">
+                    <th style="padding:6px; text-align:left;">Descripción del Trabajo (Hojalatería, Preparación, Pintura, Pulido)</th>
+                    <th style="padding:6px; width:110px; text-align:right;">Importe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:6px; border:1px solid #CBD5E1;">${spec.notes}</td>
+                    <td style="padding:6px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(spec.totals.priceMo)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px;">
+                <div style="flex:1; text-align:center;">
+                  <img src="${compositeUrl}" style="max-width:100%; max-height:155px; border-radius:6px; border:1px solid #CBD5E1;" />
+                </div>
+                <table style="width:270px; border-collapse:collapse; font-size:11.5px;">
+                  <tr><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;"><b>Subtotal Materiales:</b></td><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(spec.totals.priceMat)}</td></tr>
+                  <tr><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;"><b>Subtotal Mano de Obra:</b></td><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(spec.totals.priceMo)}</td></tr>
+                  <tr><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;"><b>Subtotal General:</b></td><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(spec.totals.subtotalGen)}</td></tr>
+                  <tr><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;"><b>IVA (16%):</b></td><td style="padding:4px 8px; border:1px solid #CBD5E1; text-align:right;">${fmtMoney(spec.totals.iva)}</td></tr>
+                  <tr style="background:#12507B; color:#FFFFFF; font-weight:800;"><td style="padding:6px 8px; text-align:right;">TOTAL A PAGAR:</td><td style="padding:6px 8px; text-align:right;">${fmtMoney(spec.totals.totalPagar)}</td></tr>
+                </table>
+              </div>
+              ${footerHtml(1)}
+
+              <div style="page-break-before: always; padding-top:20px;">
+                <div style="font-size:13px; font-weight:800; color:#12507B; border-bottom:1px solid #CBD5E1; padding-bottom:4px; margin-bottom:10px;">4. NOTAS Y CONDICIONES</div>
+                <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:14px; font-size:11.5px; line-height:1.6;">
+                  <p style="margin:0 0 8px 0;"><b>1. Validez:</b> Este presupuesto es válido por un período de <b>15 días hábiles</b> a partir de la fecha de expedición. Transcurrido este plazo, los precios de las refacciones están sujetos a cambio sin previo aviso debido a la fluctuación del mercado.</p>
+                  <p style="margin:0 0 8px 0;"><b>2. Daños Ocultos:</b> Este presupuesto cubre únicamente los daños visibles al momento de la inspección. Si al desarmar el vehículo se detectan daños estructurales o piezas internas rotas que no eran apreciables inicialmente, se elaborará un presupuesto complementario para la autorización del cliente antes de proceder.</p>
+                  <p style="margin:0;"><b>3. Autorización:</b> Para iniciar los trabajos detallados en este documento, se requiere un <b>anticipo del 50%</b> del valor total del presupuesto. El vehículo no será entregado hasta que el saldo restante haya sido liquidado en su totalidad.</p>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:75px; font-size:12px;">
+                  <div style="width:42%; border-top:1.5px solid #0F172A; padding-top:6px; text-align:center;">
+                    <b>PRESUPUESTO ELABORADO POR</b><br/><span style="font-size:10.5px; color:#64748B;">Representante de "El Rayo"</span>
+                  </div>
+                  <div style="width:42%; border-top:1.5px solid #0F172A; padding-top:6px; text-align:center;">
+                    <b>ACEPTACIÓN DEL CLIENTE</b><br/><span style="font-size:10.5px; color:#64748B;">Firma de Autorización (Inicia Trabajo)</span>
+                  </div>
+                </div>
+                ${footerHtml(2)}
+              </div>
+            </div>
+          `;
+        }
         window.print();
       }
 
