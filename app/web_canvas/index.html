@@ -347,6 +347,8 @@
       flex: 1;
       width: 100%;
       height: 100%;
+      min-height: 0;
+      overflow: hidden;
       position: relative;
       display: flex;
       align-items: center;
@@ -373,6 +375,7 @@
       gap: 12px;
       z-index: 30;
       flex-shrink: 0;
+      overflow: hidden;
     }
 
     .strip-label {
@@ -522,8 +525,91 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-height: 180px;
+      max-height: calc(100vh - 250px);
       overflow-y: auto;
+    }
+
+    .stickers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .sticker-preset-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 4px;
+      border-radius: 6px;
+      border: 1px solid var(--border-glass);
+      background: #F8FAFC;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .sticker-preset-btn:hover {
+      border-color: var(--accent-red);
+      background: #FFF1F2;
+    }
+
+    .sticker-preset-btn img {
+      width: 38px;
+      height: 28px;
+      object-fit: contain;
+    }
+
+    .sticker-ctrl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .sticker-ctrl-row input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-red);
+    }
+
+    .ai-loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 60;
+      color: #FFF;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .ai-loading-overlay.active {
+      display: flex;
+    }
+
+    .ai-spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(255,255,255,0.25);
+      border-top-color: #C8102E;
+      border-radius: 50%;
+      animation: spinAI 0.8s linear infinite;
+    }
+
+    @keyframes spinAI {
+      to { transform: rotate(360deg); }
     }
 
     .piece-row {
@@ -680,6 +766,116 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    .curves-svg-wrap {
+      background: #0F172A;
+      border-radius: 8px;
+      padding: 6px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #curves-editor-svg {
+      width: 100%;
+      height: 112px;
+      display: block;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    .curves-presets-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .curve-preset-btn {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 4px 2px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1E293B;
+      color: #CBD5E1;
+      cursor: pointer;
+    }
+
+    .curve-preset-btn.active {
+      background: #C8102E;
+      color: #FFF;
+      border-color: #C8102E;
+    }
+
+    .ficha-field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .ficha-input {
+      height: 28px;
+      border: 1px solid var(--border-glass);
+      border-radius: 6px;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+      background: #F8FAFC;
+      outline: none;
+    }
+
+    .ficha-input:focus {
+      border-color: var(--accent-red);
+      background: #FFFFFF;
+    }
+
+    .ficha-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+
+    .ficha-table th {
+      text-align: left;
+      padding: 5px 4px;
+      border-bottom: 1px solid var(--border-glass);
+      color: var(--text-muted);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .ficha-table td {
+      padding: 5px 4px;
+      border-bottom: 1px solid #F1F5F9;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    #print-order-sheet {
+      display: none;
+    }
+
+    @media print {
+      body > *:not(#print-order-sheet) {
+        display: none !important;
+      }
+      body {
+        background: #FFFFFF !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+      #print-order-sheet {
+        display: block !important;
+        padding: 18px 24px;
+        color: #0F172A;
+        font-family: Inter, system-ui, sans-serif;
+      }
+    }
+
     @media (max-width: 768px) {
       aside#left-toolbar {
         position: absolute;
@@ -751,31 +947,46 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main id="studio-main">
 
-    <!-- TOOLBAR IZQUIERDA -->
+    <!-- TOOLBAR IZQUIERDA (HERRAMIENTAS PHOTOSHOP / ILLUSTRATOR) -->
     <aside id="left-toolbar">
-      <button class="tool-btn active" data-tool="select" title="Selección de piezas (V)">
+      <button class="tool-btn active" data-tool="select" title="Selección de piezas / stickers (V)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
         <span class="tooltip">Seleccionar (V)</span>
       </button>
 
-      <button class="tool-btn" data-tool="pen" title="Pluma Bézier Corel/Photoshop (P)">
+      <button class="tool-btn" data-tool="pen" title="Pluma Bézier Illustrator/Photoshop: clic = vértice, arrastrar = curva (P)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
-        <span class="tooltip">Pluma CAD (P)</span>
+        <span class="tooltip">Pluma Bézier (P)</span>
       </button>
 
-      <button class="tool-btn" data-tool="node" title="Mover y calibrar nodos vectoriales (A)">
+      <button class="tool-btn" data-tool="node" title="Selección Directa / Corregir Nodos y Manejadores Bézier (A)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>
-        <span class="tooltip">Calibrar Nodos (A)</span>
+        <span class="tooltip">Corregir Nodos (A)</span>
+      </button>
+
+      <button class="tool-btn" data-tool="lasso" title="Lazo Libre / Poligonal Photoshop (L)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M7 16.93c.96.43 1.96.74 3 .91"/><path d="M12 18c5.52 0 10-3.13 10-7s-4.48-7-10-7S2 7.13 2 11c0 2.18 1.42 4.14 3.65 5.42"/><circle cx="5" cy="17" r="2"/></svg>
+        <span class="tooltip">Lazo Libre (L)</span>
+      </button>
+
+      <button class="tool-btn" data-tool="wand" title="Varita Mágica por Tolerancia de Color (W)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M17.8 6.2L19 5"/><path d="M12.2 6.2L11 5"/><path d="M3 21l9-9"/><circle cx="15" cy="9" r="1"/></svg>
+        <span class="tooltip">Varita Mágica (W)</span>
       </button>
 
       <div class="tool-separator"></div>
 
-      <button class="tool-btn" data-tool="pipette" title="Cuentagotas de color (I)">
+      <button class="tool-btn" data-tool="pipette" title="Cuentagotas / Muestrear Color de la Foto (I)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22s5-1 9-5l8-8a3 3 0 0 0-4-4l-8 8c-4 4-5 9-5 9z"/><path d="M15 7l2 2"/></svg>
-        <span class="tooltip">Muestreo (I)</span>
+        <span class="tooltip">Cuentagotas (I)</span>
       </button>
 
-      <button class="tool-btn" id="btn-tool-clear" title="Restablecer pintura del vehículo">
+      <button class="tool-btn" id="btn-tool-curves-shortcut" title="Abrir Curvas Tonales / Brillo-Laca Photoshop (M)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M4 19C9 18 13 6 20 5"/><circle cx="12" cy="12" r="1.5"/></svg>
+        <span class="tooltip">Curvas Tono (M)</span>
+      </button>
+
+      <button class="tool-btn" id="btn-tool-clear" title="Restablecer pintura y calcomanías">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         <span class="tooltip">Restablecer Color</span>
       </button>
@@ -795,13 +1006,17 @@
         </div>
       </div>
 
-      <!-- Barra de ingeniería vectorial (Pluma) -->
+      <!-- Barra de ingeniería vectorial (Pluma & Nodos Bézier Illustrator/Photoshop) -->
       <div class="pen-engineering-bar hidden" id="pen-cad-bar">
-        <button class="pen-bar-btn primary" id="btn-pen-smooth" title="Suaviza temblores y crea curvatura aerodinámica continua">
+        <button class="pen-bar-btn primary" id="btn-pen-smooth" title="Convierte vértices rectos en curvas Bézier suaves continuas">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-3 5-10 9-10s6 7 9 10"/></svg>
-          <span>Suavizado IA</span>
+          <span>Curva Suave</span>
         </button>
-        <button class="pen-bar-btn save-btn" id="btn-pen-save" title="Convierte el trazo en una pieza lista para pintar">
+        <button class="pen-bar-btn" id="btn-pen-close" title="Cerrar ruta entre último y primer nodo">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 9 18 21 6 21 2 9"/></svg>
+          <span>Cerrar Ruta</span>
+        </button>
+        <button class="pen-bar-btn save-btn" id="btn-pen-save" title="Convertir ruta cerrada en pieza pintable / máscara">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           <span>Guardar Pieza</span>
         </button>
@@ -812,8 +1027,12 @@
       </div>
 
       <!-- Viewport del Canvas -->
-      <div class="canvas-viewport" id="canvas-viewport">
+      <div class="canvas-viewport" id="canvas-viewport" style="position:relative;">
         <canvas id="studio-main-canvas" width="1280" height="720"></canvas>
+        <div class="ai-loading-overlay" id="ai-loading-overlay">
+          <div class="ai-spinner"></div>
+          <div id="ai-loading-text">Analizando vehículo y detectando piezas...</div>
+        </div>
       </div>
 
       <!-- Tira de miniaturas de fotos -->
@@ -823,16 +1042,18 @@
       </div>
     </section>
 
-    <!-- SIDEBAR DERECHA: PINTURA, ACABADOS Y PIEZAS -->
+    <!-- SIDEBAR DERECHA: PINTURA, CURVAS, PIEZAS, STICKERS Y FICHA PDF -->
     <aside id="right-sidebar">
       <div class="sidebar-tabs">
-        <button class="tab-btn active" data-tab="colores">Colores OEM</button>
-        <button class="tab-btn" data-tab="piezas">Piezas & Capas</button>
+        <button class="tab-btn active" data-tab="colores">Color</button>
+        <button class="tab-btn" data-tab="piezas">Piezas</button>
+        <button class="tab-btn" data-tab="stickers">Stickers</button>
+        <button class="tab-btn" data-tab="ficha">Ficha / PDF</button>
       </div>
 
       <div class="sidebar-content-scroll">
 
-        <!-- PANEL DE COLORES -->
+        <!-- PANEL DE COLORES + CURVAS PHOTOSHOP -->
         <div class="tab-pane" id="pane-colores">
           <div class="panel-card">
             <div class="card-title">
@@ -859,6 +1080,34 @@
               <button class="finish-btn" data-finish="matte">Mate Satinado</button>
             </div>
           </div>
+
+          <div class="panel-card" id="curves-panel-card">
+            <div class="card-title">
+              <span>Curvas de Laca y Contraste (M)</span>
+              <button class="card-badge" id="btn-curve-reset" style="cursor:pointer; border:none;">Reset</button>
+            </div>
+            <div class="curves-svg-wrap">
+              <svg id="curves-editor-svg" viewBox="0 0 200 120">
+                <line x1="0" y1="30" x2="200" y2="30" stroke="#1E293B" stroke-width="1"/>
+                <line x1="0" y1="60" x2="200" y2="60" stroke="#1E293B" stroke-width="1"/>
+                <line x1="0" y1="90" x2="200" y2="90" stroke="#1E293B" stroke-width="1"/>
+                <line x1="50" y1="0" x2="50" y2="120" stroke="#1E293B" stroke-width="1"/>
+                <line x1="100" y1="0" x2="100" y2="120" stroke="#1E293B" stroke-width="1"/>
+                <line x1="150" y1="0" x2="150" y2="120" stroke="#1E293B" stroke-width="1"/>
+                <line x1="0" y1="120" x2="200" y2="0" stroke="#334155" stroke-width="1" stroke-dasharray="3 3"/>
+                <path id="curves-svg-path" d="M 0 120 Q 100 60 200 0" fill="none" stroke="#EF4444" stroke-width="2.2"/>
+                <circle id="curve-pt-shadow" cx="50" cy="90" r="5" fill="#F8FAFC" stroke="#C8102E" stroke-width="2" style="cursor:ns-resize"/>
+                <circle id="curve-pt-mid" cx="100" cy="60" r="5.5" fill="#FACC15" stroke="#C8102E" stroke-width="2" style="cursor:ns-resize"/>
+                <circle id="curve-pt-high" cx="150" cy="30" r="5" fill="#F8FAFC" stroke="#C8102E" stroke-width="2" style="cursor:ns-resize"/>
+              </svg>
+              <div class="curves-presets-row">
+                <button type="button" class="curve-preset-btn active" data-curve="linear">Lineal</button>
+                <button type="button" class="curve-preset-btn" data-curve="showroom">Showroom</button>
+                <button type="button" class="curve-preset-btn" data-curve="deep">Profundo</button>
+                <button type="button" class="curve-preset-btn" data-curve="gloss">Brillo+</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- PANEL DE PIEZAS -->
@@ -869,6 +1118,78 @@
               <span class="card-badge" id="badge-pieces-count">Carrocería</span>
             </div>
             <div class="pieces-list" id="pieces-list-container"></div>
+            <button class="finish-btn" id="btn-reset-selected-piece" style="width:100%;">Quitar pintura de pieza seleccionada</button>
+          </div>
+        </div>
+
+        <!-- PANEL DE STICKERS / CALCOMANÍAS -->
+        <div class="tab-pane" id="pane-stickers" style="display: none;">
+          <div class="panel-card">
+            <div class="card-title">
+              <span>Catálogo de Calcomanías</span>
+              <span class="card-badge">Vinil Recorte</span>
+            </div>
+            <input type="file" id="sticker-upload-input" accept="image/png,image/svg+xml,image/webp,image/jpeg" style="display:none;" />
+            <div class="stickers-grid" id="stickers-preset-grid"></div>
+            <button class="finish-btn active" id="btn-upload-sticker" style="width:100%; padding:9px;">+ Subir Logo / Sticker PNG o SVG</button>
+          </div>
+
+          <div class="panel-card" id="sticker-inspector-card" style="display:none;">
+            <div class="card-title">
+              <span id="sticker-selected-name">Ajustar Sticker</span>
+              <button class="card-badge" id="btn-delete-sticker" style="cursor:pointer; border:1px solid #FECDD3; background:#FFF1F2; color:#C8102E;">Eliminar</button>
+            </div>
+            <div class="sticker-ctrl-row">
+              <span>Tamaño: <b id="lbl-sticker-scale">100%</b></span>
+              <input type="range" id="range-sticker-scale" min="15" max="220" value="80" />
+            </div>
+            <div class="sticker-ctrl-row">
+              <span>Rotación: <b id="lbl-sticker-rot">0°</b></span>
+              <input type="range" id="range-sticker-rot" min="-180" max="180" value="0" />
+            </div>
+            <div class="sticker-ctrl-row">
+              <span>Opacidad: <b id="lbl-sticker-alpha">95%</b></span>
+              <input type="range" id="range-sticker-alpha" min="20" max="100" value="95" />
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; font-size:10px; font-weight:700; color:var(--text-secondary); cursor:pointer;">
+              <input type="checkbox" id="chk-sticker-clip" checked />
+              Recortar automáticamente dentro de la carrocería (no mancha vidrios/llantas)
+            </label>
+          </div>
+        </div>
+
+        <!-- PANEL FICHA TÉCNICA DE MATERIALES & IMPRESIÓN PDF -->
+        <div class="tab-pane" id="pane-ficha" style="display: none;">
+          <div class="panel-card">
+            <div class="card-title">
+              <span>Orden de Pedido & Taller</span>
+              <span class="card-badge" id="ficha-folio-badge">ORD-001</span>
+            </div>
+            <div class="ficha-field-row">
+              <span>Cliente / Razón Social</span>
+              <input type="text" class="ficha-input" id="ficha-client-name" placeholder="Ej. Juan Pérez" />
+            </div>
+            <div class="ficha-field-row">
+              <span>Vehículo / Año / Placas</span>
+              <input type="text" class="ficha-input" id="ficha-vehicle-model" placeholder="Ej. Chevrolet Blazer RS" />
+            </div>
+            <div class="ficha-field-row">
+              <span>Notas / Acabado Especial</span>
+              <input type="text" class="ficha-input" id="ficha-notes" placeholder="Ej. Bicapa perlado + vinil lateral" />
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="card-title">
+              <span>Ficha de Materiales Estimados</span>
+              <span class="card-badge">Automático</span>
+            </div>
+            <div id="ficha-materials-summary" style="font-size:11px; color:var(--text-secondary);">
+              Sube y pinta un vehículo para calcular piezas, colores, litros de pintura, transparente y viniles.
+            </div>
+            <button class="finish-btn active" id="btn-print-pdf" style="width:100%; padding:10px; font-size:11px;">
+              Imprimir / Guardar Ficha en PDF
+            </button>
           </div>
         </div>
 
@@ -878,6 +1199,7 @@
   </main>
 
   <div id="studio-toast">Pintura aplicada</div>
+  <section id="print-order-sheet"></section>
 
   <!-- SCRIPT CENTRAL DEL MOTOR -->
   <script>
@@ -969,881 +1291,805 @@
     ];
 
     /* ========================================================================
-       MOTOR IA EN NAVEGADOR (WebAssembly: SegFormer B0 + SlimSAM ONNX)
-       Funciona tanto en GitHub Pages estático como en Localhost sin API externa.
+       STICKERS / CALCOMANÍAS VECTORIALES INTEGRADOS (VINIL RECORTE)
        ======================================================================== */
+    function makeSvgStickerUrl(svgMarkup) {
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup.trim());
+    }
+
+    const STICKER_PRESETS = [
+      {
+        id: "rayo_emblem",
+        name: "Rayo Racing",
+        url: makeSvgStickerUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 120">
+            <rect x="8" y="16" width="244" height="88" rx="14" fill="#111317" stroke="#C8102E" stroke-width="6"/>
+            <polygon points="62,28 38,66 56,66 44,96 84,54 64,54" fill="#FACC15" stroke="#FFF" stroke-width="2"/>
+            <text x="96" y="64" font-family="Arial Black, Impact, sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="1">EL RAYO</text>
+            <text x="98" y="88" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#EF4444" letter-spacing="3">MOTORSPORT</text>
+          </svg>
+        `)
+      },
+      {
+        id: "franja_gt",
+        name: "Franja GT",
+        url: makeSvgStickerUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90">
+            <polygon points="10,16 340,16 322,38 0,38" fill="#C8102E"/>
+            <polygon points="16,46 334,46 322,60 4,60" fill="#F8FAFC"/>
+            <polygon points="12,67 316,67 308,76 4,76" fill="#111317"/>
+          </svg>
+        `)
+      },
+      {
+        id: "turbo_01",
+        name: "Turbo #01",
+        url: makeSvgStickerUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="80" fill="#FFFFFF" stroke="#111317" stroke-width="10"/>
+            <circle cx="90" cy="90" r="68" fill="none" stroke="#C8102E" stroke-width="4" stroke-dasharray="10 6"/>
+            <text x="90" y="106" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="68" font-weight="900" fill="#111317">01</text>
+            <text x="90" y="138" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#C8102E" letter-spacing="3">TURBO</text>
+          </svg>
+        `)
+      },
+      {
+        id: "flama_racing",
+        name: "Flama Sport",
+        url: makeSvgStickerUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120">
+            <path d="M12,72 C75,18 145,42 210,16 C175,44 245,40 326,24 C255,62 190,62 150,76 C210,74 268,72 308,64 C232,96 150,96 86,104 C48,108 18,92 12,72 Z" fill="#EA580C" stroke="#FACC15" stroke-width="4"/>
+            <path d="M24,74 C76,40 132,56 184,38 C162,56 218,56 266,46 C206,76 132,78 72,92 Z" fill="#FACC15"/>
+          </svg>
+        `)
+      },
+      {
+        id: "sponsor_strip",
+        name: "Tira Patrocinio",
+        url: makeSvgStickerUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 140">
+            <rect x="6" y="8" width="208" height="34" rx="6" fill="#111317"/>
+            <text x="110" y="31" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="18" fill="#FFFFFF" letter-spacing="2">BREMBO</text>
+            <rect x="6" y="52" width="208" height="34" rx="6" fill="#C8102E"/>
+            <text x="110" y="75" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="18" fill="#FFFFFF" letter-spacing="2">MICHELIN</text>
+            <rect x="6" y="96" width="208" height="34" rx="6" fill="#1558C4"/>
+            <text x="110" y="119" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="18" fill="#FACC15" letter-spacing="2">EL RAYO PRO</text>
+          </svg>
+        `)
+      },
+      {
+        id: "bandera_meta",
+        name: "Bandera Meta",
+        url: makeSvgStickerUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 110">
+            <g transform="skewX(-18) translate(35,8)">
+              <rect x="0" y="0" width="28" height="28" fill="#111317"/>
+              <rect x="28" y="0" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="56" y="0" width="28" height="28" fill="#111317"/>
+              <rect x="84" y="0" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="112" y="0" width="28" height="28" fill="#111317"/>
+              <rect x="140" y="0" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="0" y="28" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="28" y="28" width="28" height="28" fill="#111317"/>
+              <rect x="56" y="28" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="84" y="28" width="28" height="28" fill="#111317"/>
+              <rect x="112" y="28" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="140" y="28" width="28" height="28" fill="#111317"/>
+              <rect x="0" y="56" width="28" height="28" fill="#111317"/>
+              <rect x="28" y="56" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="56" y="56" width="28" height="28" fill="#111317"/>
+              <rect x="84" y="56" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="112" y="56" width="28" height="28" fill="#111317"/>
+              <rect x="140" y="56" width="28" height="28" fill="#FFFFFF"/>
+              <rect x="0" y="0" width="168" height="84" fill="none" stroke="#C8102E" stroke-width="5"/>
+            </g>
+          </svg>
+        `)
+      }
+    ];
+
+    /* ========================================================================
+       MOTOR IA EN NAVEGADOR (WebAssembly: YOLO26 Car-Parts 33-clases + SegFormer B0)
+       Detecta sedanes, hatchbacks, SUVs (ej. Blazer) y pickups sin congelar GitHub Pages.
+       ======================================================================== */
+    const CARPART_NAMES = {
+      0: "back-bumper", 1: "back-windshield", 2: "front-bumper", 3: "grille", 4: "hood",
+      5: "left_back-door", 6: "left_back-wheel", 7: "left_back-window", 8: "left_fender",
+      9: "left_front-door", 10: "left_front-wheel", 11: "left_front-window",
+      12: "left_headlight", 13: "left_mirror", 14: "left_quarter-panel",
+      15: "left_rocker-panel", 16: "left_tail-light", 17: "license-plate",
+      18: "right_back-door", 19: "right_back-wheel", 20: "right_back-window",
+      21: "right_fender", 22: "right_front-door", 23: "right_front-wheel",
+      24: "right_front-window", 25: "right_headlight", 26: "right_mirror",
+      27: "right_quarter-panel", 28: "right_rocker-panel", 29: "right_tail-light",
+      30: "roof", 31: "trunk", 32: "windshield"
+    };
+
+    const EXCLUDE_PART_CLASSES = new Set([
+      "windshield", "back-windshield",
+      "left_front-window", "left_back-window", "right_front-window", "right_back-window",
+      "left_front-wheel", "left_back-wheel", "right_front-wheel", "right_back-wheel",
+      "left_headlight", "right_headlight", "left_tail-light", "right_tail-light",
+      "grille", "license-plate"
+    ]);
+
+    const PART_LABELS_ES = {
+      "hood": ["Cofre", 1],
+      "front-bumper": ["Defensa Delantera", 2],
+      "left_fender": ["Salpicadera Delantera (Izq)", 3],
+      "right_fender": ["Salpicadera Delantera (Der)", 4],
+      "left_front-door": ["Puerta Delantera (Izq)", 5],
+      "right_front-door": ["Puerta Delantera (Der)", 6],
+      "left_back-door": ["Puerta Trasera (Izq)", 7],
+      "right_back-door": ["Puerta Trasera (Der)", 8],
+      "left_quarter-panel": ["Costado Trasero (Izq)", 9],
+      "right_quarter-panel": ["Costado Trasero (Der)", 10],
+      "left_rocker-panel": ["Estribo / Faldón (Izq)", 11],
+      "right_rocker-panel": ["Estribo / Faldón (Der)", 12],
+      "trunk": ["Cajuela / Portón", 13],
+      "back-bumper": ["Defensa Trasera", 14],
+      "roof": ["Toldo / Techo", 15],
+      "left_mirror": ["Espejo Retrovisor (Izq)", 16],
+      "right_mirror": ["Espejo Retrovisor (Der)", 17]
+    };
+
+    const FINISH_LABELS_ES = {
+      "metallic": "Metálico Bicapa",
+      "pearl": "Perlado Tricapa",
+      "solid": "Sólido Gloss 2K",
+      "matte": "Mate Satinado"
+    };
+
     const InBrowserCarAI = {
+      yoloSess: null,
       segSess: null,
-      samEnc: null,
-      samDec: null,
       loadingPromise: null,
 
+      _modelsBaseUrl() {
+        return new URL("./assets/models/", window.location.href).href;
+      },
+
       async ensureLoaded(onProgress) {
-        if (this.segSess && this.samEnc && this.samDec) return true;
+        if (this.yoloSess && this.segSess) return true;
         if (this.loadingPromise) return this.loadingPromise;
 
         this.loadingPromise = (async () => {
-          if (typeof ort === "undefined") return false;
-          ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
-          if (onProgress) onProgress("Descargando modelos IA (primera vez)...");
-          try {
-            const [seg, enc, dec] = await Promise.all([
-              ort.InferenceSession.create("./assets/models/segformer_b0_cityscapes_quant.onnx", { executionProviders: ["wasm"] }),
-              ort.InferenceSession.create("./assets/models/slimsam/vision_encoder_quantized.onnx", { executionProviders: ["wasm"] }),
-              ort.InferenceSession.create("./assets/models/slimsam/prompt_encoder_mask_decoder_quantized.onnx", { executionProviders: ["wasm"] })
-            ]);
-            this.segSess = seg;
-            this.samEnc = enc;
-            this.samDec = dec;
-            return true;
-          } catch (e) {
-            console.error("Error cargando modelos ONNX en navegador:", e);
-            return false;
+          if (typeof ort === "undefined") {
+            throw new Error("onnxruntime-web no está cargado.");
           }
-        })();
+          ort.env.wasm.numThreads = 1;
+          ort.env.wasm.simd = true;
+
+          const base = this._modelsBaseUrl();
+          if (onProgress) onProgress("Descargando IA de autopartes (33 clases)...");
+          if (!this.yoloSess) {
+            this.yoloSess = await ort.InferenceSession.create(
+              base + "carparts/parts_segmentation.onnx",
+              { executionProviders: ["wasm"] }
+            );
+          }
+
+          if (onProgress) onProgress("Cargando detector de silueta vehicular...");
+          if (!this.segSess) {
+            this.segSess = await ort.InferenceSession.create(
+              base + "segformer_b0_cityscapes_quant.onnx",
+              { executionProviders: ["wasm"] }
+            );
+          }
+          return true;
+        })().catch(err => {
+          this.loadingPromise = null;
+          throw err;
+        });
+
         return this.loadingPromise;
       },
 
-      maskToDataUrl(boolMask, w, h) {
+      _nmsBoxes(boxes, scores, iouThresh = 0.50) {
+        const order = scores.map((_, idx) => idx).sort((a, b) => scores[b] - scores[a]);
+        const keep = [];
+        for (const i of order) {
+          const [ax1, ay1, ax2, ay2] = boxes[i];
+          const areaA = Math.max(0, ax2 - ax1) * Math.max(0, ay2 - ay1);
+          let suppressed = false;
+          for (const k of keep) {
+            const [bx1, by1, bx2, by2] = boxes[k];
+            const xx1 = Math.max(ax1, bx1), yy1 = Math.max(ay1, by1);
+            const xx2 = Math.min(ax2, bx2), yy2 = Math.min(ay2, by2);
+            const inter = Math.max(0, xx2 - xx1) * Math.max(0, yy2 - yy1);
+            const areaB = Math.max(0, bx2 - bx1) * Math.max(0, by2 - by1);
+            if (inter / (areaA + areaB - inter + 1e-6) > iouThresh) {
+              suppressed = true;
+              break;
+            }
+          }
+          if (!suppressed) keep.push(i);
+        }
+        return keep;
+      },
+
+      _dilateBool(src, w, h, radius) {
+        if (radius <= 0) return src;
+        const tmp = new Uint8Array(w * h);
+        const out = new Uint8Array(w * h);
+        for (let y = 0; y < h; y++) {
+          const row = y * w;
+          for (let x = 0; x < w; x++) {
+            const x0 = Math.max(0, x - radius), x1 = Math.min(w - 1, x + radius);
+            let v = 0;
+            for (let xx = x0; xx <= x1; xx++) {
+              if (src[row + xx]) { v = 1; break; }
+            }
+            tmp[row + x] = v;
+          }
+        }
+        for (let y = 0; y < h; y++) {
+          const y0 = Math.max(0, y - radius), y1 = Math.min(h - 1, y + radius);
+          for (let x = 0; x < w; x++) {
+            let v = 0;
+            for (let yy = y0; yy <= y1; yy++) {
+              if (tmp[yy * w + x]) { v = 1; break; }
+            }
+            out[y * w + x] = v;
+          }
+        }
+        return out;
+      },
+
+      _erodeBool(src, w, h, radius) {
+        if (radius <= 0) return src;
+        const tmp = new Uint8Array(w * h);
+        const out = new Uint8Array(w * h);
+        for (let y = 0; y < h; y++) {
+          const row = y * w;
+          for (let x = 0; x < w; x++) {
+            const x0 = Math.max(0, x - radius), x1 = Math.min(w - 1, x + radius);
+            let v = 1;
+            for (let xx = x0; xx <= x1; xx++) {
+              if (!src[row + xx]) { v = 0; break; }
+            }
+            tmp[row + x] = v;
+          }
+        }
+        for (let y = 0; y < h; y++) {
+          const y0 = Math.max(0, y - radius), y1 = Math.min(h - 1, y + radius);
+          for (let x = 0; x < w; x++) {
+            let v = 1;
+            for (let yy = y0; yy <= y1; yy++) {
+              if (!tmp[yy * w + x]) { v = 0; break; }
+            }
+            out[y * w + x] = v;
+          }
+        }
+        return out;
+      },
+
+      _boolToMaskCanvas(boolArr, w, h) {
         const c = document.createElement("canvas");
         c.width = w;
         c.height = h;
-        const cx = c.getContext("2d");
-        const idata = cx.createImageData(w, h);
-        const d = idata.data;
-        for (let i = 0; i < boolMask.length; i++) {
-          const j = i * 4;
-          if (boolMask[i]) {
-            d[j] = 255; d[j+1] = 255; d[j+2] = 255; d[j+3] = 255;
+        const ctx = c.getContext("2d");
+        const imgData = ctx.createImageData(w, h);
+        const d = imgData.data;
+        const n = w * h;
+        for (let i = 0; i < n; i++) {
+          if (boolArr[i]) {
+            const j = i << 2;
+            d[j] = 255; d[j + 1] = 255; d[j + 2] = 255; d[j + 3] = 255;
           }
         }
-        cx.putImageData(idata, 0, 0);
-        return c.toDataURL("image/png");
+        ctx.putImageData(imgData, 0, 0);
+        return c;
       },
 
-      async segmentCarBody(img, onProgress) {
-        const t0 = performance.now();
-        const ready = await this.ensureLoaded(onProgress);
-        if (!ready) throw new Error("ONNX WebAssembly no disponible");
+      async _runSegformerMask(imgEl, ow, oh) {
+        const sw = 1024, sh = 512;
+        const c = document.createElement("canvas");
+        c.width = sw; c.height = sh;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(imgEl, 0, 0, sw, sh);
+        const px = ctx.getImageData(0, 0, sw, sh).data;
 
-        const w = img.naturalWidth || img.width;
-        const h = img.naturalHeight || img.height;
         const mean = [0.485, 0.456, 0.406];
         const std = [0.229, 0.224, 0.225];
-
-        if (onProgress) onProgress("⚡ IA: Detectando silueta del vehículo...");
-        // 1. SegFormer (1024x512)
-        const sw = 1024, sh = 512;
-        const cSeg = document.createElement("canvas");
-        cSeg.width = sw; cSeg.height = sh;
-        const ctxSeg = cSeg.getContext("2d");
-        ctxSeg.drawImage(img, 0, 0, sw, sh);
-        const dSeg = ctxSeg.getImageData(0, 0, sw, sh).data;
-        const segIn = new Float32Array(3 * sw * sh);
-        for (let i = 0; i < sw * sh; i++) {
-          segIn[i]              = (dSeg[i*4]   / 255.0 - mean[0]) / std[0];
-          segIn[sw*sh + i]      = (dSeg[i*4+1] / 255.0 - mean[1]) / std[1];
-          segIn[2*sw*sh + i]    = (dSeg[i*4+2] / 255.0 - mean[2]) / std[2];
+        const plane = sw * sh;
+        const input = new Float32Array(3 * plane);
+        for (let i = 0; i < plane; i++) {
+          const j = i << 2;
+          input[i] = (px[j] / 255.0 - mean[0]) / std[0];
+          input[plane + i] = (px[j + 1] / 255.0 - mean[1]) / std[1];
+          input[2 * plane + i] = (px[j + 2] / 255.0 - mean[2]) / std[2];
         }
-        const segOut = await this.segSess.run({ pixel_values: new ort.Tensor("float32", segIn, [1, 3, sh, sw]) });
-        const logits = segOut.logits.data; // [1, 19, 128, 256]
-        const lh = 128, lw = 256, lsize = lh * lw;
-        const vehLow = new Uint8ClampedArray(lsize * 4);
-        let vehCount = 0;
-        for (let p = 0; p < lsize; p++) {
+
+        const tensor = new ort.Tensor("float32", input, [1, 3, sh, sw]);
+        const out = await this.segSess.run({ [this.segSess.inputNames[0]]: tensor });
+        const logits = out[this.segSess.outputNames[0]].data;
+        const dims = out[this.segSess.outputNames[0]].dims;
+        const nCls = dims[1], lh = dims[2], lw = dims[3];
+        const lPlane = lh * lw;
+
+        const lowMask = new Uint8Array(lPlane);
+        let hitCount = 0;
+        for (let i = 0; i < lPlane; i++) {
           let bestC = 0, bestV = -1e9;
-          for (let c = 0; c < 19; c++) {
-            const v = logits[c * lsize + p];
-            if (v > bestV) { bestV = v; bestC = c; }
+          for (let cls = 0; cls < nCls; cls++) {
+            const val = logits[cls * lPlane + i];
+            if (val > bestV) { bestV = val; bestC = cls; }
           }
           if (bestC === 13 || bestC === 14 || bestC === 15) {
-            vehLow[p*4] = 255; vehLow[p*4+1] = 255; vehLow[p*4+2] = 255; vehLow[p*4+3] = 255;
-            vehCount++;
+            lowMask[i] = 1;
+            hitCount++;
           }
         }
-        if ((vehCount / lsize) * 100 < 3.0) {
+        if (hitCount < 50) {
+          for (let i = 0; i < lPlane; i++) {
+            const p13 = 1 / (1 + Math.exp(-logits[13 * lPlane + i]));
+            if (p13 > 0.35) lowMask[i] = 1;
+          }
+        }
+
+        const lc = document.createElement("canvas");
+        lc.width = lw; lc.height = lh;
+        const lctx = lc.getContext("2d");
+        const limg = lctx.createImageData(lw, lh);
+        for (let i = 0; i < lPlane; i++) {
+          const j = i << 2;
+          const v = lowMask[i] ? 255 : 0;
+          limg.data[j] = v; limg.data[j + 1] = v; limg.data[j + 2] = v; limg.data[j + 3] = 255;
+        }
+        lctx.putImageData(limg, 0, 0);
+
+        const fc = document.createElement("canvas");
+        fc.width = ow; fc.height = oh;
+        const fctx = fc.getContext("2d");
+        fctx.imageSmoothingEnabled = true;
+        fctx.drawImage(lc, 0, 0, ow, oh);
+        const fpx = fctx.getImageData(0, 0, ow, oh).data;
+        const fullMask = new Uint8Array(ow * oh);
+        for (let i = 0; i < ow * oh; i++) {
+          if (fpx[i << 2] > 120) fullMask[i] = 1;
+        }
+        return fullMask;
+      },
+
+      async segmentImage(imgEl, onProgress) {
+        const t0 = performance.now();
+        await this.ensureLoaded(onProgress);
+
+        const origW = imgEl.naturalWidth || imgEl.width;
+        const origH = imgEl.naturalHeight || imgEl.height;
+
+        const origC = document.createElement("canvas");
+        origC.width = origW; origC.height = origH;
+        const octx = origC.getContext("2d");
+        octx.drawImage(imgEl, 0, 0, origW, origH);
+        const origPx = octx.getImageData(0, 0, origW, origH).data;
+
+        if (onProgress) onProgress("Detectando silueta vehicular y aislando fondo...");
+        const carMask = await this._runSegformerMask(imgEl, origW, origH);
+        // Región dilatada para no cortar bordes suaves de YOLO con la malla de SegFormer
+        const carMaskRegion = this._dilateBool(carMask, origW, origH, 10);
+
+        if (onProgress) onProgress("Mapeando piezas pintables, vidrios, rines y faros...");
+        const sz = 768;
+        const scale = Math.min(sz / origW, sz / origH);
+        const nw = Math.round(origW * scale);
+        const nh = Math.round(origH * scale);
+        const padX = Math.floor((sz - nw) / 2);
+        const padY = Math.floor((sz - nh) / 2);
+
+        const yCanvas = document.createElement("canvas");
+        yCanvas.width = sz; yCanvas.height = sz;
+        const yctx = yCanvas.getContext("2d");
+        yctx.fillStyle = "rgb(114,114,114)";
+        yctx.fillRect(0, 0, sz, sz);
+        yctx.drawImage(imgEl, padX, padY, nw, nh);
+        const yPx = yctx.getImageData(0, 0, sz, sz).data;
+
+        const planeSz = sz * sz;
+        const yInput = new Float32Array(3 * planeSz);
+        for (let i = 0; i < planeSz; i++) {
+          const j = i << 2;
+          yInput[i] = yPx[j] / 255.0;
+          yInput[planeSz + i] = yPx[j + 1] / 255.0;
+          yInput[2 * planeSz + i] = yPx[j + 2] / 255.0;
+        }
+
+        const yTensor = new ort.Tensor("float32", yInput, [1, 3, sz, sz]);
+        const yOut = await this.yoloSess.run({ [this.yoloSess.inputNames[0]]: yTensor });
+
+        const out0 = yOut[this.yoloSess.outputNames[0]];
+        const out1 = yOut[this.yoloSess.outputNames[1]];
+        const predData = out0.data;
+        const protoData = out1.data;
+        const numAnch = out0.dims[2];
+        const mh = out1.dims[2], mw = out1.dims[3];
+        const mPlane = mh * mw;
+
+        const candIndices = [], candCls = [], candConfs = [], candBoxes = [];
+        for (let a = 0; a < numAnch; a++) {
+          let bestC = 0, bestConf = -1;
+          for (let c = 0; c < 33; c++) {
+            const v = predData[(4 + c) * numAnch + a];
+            if (v > bestConf) { bestConf = v; bestC = c; }
+          }
+          if (bestConf >= 0.24) {
+            const cx = predData[0 * numAnch + a];
+            const cy = predData[1 * numAnch + a];
+            const bw = predData[2 * numAnch + a];
+            const bh = predData[3 * numAnch + a];
+            candIndices.push(a);
+            candCls.push(bestC);
+            candConfs.push(bestConf);
+            candBoxes.push([cx - bw * 0.5, cy - bh * 0.5, cx + bw * 0.5, cy + bh * 0.5]);
+          }
+        }
+
+        if (candIndices.length === 0) {
           return {
-            mask_b64: this.maskToDataUrl(new Uint8Array(w * h), w, h),
-            stats: { vehicle_detected: false, car_coverage_pct: 0, body_coverage_pct: 0, wheels_protected: 0, parts: [], inference_ms: Math.round(performance.now() - t0) }
+            maskCanvas: this._boolToMaskCanvas(new Uint8Array(origW * origH), origW, origH),
+            vehicleDetected: false,
+            bodyCoveragePct: 0,
+            wheelsProtected: 0,
+            parts: [],
+            inferenceMs: Math.round(performance.now() - t0),
+            method: "wasm_yolo26_carparts"
           };
         }
 
-        // Upsample carMask to (w, h)
-        const cLow = document.createElement("canvas");
-        cLow.width = lw; cLow.height = lh;
-        cLow.getContext("2d").putImageData(new ImageData(vehLow, lw, lh), 0, 0);
-        const cFull = document.createElement("canvas");
-        cFull.width = w; cFull.height = h;
-        const ctxFull = cFull.getContext("2d");
-        ctxFull.drawImage(cLow, 0, 0, w, h);
-        const fullMaskBytes = ctxFull.getImageData(0, 0, w, h).data;
-
-        const cOrig = document.createElement("canvas");
-        cOrig.width = w; cOrig.height = h;
-        const ctxOrig = cOrig.getContext("2d");
-        ctxOrig.drawImage(img, 0, 0, w, h);
-        const origBytes = ctxOrig.getImageData(0, 0, w, h).data;
-
-        const carMask = new Uint8Array(w * h);
-        let x0 = w, y0 = h, x1 = 0, y1 = 0, carPx = 0;
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const idx = y * w + x;
-            if (fullMaskBytes[idx * 4] > 120) {
-              carMask[idx] = 1;
-              carPx++;
-              if (x < x0) x0 = x; if (x > x1) x1 = x;
-              if (y < y0) y0 = y; if (y > y1) y1 = y;
+        let finalItems = [];
+        const uniqueClasses = Array.from(new Set(candCls));
+        for (const c of uniqueClasses) {
+          const groupIdx = [];
+          const gBoxes = [], gConfs = [];
+          for (let k = 0; k < candCls.length; k++) {
+            if (candCls[k] === c) {
+              groupIdx.push(k);
+              gBoxes.push(candBoxes[k]);
+              gConfs.push(candConfs[k]);
             }
           }
-        }
-        const cw = Math.max(1, x1 - x0), ch = Math.max(1, y1 - y0);
-
-        // Dominant luma/color
-        let sumR = 0, sumG = 0, sumB = 0, cnt = 0;
-        for (let y = Math.floor(y0 + 0.48*ch); y < Math.floor(y0 + 0.74*ch); y += 3) {
-          for (let x = Math.floor(x0 + 0.18*cw); x < Math.floor(x0 + 0.82*cw); x += 3) {
-            const idx = y * w + x;
-            if (carMask[idx]) {
-              sumR += origBytes[idx*4]; sumG += origBytes[idx*4+1]; sumB += origBytes[idx*4+2]; cnt++;
-            }
-          }
-        }
-        const medR = cnt ? sumR/cnt : 128, medG = cnt ? sumG/cnt : 128, medB = cnt ? sumB/cnt : 128;
-        const medLuma = 0.299*medR + 0.587*medG + 0.114*medB;
-        const isRed = (medR > 1.3 * medG) && (medR > 1.3 * medB) && (medR > 70);
-        const isDark = medLuma < 52;
-
-        // 2. Wheel + Rim Ellipse Exclusion
-        const colCounts = new Int32Array(w);
-        const tireThresh = isDark ? 34 : 52;
-        const wheelYStart = Math.floor(y0 + 0.45 * ch);
-        for (let y = wheelYStart; y <= y1; y++) {
-          for (let x = x0; x <= x1; x++) {
-            const idx = y * w + x;
-            if (carMask[idx]) {
-              const lum = 0.299*origBytes[idx*4] + 0.587*origBytes[idx*4+1] + 0.114*origBytes[idx*4+2];
-              if (lum < tireThresh) colCounts[x]++;
-            }
-          }
-        }
-        const wheelCols = [];
-        for (let x = x0; x <= x1; x++) if (colCounts[x] > Math.max(5, ch * 0.03)) wheelCols.push(x);
-        const wheelMask = new Uint8Array(w * h);
-        const wheelCenters = [];
-        if (wheelCols.length > 0) {
-          const groups = [[wheelCols[0]]];
-          for (let i = 1; i < wheelCols.length; i++) {
-            const lastG = groups[groups.length - 1];
-            if (wheelCols[i] - lastG[lastG.length - 1] < Math.max(10, cw * 0.035)) lastG.push(wheelCols[i]);
-            else groups.push([wheelCols[i]]);
-          }
-          for (const g of groups) {
-            const wx0 = g[0], wx1 = g[g.length - 1];
-            if (wx1 - wx0 > cw * 0.04 && wx1 - wx0 < cw * 0.35) {
-              let wy0 = h, wy1 = 0;
-              for (let y = wheelYStart; y <= y1; y++) {
-                for (let x = wx0; x <= wx1; x++) {
-                  const idx = y * w + x;
-                  if (carMask[idx]) {
-                    const lum = 0.299*origBytes[idx*4] + 0.587*origBytes[idx*4+1] + 0.114*origBytes[idx*4+2];
-                    if (lum < tireThresh) { if (y < wy0) wy0 = y; if (y > wy1) wy1 = y; }
-                  }
-                }
-              }
-              if (wy1 - wy0 > ch * 0.12) {
-                const cxW = (wx0 + wx1) / 2, cyW = (wy0 + wy1) / 2;
-                const rxW = (wx1 - wx0) * 0.55, ryW = (wy1 - wy0) * 0.55;
-                wheelCenters.push([cxW, cyW]);
-                for (let y = Math.max(0, Math.floor(cyW - ryW)); y <= Math.min(h - 1, Math.ceil(cyW + ryW)); y++) {
-                  for (let x = Math.max(0, Math.floor(cxW - rxW)); x <= Math.min(w - 1, Math.ceil(cxW + rxW)); x++) {
-                    if (((x - cxW)/rxW)**2 + ((y - cyW)/ryW)**2 <= 1.0) wheelMask[y*w + x] = 1;
-                  }
-                }
-              }
-            }
+          const kept = this._nmsBoxes(gBoxes, gConfs, 0.50);
+          for (const gk of kept) {
+            finalItems.push(groupIdx[gk]);
           }
         }
 
-        // Negative points on cabin glass + wheels
-        const negPts = [];
-        for (const fx of [0.30, 0.42, 0.50, 0.62, 0.75]) {
-          for (const fy of [0.18, 0.26, 0.34]) {
-            const gx = Math.min(w - 1, Math.max(0, Math.round(x0 + fx * cw)));
-            const gy = Math.min(h - 1, Math.max(0, Math.round(y0 + fy * ch)));
-            const idx = gy * w + gx;
-            const lum = 0.299*origBytes[idx*4] + 0.587*origBytes[idx*4+1] + 0.114*origBytes[idx*4+2];
-            if (carMask[idx] && lum < Math.max(90, medLuma * 0.72)) negPts.push([gx, gy]);
+        const majorBoxes = [];
+        for (const idx of finalItems) {
+          const cname = CARPART_NAMES[candCls[idx]];
+          if (!EXCLUDE_PART_CLASSES.has(cname) && candConfs[idx] >= 0.42) {
+            majorBoxes.push(candBoxes[idx]);
           }
         }
-        if (negPts.length === 0) {
-          negPts.push([x0 + 0.42*cw, y0 + 0.24*ch], [x0 + 0.60*cw, y0 + 0.24*ch]);
-        }
-        for (const wc of wheelCenters) negPts.push(wc);
-
-        if (onProgress) onProgress("⚡ IA: Mapeando piezas pintables (SlimSAM)...");
-        // 3. SlimSAM Encoder (1024x1024 padded)
-        const scale = 1024.0 / Math.max(w, h);
-        const nw = Math.round(w * scale), nh = Math.round(h * scale);
-        const cSam = document.createElement("canvas");
-        cSam.width = 1024; cSam.height = 1024;
-        const ctxSam = cSam.getContext("2d");
-        ctxSam.fillStyle = "#000000";
-        ctxSam.fillRect(0, 0, 1024, 1024);
-        ctxSam.drawImage(img, 0, 0, nw, nh);
-        const dSam = ctxSam.getImageData(0, 0, 1024, 1024).data;
-        const samIn = new Float32Array(3 * 1024 * 1024);
-        for (let y = 0; y < nh; y++) {
-          for (let x = 0; x < nw; x++) {
-            const i = y * 1024 + x;
-            samIn[i]               = (dSam[i*4]   / 255.0 - mean[0]) / std[0];
-            samIn[1024*1024 + i]   = (dSam[i*4+1] / 255.0 - mean[1]) / std[1];
-            samIn[2*1024*1024 + i] = (dSam[i*4+2] / 255.0 - mean[2]) / std[2];
+        if (majorBoxes.length > 0) {
+          let vx0 = 1e9, vy0 = 1e9, vx1 = -1e9, vy1 = -1e9;
+          for (const b of majorBoxes) {
+            if (b[0] < vx0) vx0 = b[0]; if (b[1] < vy0) vy0 = b[1];
+            if (b[2] > vx1) vx1 = b[2]; if (b[3] > vy1) vy1 = b[3];
           }
-        }
-        const encOut = await this.samEnc.run({ pixel_values: new ort.Tensor("float32", samIn, [1, 3, 1024, 1024]) });
-        const imgEmb = encOut.image_embeddings;
-        const posEmb = encOut.image_positional_embeddings;
-
-        const mh = Math.round(nh / 4.0), mw = Math.round(nw / 4.0);
-        const probes = [
-          ["cofre_frente", "Cofre / Frente", [x0 + 0.14*cw, y0 + 0.50*ch]],
-          ["defensa_delantera", "Defensa Delantera", [x0 + 0.08*cw, y0 + 0.64*ch]],
-          ["puerta_delantera", "Puerta Delantera", [x0 + 0.34*cw, y0 + 0.60*ch]],
-          ["puerta_trasera", "Puerta Trasera", [x0 + 0.52*cw, y0 + 0.58*ch]],
-          ["costado_trasero", "Costado / Salpicadera", [x0 + 0.72*cw, y0 + 0.56*ch]],
-          ["cajuela_porton", "Cajuela / Portón", [x0 + 0.80*cw, y0 + 0.50*ch]],
-          ["defensa_trasera", "Defensa Trasera", [x0 + 0.86*cw, y0 + 0.68*ch]],
-          ["toldo", "Toldo / Techo", [x0 + 0.50*cw, y0 + 0.06*ch]],
-        ];
-
-        const unionMask = new Uint8Array(w * h);
-        const mappedParts = [];
-        for (const [pid, plabel, pt] of probes) {
-          const px = Math.min(w - 1, Math.max(0, Math.round(pt[0])));
-          const py = Math.min(h - 1, Math.max(0, Math.round(pt[1])));
-          const idx = py * w + px;
-          if (!carMask[idx] || wheelMask[idx]) continue;
-          const pr = origBytes[idx*4], pg = origBytes[idx*4+1];
-          if (!isRed && pr > 85 && pr > 1.35 * pg) continue;
-
-          const allPts = [pt, ...negPts];
-          const ptCoords = new Float32Array(allPts.length * 2);
-          const ptLabels = new BigInt64Array(allPts.length);
-          for (let k = 0; k < allPts.length; k++) {
-            ptCoords[k*2] = allPts[k][0] * scale;
-            ptCoords[k*2 + 1] = allPts[k][1] * scale;
-            ptLabels[k] = k === 0 ? 1n : 0n;
-          }
-          const decOut = await this.samDec.run({
-            input_points: new ort.Tensor("float32", ptCoords, [1, 1, allPts.length, 2]),
-            input_labels: new ort.Tensor("int64", ptLabels, [1, 1, allPts.length]),
-            image_embeddings: imgEmb,
-            image_positional_embeddings: posEmb
+          const mx = Math.max(24, (vx1 - vx0) * 0.14);
+          const my = Math.max(24, (vy1 - vy0) * 0.14);
+          finalItems = finalItems.filter(idx => {
+            const b = candBoxes[idx];
+            const cx = 0.5 * (b[0] + b[2]), cy = 0.5 * (b[1] + b[3]);
+            return cx >= vx0 - mx && cx <= vx1 + mx && cy >= vy0 - my && cy <= vy1 + my;
           });
-          const scores = decOut.iou_scores.data;
-          let best = 0;
-          if (scores[1] > scores[best]) best = 1;
-          if (scores[2] > scores[best]) best = 2;
+        }
 
-          const masksData = decOut.pred_masks.data; // [1, 1, 3, 256, 256]
-          const offset = best * 256 * 256;
-          const cCrop = document.createElement("canvas");
-          cCrop.width = mw; cCrop.height = mh;
-          const ctxCrop = cCrop.getContext("2d");
-          const cropImg = ctxCrop.createImageData(mw, mh);
-          for (let rY = 0; rY < mh; rY++) {
-            for (let rX = 0; rX < mw; rX++) {
-              const val = masksData[offset + rY * 256 + rX];
-              const ci = (rY * mw + rX) * 4;
-              if (val > -0.25) {
-                cropImg.data[ci] = 255; cropImg.data[ci+1] = 255; cropImg.data[ci+2] = 255; cropImg.data[ci+3] = 255;
-              }
+        const sxm = mw / sz, sym = mh / sz;
+        const px1 = Math.round(padX * sxm), py1 = Math.round(padY * sym);
+        const px2 = Math.round((padX + nw) * sxm), py2 = Math.round((padY + nh) * sym);
+        const upW = Math.max(1, px2 - px1), upH = Math.max(1, py2 - py1);
+
+        const tmpMC = document.createElement("canvas");
+        tmpMC.width = mw; tmpMC.height = mh;
+        const tmpMctx = tmpMC.getContext("2d");
+        const tmpImg = tmpMctx.createImageData(mw, mh);
+
+        const fullScaleC = document.createElement("canvas");
+        fullScaleC.width = origW; fullScaleC.height = origH;
+        const fullScaleCtx = fullScaleC.getContext("2d");
+        fullScaleCtx.imageSmoothingEnabled = true;
+
+        const nPix = origW * origH;
+        const excludeFull = new Uint8Array(nPix);
+        const paintParts = {};
+        const partConfs = {};
+        let wheelsCount = 0;
+
+        for (const idx of finalItems) {
+          const anchor = candIndices[idx];
+          const cname = CARPART_NAMES[candCls[idx]];
+          const conf = candConfs[idx];
+          const [bx1, by1, bx2, by2] = candBoxes[idx];
+
+          const mx1 = Math.max(0, Math.floor(bx1 * sxm));
+          const my1 = Math.max(0, Math.floor(by1 * sym));
+          const mx2 = Math.min(mw, Math.ceil(bx2 * sxm));
+          const my2 = Math.min(mh, Math.ceil(by2 * sym));
+
+          const coeffs = new Float32Array(32);
+          for (let k = 0; k < 32; k++) coeffs[k] = predData[(37 + k) * numAnch + anchor];
+
+          tmpImg.data.fill(0);
+          for (let y = my1; y < my2; y++) {
+            for (let x = mx1; x < mx2; x++) {
+              const pIdx = y * mw + x;
+              let dot = 0;
+              for (let k = 0; k < 32; k++) dot += coeffs[k] * protoData[k * mPlane + pIdx];
+              const prob = 1.0 / (1.0 + Math.exp(-Math.max(-30, Math.min(30, dot))));
+              const val = Math.max(0, Math.min(255, Math.round(prob * 255)));
+              const j = pIdx << 2;
+              tmpImg.data[j] = val; tmpImg.data[j + 1] = val; tmpImg.data[j + 2] = val; tmpImg.data[j + 3] = 255;
             }
           }
-          ctxCrop.putImageData(cropImg, 0, 0);
+          tmpMctx.putImageData(tmpImg, 0, 0);
 
-          const cUp = document.createElement("canvas");
-          cUp.width = w; cUp.height = h;
-          cUp.getContext("2d").drawImage(cCrop, 0, 0, w, h);
-          const upData = cUp.getContext("2d").getImageData(0, 0, w, h).data;
+          fullScaleCtx.clearRect(0, 0, origW, origH);
+          fullScaleCtx.drawImage(tmpMC, px1, py1, upW, upH, 0, 0, origW, origH);
+          const fData = fullScaleCtx.getImageData(0, 0, origW, origH).data;
 
-          const pMask = new Uint8Array(w * h);
-          let pPx = 0;
-          for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-              const pIdx = y * w + x;
-              if (upData[pIdx*4] > 128 && carMask[pIdx] && !wheelMask[pIdx]) {
-                const rr = origBytes[pIdx*4], gg = origBytes[pIdx*4+1], bb = origBytes[pIdx*4+2];
-                const isTail = !isRed && rr > 80 && rr > 1.35*gg && rr > 1.4*bb && bb < 130;
-                const isPlate = rr > 155 && gg > 135 && bb < 75 && y > y0 + 0.55*ch;
-                if (!isTail && !isPlate) {
-                  pMask[pIdx] = 1;
-                  pPx++;
-                }
-              }
+          const mFull = new Uint8Array(nPix);
+          let count = 0;
+          const isExcl = EXCLUDE_PART_CLASSES.has(cname);
+          for (let i = 0; i < nPix; i++) {
+            if (fData[i << 2] > 128 && (isExcl || carMaskRegion[i])) {
+              mFull[i] = 1;
+              count++;
             }
           }
-          const areaPct = (pPx / (w * h)) * 100;
-          if (areaPct > 0.6 && areaPct < 55.0) {
-            for (let i = 0; i < w * h; i++) if (pMask[i]) unionMask[i] = 1;
-            mappedParts.push({
-              id: pid,
-              label: plabel,
-              area_pct: Math.round(areaPct * 10) / 10,
-              mask_b64: this.maskToDataUrl(pMask, w, h)
-            });
+          if ((count / nPix) * 100.0 < 0.08) continue;
+
+          if (isExcl) {
+            for (let i = 0; i < nPix; i++) if (mFull[i]) excludeFull[i] = 1;
+            if (cname.includes("wheel")) wheelsCount++;
+          } else {
+            if (!paintParts[cname]) {
+              paintParts[cname] = mFull;
+              partConfs[cname] = conf;
+            } else {
+              const existing = paintParts[cname];
+              for (let i = 0; i < nPix; i++) if (mFull[i]) existing[i] = 1;
+              if (conf > partConfs[cname]) partConfs[cname] = conf;
+            }
           }
         }
 
-        let bodyPx = 0;
-        for (let i = 0; i < w * h; i++) if (unionMask[i]) bodyPx++;
+        const exclDilated = this._dilateBool(excludeFull, origW, origH, 2);
+        const bodyMask = new Uint8Array(nPix);
+
+        for (const k of Object.keys(paintParts)) {
+          const arr = paintParts[k];
+          let keptCnt = 0;
+          for (let i = 0; i < nPix; i++) {
+            if (exclDilated[i]) arr[i] = 0;
+            if (arr[i]) keptCnt++;
+          }
+          if ((keptCnt / nPix) * 100.0 < 0.15) {
+            delete paintParts[k];
+          } else {
+            for (let i = 0; i < nPix; i++) if (arr[i]) bodyMask[i] = 1;
+          }
+        }
+
+        let by0 = origH, by1 = 0, bx0 = origW, bx1 = 0, bodyCount = 0;
+        let sumR = 0, sumG = 0, sumB = 0;
+        for (let y = 0; y < origH; y++) {
+          for (let x = 0; x < origW; x++) {
+            const idx = y * origW + x;
+            if (bodyMask[idx]) {
+              if (y < by0) by0 = y; if (y > by1) by1 = y;
+              if (x < bx0) bx0 = x; if (x > bx1) bx1 = x;
+              const j = idx << 2;
+              sumR += origPx[j]; sumG += origPx[j + 1]; sumB += origPx[j + 2];
+              bodyCount++;
+            }
+          }
+        }
+
+        if (bodyCount === 0) {
+          return {
+            maskCanvas: this._boolToMaskCanvas(bodyMask, origW, origH),
+            vehicleDetected: false,
+            bodyCoveragePct: 0,
+            wheelsProtected: wheelsCount,
+            parts: [],
+            inferenceMs: Math.round(performance.now() - t0),
+            method: "wasm_yolo26_carparts"
+          };
+        }
+
+        const bh = Math.max(1, by1 - by0);
+        const avgR = sumR / bodyCount, avgG = sumG / bodyCount, avgB = sumB / bodyCount;
+        const avgLuma = 0.299 * avgR + 0.587 * avgG + 0.114 * avgB;
+        const avgSat = Math.max(avgR, avgG, avgB) - Math.min(avgR, avgG, avgB);
+        const rubberCutY = by0 + 0.48 * bh;
+        const darkThresh = avgLuma < 60 ? 30 : 52;
+        const darkRubber = new Uint8Array(nPix);
+
+        for (let y = 0; y < origH; y++) {
+          for (let x = 0; x < origW; x++) {
+            const idx = y * origW + x;
+            const j = idx << 2;
+            const luma = 0.299 * origPx[j] + 0.587 * origPx[j + 1] + 0.114 * origPx[j + 2];
+            if (y < rubberCutY && luma < darkThresh) {
+              darkRubber[idx] = 1;
+              bodyMask[idx] = 0;
+            }
+          }
+        }
+        for (const k of Object.keys(paintParts)) {
+          if (k.includes("door") || k.includes("roof")) {
+            const arr = paintParts[k];
+            for (let i = 0; i < nPix; i++) if (darkRubber[i]) arr[i] = 0;
+          }
+        }
+
+        const bodyDilated = this._dilateBool(bodyMask, origW, origH, 16);
+        const carEroded = this._erodeBool(carMask, origW, origH, 2);
+        const pMinY = by0 + 0.04 * bh, pMaxY = by0 + 0.65 * bh;
+        const pLumaMin = avgLuma < 60 ? 38 : 58;
+
+        for (let y = Math.floor(pMinY); y <= Math.ceil(pMaxY); y++) {
+          if (y < 0 || y >= origH) continue;
+          for (let x = bx0; x <= bx1; x++) {
+            const idx = y * origW + x;
+            if (!carEroded[idx] || !bodyDilated[idx] || exclDilated[idx] || darkRubber[idx]) continue;
+            const j = idx << 2;
+            const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (luma <= pLumaMin) continue;
+            const pSat = Math.max(r, g, b) - Math.min(r, g, b);
+            const close = avgSat < 30
+              ? Math.abs(pSat - avgSat) < 28
+              : Math.hypot(r - avgR, g - avgG, b - avgB) < 85;
+            if (close) bodyMask[idx] = 1;
+          }
+        }
+
+        const sortedIds = Object.keys(paintParts).sort((a, b) => {
+          const oa = (PART_LABELS_ES[a] || [a, 99])[1];
+          const ob = (PART_LABELS_ES[b] || [b, 99])[1];
+          return oa - ob;
+        });
+
+        const mappedParts = [];
+        for (const pid of sortedIds) {
+          const arr = paintParts[pid];
+          let cnt = 0;
+          for (let i = 0; i < nPix; i++) if (arr[i]) cnt++;
+          const apct = Math.round((cnt / nPix) * 1000) / 10;
+          if (apct < 0.2) continue;
+          mappedParts.push({
+            id: pid,
+            label: (PART_LABELS_ES[pid] || [pid, 99])[0],
+            area_pct: apct,
+            confidence: Math.round((partConfs[pid] || 0.8) * 100) / 100,
+            maskCanvas: this._boolToMaskCanvas(arr, origW, origH)
+          });
+        }
+
+        let finalBodyCnt = 0;
+        for (let i = 0; i < nPix; i++) if (bodyMask[i]) finalBodyCnt++;
 
         return {
-          mask_b64: this.maskToDataUrl(unionMask, w, h),
-          stats: {
-            inference_ms: Math.round(performance.now() - t0),
-            method: "browser_segformer_slimsam_wasm",
-            vehicle_detected: true,
-            car_coverage_pct: Math.round((carPx / (w * h)) * 1000) / 10,
-            body_coverage_pct: Math.round((bodyPx / (w * h)) * 1000) / 10,
-            wheels_protected: wheelCenters.length,
-            parts: mappedParts
-          }
+          maskCanvas: this._boolToMaskCanvas(bodyMask, origW, origH),
+          vehicleDetected: true,
+          bodyCoveragePct: Math.round((finalBodyCnt / nPix) * 1000) / 10,
+          wheelsProtected: wheelsCount,
+          bbox: [bx0, by0, bx1, by1],
+          parts: mappedParts,
+          inferenceMs: Math.round(performance.now() - t0),
+          method: "wasm_yolo26_carparts"
         };
       }
     };
 
+    /* ========================================================================
+       ESTUDIO PRINCIPAL EL RAYO AUTODESIGN
+       ======================================================================== */
     class ElRayoStudio {
       constructor() {
-        this.photos = [];
-        this.currentPhotoIndex = 0;
-        this.loadedImages = new Map();
-        this.loadedMasks = new Map();
-        this.aiMappedParts = new Map();
-        this.aiStats = new Map();
-
-        this.photoPaints = new Map();
-        this.photos.forEach(p => this.photoPaints.set(p.id, new Map()));
-
-        this.customPieces = new Map();
-        this.photos.forEach(p => this.customPieces.set(p.id, []));
-
-        this.activeTool = "select";
-        this.paintScope = "full"; // 'full' (Auto Completo) por defecto
-        this.selectedPartId = "carroceria";
-        this.hoveredPartId = null;
-        this.currentColorHex = "#3B4D3C";
-        this.currentFinish = "metallic";
-
-        this.penNodes = [];
-        this.activeDraggingNodeIdx = -1;
-
         this.canvas = document.getElementById("studio-main-canvas");
         this.ctx = this.canvas.getContext("2d");
-        this.viewport = { dx: 0, dy: 0, dw: 0, dh: 0 };
 
-        // Canvas offscreen para composición y recorte
-        this.offCanvas = document.createElement("canvas");
-        this.offCtx = this.offCanvas.getContext("2d");
+        // Inicia completamente limpio, sin fotos preset de Golf
+        this.photos = [];
+        this.activePhotoIndex = -1;
 
-        this._init();
+        this.scope = "full";          // "full" | "piece"
+        this.tool = "select";         // "select" | "pen" | "node" | "lasso" | "wand" | "pipette"
+        this.selectedColor = OEM_PALETTE[0].hex;
+        this.selectedColorName = OEM_PALETTE[0].name;
+        this.selectedFinish = "metallic";
+
+        this.selectedPieceId = "carroceria";
+        this.hoveredPieceId = null;
+
+        // Photoshop Curves LUT state (control points: shadow @ 0.25, mid @ 0.50, high @ 0.75)
+        this.curvePoints = { shadow: 0.25, mid: 0.50, high: 0.75 };
+        this.curveLUT = new Uint8Array(256);
+        this.draggingCurveKey = null;
+        this._rebuildCurveLUT();
+
+        // Illustrator Bezier Pen / Node state
+        // Each node: { nx, ny, inDx, inDy, outDx, outDy }
+        this.penNodes = [];
+        this.penClosed = false;
+        this.penDraggingNewIdx = -1;
+        this.cursorNorm = null;
+        this.nodeDragTarget = null; // { targetPieceOrActive, idx, kind: "anchor"|"in"|"out" }
+
+        // Lasso state
+        this.isDrawing = false;
+        this.lassoPoints = [];
+
+        // Stickers state
+        this.stickerImages = {};
+        this.selectedStickerId = null;
+        this.draggingSticker = false;
+        this.dragStickerOffset = { dx: 0, dy: 0 };
+
+        this._paintLayerCanvas = document.createElement("canvas");
+        this._stickerLayerCanvas = document.createElement("canvas");
+
+        this._preloadPresetStickers();
+        this._initUI();
+        this._setupEventListeners();
+        this._updateCurveUI();
+        this._syncUIFromState();
+        this._updateFichaSummary();
+        this.render();
       }
 
-      async _init() {
-        this._setupEventListeners();
+      get activePhoto() {
+        if (this.activePhotoIndex < 0 || this.activePhotoIndex >= this.photos.length) return null;
+        return this.photos[this.activePhotoIndex];
+      }
+
+      _preloadPresetStickers() {
+        const grid = document.getElementById("stickers-preset-grid");
+        if (!grid) return;
+        grid.innerHTML = "";
+        for (const preset of STICKER_PRESETS) {
+          const img = new Image();
+          img.src = preset.url;
+          img.onload = () => { this.stickerImages[preset.id] = img; };
+
+          const btn = document.createElement("button");
+          btn.className = "sticker-preset-btn";
+          btn.type = "button";
+          btn.innerHTML = `<img src="${preset.url}" alt="${preset.name}" /><span>+ ${preset.name}</span>`;
+          btn.addEventListener("click", () => this.addStickerFromSource(preset.name, preset.url));
+          grid.appendChild(btn);
+        }
+      }
+
+      _initUI() {
         this._renderSwatches();
         this._renderThumbnails();
-        await this._loadAllPhotosAndMasks();
-
-        // Aplicar Verde Militar inicial en modo Auto Completo
-        const firstPhoto = this._getCurrentPhoto();
-        if (firstPhoto) {
-          this.photoPaints.get(firstPhoto.id).set("carroceria", { color: this.currentColorHex, finish: this.currentFinish });
-        }
-
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      async _loadAllPhotosAndMasks() {
-        const promises = [];
-        this.photos.forEach(p => {
-          promises.push(new Promise(resolve => {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => { this.loadedImages.set(p.id, img); resolve(); };
-            img.onerror = () => { resolve(); };
-            img.src = p.src;
-          }));
-
-          if (p.maskSrc) {
-            promises.push(new Promise(resolve => {
-              const m = new Image();
-              m.crossOrigin = "anonymous";
-              m.onload = () => { this.loadedMasks.set(p.id, m); resolve(); };
-              m.onerror = () => { resolve(); };
-              m.src = p.maskSrc;
-            }));
-          }
-        });
-        await Promise.all(promises);
-      }
-
-      _getCurrentPhoto() {
-        return (this.photos && this.photos.length > 0) ? this.photos[this.currentPhotoIndex] : null;
-      }
-
-      _getCurrentAngleModel() {
-        const photo = this._getCurrentPhoto();
-        if (!photo) {
-          return {
-            id: "custom",
-            label: "Vehículo Personalizado",
-            pieces: [{ id: "carroceria", label: "Carrocería Completa", isBody: true }]
-          };
-        }
-        const aiParts = this.aiMappedParts.get(photo.id);
-        const custom = this.customPieces.get(photo.id) || [];
-        if (aiParts && aiParts.length > 0) {
-          return {
-            id: "ai_mapped",
-            label: photo.label || "Vehículo Analizado (IA)",
-            pieces: [
-              { id: "carroceria", label: "Carrocería Completa (Sin vidrios ni rines)", isBody: true },
-              ...aiParts,
-              ...custom
-            ]
-          };
-        }
-        return {
-          id: "custom",
-          label: photo.label || "Vehículo Personalizado",
-          pieces: [{ id: "carroceria", label: "Carrocería Completa", isBody: true }, ...custom]
-        };
-      }
-
-                  /* ======================================================================
-         ANÁLISIS DE CARROCERÍA Y MAPEO LÓGICO DE PIEZAS (SERVIDOR + NAVEGADOR)
-         ====================================================================== */
-      async _requestAutoSegmentAI(photo, img) {
-        if (!photo || !img) return;
-        this._showToast("⚡ IA: Analizando vehículo y mapeando piezas pintables...");
-
-        let result = null;
-        // 1. Intentar Backend Local (SegFormer + SlimSAM Python)
-        try {
-          let dataUrl = img.src;
-          if (!dataUrl.startsWith("data:")) {
-            const tempC = document.createElement("canvas");
-            tempC.width = img.naturalWidth || img.width;
-            tempC.height = img.naturalHeight || img.height;
-            tempC.getContext("2d").drawImage(img, 0, 0);
-            dataUrl = tempC.toDataURL("image/jpeg", 0.90);
-          }
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), 8000);
-          const res = await fetch("/api/ai/auto-segment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: dataUrl }),
-            signal: ctrl.signal
-          });
-          clearTimeout(timer);
-          if (res.ok) {
-            const json = await res.json();
-            if (json.success && json.mask_b64) result = json;
-          }
-        } catch (err) {
-          console.info("Usando motor IA en navegador WebAssembly (ONNX):", err.message);
-        }
-
-        // 2. Si no hay backend Python (ej. GitHub Pages), ejecutar SegFormer + SlimSAM directo en el navegador
-        if (!result) {
-          try {
-            result = await InBrowserCarAI.segmentCarBody(img, (msg) => this._showToast(msg));
-          } catch (e) {
-            console.error("Error en IA de navegador:", e);
-            this._showToast("⚠ No se pudo inicializar el motor IA en este dispositivo.");
-            return;
-          }
-        }
-
-        const stats = result.stats || {};
-        if (stats.vehicle_detected === false) {
-          this._showToast("⚠ No se detectó un vehículo claro en la foto. Usa otra toma o Pluma CAD (P).");
-          this.aiStats.set(photo.id, stats);
-          this._updateUIState();
-          return;
-        }
-
-        // Cargar máscara maestra RGBA y las máscaras de cada pieza mapeada
-        const aiMask = new Image();
-        aiMask.onload = async () => {
-          this.loadedMasks.set(photo.id, aiMask);
-
-          const mappedParts = [];
-          if (Array.isArray(stats.parts)) {
-            await Promise.all(stats.parts.map(p => new Promise(resolve => {
-              const pImg = new Image();
-              pImg.onload = () => {
-                mappedParts.push({
-                  id: p.id,
-                  label: `${p.label} (${p.area_pct}%)`,
-                  area_pct: p.area_pct,
-                  maskImg: pImg
-                });
-                resolve();
-              };
-              pImg.onerror = () => resolve();
-              pImg.src = p.mask_b64;
-            })));
-          }
-
-          this.aiMappedParts.set(photo.id, mappedParts);
-          this.aiStats.set(photo.id, stats);
-
-          // Si no hay pintura asignada aún en la foto, pre-aplicar el color seleccionado
-          const paintMap = this.photoPaints.get(photo.id);
-          if (paintMap && !paintMap.has("carroceria") && this.paintScope === "full") {
-            paintMap.set("carroceria", { color: this.currentColorHex, finish: this.currentFinish });
-          }
-
-          this._updateUIState();
-          this._renderCanvas();
-          this._showToast(`✔ Vehículo detectado (${stats.car_coverage_pct}%) • ${stats.wheels_protected || 0} rines/llantas protegidos • ${mappedParts.length} piezas mapeadas`);
-        };
-        aiMask.src = result.mask_b64;
-      }
-
-      /* ======================================================================
-         NÚCLEO DE PINTURA FOTORREALISTA CON AISLAMIENTO DE CHAPA
-         ====================================================================== */
-      _applyPiecePaintWithMask(ctx, baseImg, piece, hexColor, finish, dx, dy, dw, dh, maskImg) {
-        const cw = ctx.canvas.width;
-        const ch = ctx.canvas.height;
-
-        this.offCanvas.width = cw;
-        this.offCanvas.height = ch;
-        const octx = this.offCtx;
-        octx.clearRect(0, 0, cw, ch);
-
-        // 1. PASO CLAVE: DIBUJAR LA FOTO ORIGINAL EN EL BUFFER OFFSCREEN
-        // Esto garantiza que el modo 'color' tenga píxeles reales de chapa para leer luz y textura
-        octx.drawImage(baseImg, dx, dy, dw, dh);
-
-        // 2. APLICAR SHADERS DE COLOR AUTOMOTRIZ
-        const hex = hexColor.replace("#", "");
-        const r = parseInt(hex.substring(0, 2), 16) || 59;
-        const g = parseInt(hex.substring(2, 4), 16) || 77;
-        const b = parseInt(hex.substring(4, 6), 16) || 60;
-        const lum = (r * 299 + g * 587 + b * 114) / 1000;
-        const maxC = Math.max(r, g, b);
-        const minC = Math.min(r, g, b);
-        const isNeutral = (maxC - minC) < 25;
-        const isWhite = isNeutral && lum > 210;
-        const isBlack = isNeutral && lum < 50;
-
-        if (isWhite) {
-          octx.globalCompositeOperation = "screen";
-          octx.fillStyle = "rgba(255, 255, 255, 0.75)";
-          octx.fillRect(dx, dy, dw, dh);
-          octx.globalCompositeOperation = "soft-light";
-          octx.fillStyle = "#FFFFFF";
-          octx.fillRect(dx, dy, dw, dh);
-        } else if (isBlack) {
-          octx.globalCompositeOperation = "multiply";
-          octx.fillStyle = "rgba(12, 14, 18, 0.88)";
-          octx.fillRect(dx, dy, dw, dh);
-          octx.globalCompositeOperation = "color-burn";
-          octx.fillStyle = "rgba(25, 28, 35, 0.45)";
-          octx.fillRect(dx, dy, dw, dh);
-        } else {
-          // Color Automotriz de Taller
-          octx.globalCompositeOperation = "color";
-          octx.fillStyle = hexColor;
-          octx.globalAlpha = 1.0;
-          octx.fillRect(dx, dy, dw, dh);
-
-          octx.globalCompositeOperation = "multiply";
-          octx.fillStyle = hexColor;
-          octx.globalAlpha = 0.45;
-          octx.fillRect(dx, dy, dw, dh);
-
-          octx.globalCompositeOperation = "overlay";
-          octx.fillStyle = hexColor;
-          octx.globalAlpha = 0.38;
-          octx.fillRect(dx, dy, dw, dh);
-        }
-
-        // Shaders de Acabado (Barniz / Laca)
-        if (finish === "metallic") {
-          octx.globalCompositeOperation = "screen";
-          octx.fillStyle = "rgba(255, 255, 255, 0.24)";
-          octx.fillRect(dx, dy, dw, dh);
-        } else if (finish === "pearl") {
-          octx.globalCompositeOperation = "screen";
-          octx.fillStyle = "rgba(254, 240, 210, 0.28)";
-          octx.fillRect(dx, dy, dw, dh);
-        } else if (finish === "matte") {
-          octx.globalCompositeOperation = "soft-light";
-          octx.fillStyle = hexColor;
-          octx.globalAlpha = 0.35;
-          octx.fillRect(dx, dy, dw, dh);
-        }
-
-        // 3. PASO MAESTRO: AISLAMIENTO CON MÁSCARA ALFA RGBA (destination-in)
-        const targetMask = (piece && piece.maskImg) ? piece.maskImg : maskImg;
-        if (!targetMask || !targetMask.complete || targetMask.naturalWidth === 0) {
-          // Si aún no hay máscara válida, no pintar el rectángulo completo
-          return;
-        }
-        octx.globalCompositeOperation = "destination-in";
-        octx.globalAlpha = 1.0;
-        octx.drawImage(targetMask, dx, dy, dw, dh);
-
-        // Si es pieza manual con polígono CAD (Pluma), recortar también al polígono
-        if (piece && piece.polygon && !piece.isBody && !piece.maskImg) {
-          octx.globalCompositeOperation = "destination-in";
-          octx.save();
-          this._buildPiecePath(octx, piece, dx, dy, dw, dh);
-          octx.fillStyle = "#FFFFFF";
-          octx.fill();
-          octx.restore();
-        }
-
-        // 4. Volcar sobre el canvas principal
-        ctx.save();
-        ctx.drawImage(this.offCanvas, 0, 0);
-        ctx.restore();
-      }
-
-      _buildPiecePath(ctx, piece, dx, dy, dw, dh) {
-        ctx.beginPath();
-        if (piece.polygon && piece.polygon.length > 2) {
-          const poly = piece.polygon;
-          ctx.moveTo(dx + poly[0][0] * dw, dy + poly[0][1] * dh);
-          for (let i = 1; i < poly.length; i++) {
-            ctx.lineTo(dx + poly[i][0] * dw, dy + poly[i][1] * dh);
-          }
-          ctx.closePath();
-        }
-      }
-
-      /* ======================================================================
-         RENDERIZADOR PRINCIPAL
-         ====================================================================== */
-      _renderCanvas() {
-        const { canvas: c, ctx } = this;
-        const w = c.width;
-        const h = c.height;
-
-        ctx.clearRect(0, 0, w, h);
-
-        const photo = this._getCurrentPhoto();
-        const img = photo ? this.loadedImages.get(photo.id) : null;
-        let maskImg = photo ? this.loadedMasks.get(photo.id) : null;
-
-        if (!img) {
-          // Fondo oscuro Glassmorphic tipo estudio CAD
-          const grad = ctx.createLinearGradient(0, 0, 0, h);
-          grad.addColorStop(0, "#0F172A");
-          grad.addColorStop(1, "#1E293B");
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, w, h);
-
-          // Cuadrícula sutil CAD
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
-          ctx.lineWidth = 1;
-          const gridSize = 40;
-          for (let x = 0; x < w; x += gridSize) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-          }
-          for (let y = 0; y < h; y += gridSize) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-          }
-
-          // Tarjeta central punteada
-          const boxW = 560, boxH = 260;
-          const boxX = (w - boxW) / 2, boxY = (h - boxH) / 2;
-          ctx.save();
-          ctx.strokeStyle = "rgba(200, 16, 46, 0.4)";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([8, 8]);
-          ctx.strokeRect(boxX, boxY, boxW, boxH);
-          ctx.restore();
-
-          // Icono y texto de subida
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-
-          // Rayo / Cámara
-          ctx.fillStyle = "#C8102E";
-          ctx.font = "bold 38px sans-serif";
-          ctx.fillText("⚡", w / 2, boxY + 55);
-
-          // Título principal
-          ctx.fillStyle = "#F8FAFC";
-          ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-          ctx.fillText("Sube la fotografía de tu vehículo para comenzar", w / 2, boxY + 110);
-
-          // Subtítulo técnico
-          ctx.fillStyle = "#94A3B8";
-          ctx.font = "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-          ctx.fillText("La IA (SegFormer ONNX) aislará automáticamente toda la lámina de la carrocería", w / 2, boxY + 145);
-          ctx.fillText("protegiendo al 100% cristales, calaveras, faros y llantas sin manchar el fondo.", w / 2, boxY + 170);
-
-          // Botón estilizado dentro del canvas
-          const btnW = 260, btnH = 42;
-          const btnX = (w - btnW) / 2, btnY = boxY + boxH - 55;
-          ctx.fillStyle = "#C8102E";
-          ctx.beginPath();
-          if (ctx.roundRect) {
-            ctx.roundRect(btnX, btnY, btnW, btnH, 8);
-          } else {
-            ctx.rect(btnX, btnY, btnW, btnH);
-          }
-          ctx.fill();
-
-          ctx.fillStyle = "#FFFFFF";
-          ctx.font = "bold 14px sans-serif";
-          ctx.fillText("📷  Seleccionar Fotografía", w / 2, btnY + btnH / 2);
-
-          return;
-        }
-
-                // Si no tiene máscara IA aún, ejecutar análisis IA
-        if (!maskImg && !this._isGeneratingMask) {
-          this._isGeneratingMask = true;
-          this._requestAutoSegmentAI(photo, img).finally(() => {
-            this._isGeneratingMask = false;
-          });
-        }
-
-        // Fondo de estudio fotográfico
-        const bgGrad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.6);
-        bgGrad.addColorStop(0, "#FFFFFF");
-        bgGrad.addColorStop(0.7, "#F1F4F8");
-        bgGrad.addColorStop(1, "#E2E6EC");
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, w, h);
-
-        const imgW = img.naturalWidth || img.width;
-        const imgH = img.naturalHeight || img.height;
-        const scale = Math.min((w * 0.96) / imgW, (h * 0.94) / imgH);
-        const dw = imgW * scale;
-        const dh = imgH * scale;
-        const dx = (w - dw) / 2;
-        const dy = (h - dh) / 2;
-
-        this.viewport = { dx, dy, dw, dh, scale };
-
-        // 1. DIBUJAR FOTO ORIGINAL (INTACTA)
-        ctx.drawImage(img, dx, dy, dw, dh);
-
-        // 2. APLICAR CAPA DE PINTURA AUTOMOTRIZ (PROTEGIENDO VIDRIOS, RINES Y LLANTAS)
-        const angleModel = this._getCurrentAngleModel();
-        const paintMap = this.photoPaints.get(photo.id) || new Map();
-
-        if (this.paintScope === "full") {
-          const bodyPaint = paintMap.get("carroceria");
-          if (bodyPaint && bodyPaint.color && maskImg) {
-            this._applyPiecePaintWithMask(ctx, img, { isBody: true }, bodyPaint.color, bodyPaint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
-          }
-        } else {
-          // Modo Por Piezas (usa máscaras individuales de SlimSAM o polígonos CAD)
-          angleModel.pieces.forEach(piece => {
-            if (piece.isBody) return;
-            const paint = paintMap.get(piece.id);
-            if (paint && paint.color) {
-              this._applyPiecePaintWithMask(ctx, img, piece, paint.color, paint.finish || this.currentFinish, dx, dy, dw, dh, maskImg);
-            }
-          });
-        }
-
-        // 3. RESALTE DISCRETO SOLO AL PASAR EL MOUSE
-        if (this.activeTool === "select" && this.paintScope === "piece" && this.hoveredPartId) {
-          const hov = angleModel.pieces.find(p => p.id === this.hoveredPartId && !p.isBody);
-          if (hov && hov.polygon) {
-            ctx.save();
-            this._buildPiecePath(ctx, hov, dx, dy, dw, dh);
-            ctx.strokeStyle = "rgba(2, 132, 199, 0.75)";
-            ctx.lineWidth = 2.0;
-            ctx.setLineDash([4, 4]);
-            ctx.stroke();
-            ctx.restore();
-          }
-        }
-
-        // 4. MODO CAD VECTORIAL (PLUMA / NODOS)
-        if (this.activeTool === "pen" || this.activeTool === "node") {
-          this._renderVectorCadOverlay(ctx, dx, dy, dw, dh);
-        }
-      }
-
-      _renderVectorCadOverlay(ctx, dx, dy, dw, dh) {
-        if (this.penNodes.length === 0) return;
-        ctx.save();
-        ctx.beginPath();
-        const first = this.penNodes[0];
-        ctx.moveTo(dx + first[0] * dw, dy + first[1] * dh);
-        for (let i = 1; i < this.penNodes.length; i++) {
-          const pt = this.penNodes[i];
-          ctx.lineTo(dx + pt[0] * dw, dy + pt[1] * dh);
-        }
-        if (this.penNodes.length > 2) ctx.closePath();
-        ctx.strokeStyle = "#0284C7";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        this.penNodes.forEach((pt, idx) => {
-          ctx.beginPath();
-          ctx.arc(dx + pt[0] * dw, dy + pt[1] * dh, 5, 0, Math.PI * 2);
-          ctx.fillStyle = idx === this.activeDraggingNodeIdx ? "#C8102E" : "#FFFFFF";
-          ctx.fill();
-          ctx.strokeStyle = "#0284C7";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        });
-        ctx.restore();
-      }
-
-      _isPointInPiece(x, y, piece) {
-        if (piece.polygon && piece.polygon.length > 2) {
-          const poly = piece.polygon;
-          let inside = false;
-          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const xi = poly[i][0], yi = poly[i][1];
-            const xj = poly[j][0], yj = poly[j][1];
-            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-          }
-          return inside;
-        }
-        return false;
+        this._renderPiecesList();
       }
 
       _renderSwatches() {
         const grid = document.getElementById("oem-swatches-grid");
+        if (!grid) return;
         grid.innerHTML = "";
-        OEM_PALETTE.forEach(p => {
+        OEM_PALETTE.forEach(item => {
           const btn = document.createElement("button");
-          btn.className = `swatch-btn ${this.currentColorHex.toLowerCase() === p.hex.toLowerCase() ? "active" : ""}`;
-          btn.style.backgroundColor = p.hex;
-          btn.title = p.name;
-          if (this.currentColorHex.toLowerCase() === p.hex.toLowerCase()) {
-            btn.innerHTML = `<span class="swatch-check">✓</span>`;
-          }
+          btn.type = "button";
+          const isAct = this.selectedColor.toUpperCase() === item.hex.toUpperCase();
+          btn.className = "swatch-btn" + (isAct ? " active" : "");
+          btn.style.backgroundColor = item.hex;
+          btn.title = item.name;
+          btn.innerHTML = isAct ? `<span class="swatch-check">✓</span>` : "";
           btn.addEventListener("click", () => {
-            document.querySelectorAll(".swatch-btn").forEach(b => {
-              b.classList.remove("active");
-              b.innerHTML = "";
-            });
-            btn.classList.add("active");
-            btn.innerHTML = `<span class="swatch-check">✓</span>`;
-            document.getElementById("native-color-picker").value = p.hex;
-            document.getElementById("hex-text-input").value = p.hex;
-            document.getElementById("badge-color-name").innerText = p.name;
-            this._applyCurrentColor(p.hex);
+            this.selectedColor = item.hex;
+            this.selectedColorName = item.name;
+            this.applyColorToCurrentTarget();
+            this._renderSwatches();
+            this._syncUIFromState();
           });
           grid.appendChild(btn);
         });
@@ -1853,682 +2099,1701 @@
         const list = document.getElementById("photo-thumbs-list");
         if (!list) return;
         list.innerHTML = "";
-
         if (this.photos.length === 0) {
-          const emptyThumb = document.createElement("div");
-          emptyThumb.className = "photo-thumb-card";
-          emptyThumb.style.display = "flex";
-          emptyThumb.style.alignItems = "center";
-          emptyThumb.style.justifyContent = "center";
-          emptyThumb.style.border = "1px dashed rgba(255,255,255,0.2)";
-          emptyThumb.style.cursor = "pointer";
-          emptyThumb.style.padding = "4px";
-          emptyThumb.title = "Subir foto de auto";
-          emptyThumb.innerHTML = `<span style="font-size:11px; color:#94A3B8; text-align:center;">+ Subir Auto</span>`;
-          emptyThumb.addEventListener("click", () => {
-            const fi = document.getElementById("photo-upload-input");
-            if (fi) fi.click();
-          });
-          list.appendChild(emptyThumb);
+          list.innerHTML = `<span style="font-size:11px; color:var(--text-muted); font-weight:600;">Sin vehículos cargados — haz clic en "Subir Foto" para mapear piezas con IA.</span>`;
           return;
         }
-
         this.photos.forEach((p, idx) => {
           const card = document.createElement("div");
-          card.className = `photo-thumb-card ${idx === this.currentPhotoIndex ? "active" : ""}`;
-          card.innerHTML = `
-            <img src="${p.src}" alt="${p.label}" />
-            <span class="thumb-badge">${idx + 1}</span>
-          `;
+          card.className = "photo-thumb-card" + (idx === this.activePhotoIndex ? " active" : "");
+          card.innerHTML = `<img src="${p.url}" alt="${p.label}" /><span class="thumb-badge">${p.label.slice(0, 12)}</span>`;
           card.addEventListener("click", () => {
-            this.currentPhotoIndex = idx;
+            this.activePhotoIndex = idx;
+            this.selectedPieceId = "carroceria";
+            this.selectedStickerId = null;
             this._renderThumbnails();
-            this._updateUIState();
-            this._renderCanvas();
+            this._renderPiecesList();
+            this._syncStickerInspector();
+            this._syncUIFromState();
+            this._updateFichaSummary();
+            this.render();
           });
           list.appendChild(card);
         });
       }
 
-      _updateUIState() {
-        const photo = this._getCurrentPhoto();
-        const model = this._getCurrentAngleModel();
-        const activePiece = model.pieces.find(p => p.id === this.selectedPartId);
-
-        const lblAngle = document.getElementById("label-car-angle");
-        const lblPiece = document.getElementById("label-active-piece");
-
-        if (lblAngle) {
-          lblAngle.innerText = photo ? model.label : "Esperando vehículo (Sube una foto)";
-        }
-        if (lblPiece) {
-          lblPiece.innerText = photo
-            ? (this.paintScope === "full" ? "Carrocería Completa (Sin vidrios ni faros)" : `Pieza: ${activePiece ? activePiece.label : 'Carrocería'}`)
-            : "IA Lista para Escaneo";
-        }
-
+      _renderPiecesList() {
         const container = document.getElementById("pieces-list-container");
+        const badge = document.getElementById("badge-pieces-count");
         if (!container) return;
         container.innerHTML = "";
 
+        const photo = this.activePhoto;
         if (!photo) {
-          container.innerHTML = `<div style="padding:16px; text-align:center; color:#94A3B8; font-size:12px;">Sube una foto para listar las piezas detectadas por la IA</div>`;
+          if (badge) badge.textContent = "0 piezas";
+          container.innerHTML = `<div style="font-size:11px; color:var(--text-muted); padding:10px;">Sube una fotografía para que la IA identifique automáticamente cada pieza del vehículo.</div>`;
           return;
         }
 
-        const paintMap = this.photoPaints.get(photo.id) || new Map();
-        model.pieces.forEach(p => {
+        const aiPartsCount = photo.pieces.filter(p => !p.isBody).length;
+        if (badge) badge.textContent = `${aiPartsCount} piezas IA`;
+
+        photo.pieces.forEach(piece => {
           const row = document.createElement("div");
-          row.className = `piece-row ${p.id === this.selectedPartId ? "selected" : ""}`;
-          const paint = paintMap.get(p.id);
-          const colorDot = paint ? paint.color : "#CBD5E1";
+          const isSel = piece.id === this.selectedPieceId;
+          row.className = "piece-row" + (isSel ? " selected" : "");
+
+          const paintCfg = piece.isBody ? photo.fullPaint : photo.piecePaints[piece.id];
+          const swatchColor = paintCfg ? paintCfg.color : "transparent";
+          const areaTag = piece.areaPct ? ` · ${piece.areaPct}%` : "";
+          const paintedTag = paintCfg
+            ? `<span style="font-size:10px; color:#15803D; font-weight:800;">Pintado</span>`
+            : `<span style="font-size:10px; color:var(--text-muted);">${piece.isBody ? "Todo" : "Original"}</span>`;
 
           row.innerHTML = `
-            <span class="piece-color-dot" style="background-color: ${colorDot};"></span>
-            <span class="piece-name">${p.label}</span>
+            <span class="piece-color-dot" style="background:${swatchColor}; ${paintCfg ? "" : "border-style:dashed;"}"></span>
+            <span class="piece-name">${piece.label}${areaTag}</span>
+            ${paintedTag}
           `;
-
           row.addEventListener("click", () => {
-            this.selectedPartId = p.id;
-            this.paintScope = p.isBody ? "full" : "piece";
-            this._updateScopeButtons();
-            this._updateUIState();
-            this._renderCanvas();
+            this.selectedPieceId = piece.id;
+            if (!piece.isBody) {
+              this.scope = "piece";
+              this._updateScopeButtons();
+              if (!photo.piecePaints[piece.id]) {
+                photo.piecePaints[piece.id] = { color: this.selectedColor, finish: this.selectedFinish };
+              }
+            } else {
+              this.scope = "full";
+              this._updateScopeButtons();
+            }
+            this._renderPiecesList();
+            this._syncUIFromState();
+            this._updateFichaSummary();
+            this.render();
           });
-
           container.appendChild(row);
         });
       }
 
-      _setupEventListeners() {
-        document.getElementById("btn-scope-piece").addEventListener("click", () => {
-          this.paintScope = "piece";
-          document.getElementById("btn-scope-piece").classList.add("active");
-          document.getElementById("btn-scope-full").classList.remove("active");
-          this._showToast("Modo: Pintura por Piezas");
-          this._updateUIState();
-          this._renderCanvas();
+      _updateScopeButtons() {
+        const bPiece = document.getElementById("btn-scope-piece");
+        const bFull = document.getElementById("btn-scope-full");
+        if (bPiece) bPiece.classList.toggle("active", this.scope === "piece");
+        if (bFull) bFull.classList.toggle("active", this.scope === "full");
+      }
+
+      _selectTab(tabName) {
+        document.querySelectorAll(".tab-btn[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === tabName));
+        ["colores", "piezas", "stickers", "ficha"].forEach(t => {
+          const el = document.getElementById("pane-" + t);
+          if (el) el.style.display = t === tabName ? "block" : "none";
         });
+        if (tabName === "ficha") this._updateFichaSummary();
+      }
 
-        document.getElementById("btn-scope-full").addEventListener("click", () => {
-          this.paintScope = "full";
-          document.getElementById("btn-scope-full").classList.add("active");
-          document.getElementById("btn-scope-piece").classList.remove("active");
-          this.selectedPartId = "carroceria";
-          this._applyCurrentColor(this.currentColorHex);
-        });
+      _selectTool(toolName) {
+        this.tool = toolName;
+        document.querySelectorAll(".tool-btn[data-tool]").forEach(b => b.classList.toggle("active", b.dataset.tool === toolName));
+        this._syncUIFromState();
+        this.render();
+      }
 
-        document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const tool = btn.dataset.tool;
-            this.activeTool = tool;
-            document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-
-            const penBar = document.getElementById("pen-cad-bar");
-            if (tool === "pen" || tool === "node") {
-              penBar.classList.remove("hidden");
-            } else {
-              penBar.classList.add("hidden");
-            }
-            this._renderCanvas();
-          });
-        });
-
-        document.getElementById("btn-tool-clear").addEventListener("click", () => {
-          this._clearCurrentPaints();
-        });
-
-        document.getElementById("btn-pen-smooth").addEventListener("click", () => this._chaikinSmoothNodes());
-        document.getElementById("btn-pen-save").addEventListener("click", () => this._savePenAsPiece());
-        document.getElementById("btn-pen-reset").addEventListener("click", () => {
-          this.penNodes = [];
-          this._renderCanvas();
-          this._showToast("Trazo borrado");
-        });
-
-        document.querySelectorAll(".tab-btn").forEach(t => {
-          t.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
-            t.classList.add("active");
-            const tab = t.dataset.tab;
-            document.getElementById("pane-colores").style.display = tab === "colores" ? "block" : "none";
-            document.getElementById("pane-piezas").style.display = tab === "piezas" ? "block" : "none";
-          });
-        });
-
-        document.querySelectorAll(".finish-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".finish-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            this.currentFinish = btn.dataset.finish;
-            this._applyCurrentColor(this.currentColorHex);
-          });
-        });
-
+      _syncUIFromState() {
         const picker = document.getElementById("native-color-picker");
-        const hexText = document.getElementById("hex-text-input");
+        const hexInput = document.getElementById("hex-text-input");
+        const badgeName = document.getElementById("badge-color-name");
+        const lblAngle = document.getElementById("label-car-angle");
+        const lblPiece = document.getElementById("label-active-piece");
 
-        picker.addEventListener("input", (e) => {
-          hexText.value = e.target.value.toUpperCase();
-          this._applyCurrentColor(e.target.value);
+        if (picker) picker.value = this.selectedColor;
+        if (hexInput) hexInput.value = this.selectedColor.toUpperCase();
+        if (badgeName) badgeName.textContent = this.selectedColorName;
+
+        document.querySelectorAll(".finish-btn[data-finish]").forEach(b => {
+          b.classList.toggle("active", b.dataset.finish === this.selectedFinish);
         });
 
-        hexText.addEventListener("change", (e) => {
-          const val = e.target.value.trim();
-          if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-            picker.value = val;
-            this._applyCurrentColor(val);
-          }
-        });
-
-        this.canvas.addEventListener("mousedown", (e) => this._onCanvasMouseDown(e));
-        this.canvas.addEventListener("mousemove", (e) => this._onCanvasMouseMove(e));
-        window.addEventListener("mouseup", () => { this.activeDraggingNodeIdx = -1; });
-
-        const fileInput = document.getElementById("photo-upload-input");
-                const btnScanAI = document.getElementById("btn-scan-ai");
-        if (btnScanAI) {
-          btnScanAI.addEventListener("click", () => {
-            const photo = this._getCurrentPhoto();
-            const img = photo ? this.loadedImages.get(photo.id) : null;
-            if (img) this._requestAutoSegmentAI(photo, img);
-          });
+        const photo = this.activePhoto;
+        if (lblAngle) {
+          lblAngle.textContent = photo
+            ? `${photo.label}${photo.aiStats ? ` (${photo.aiStats.partsCount} piezas · ${photo.aiStats.wheelsProtected} rines protegidos)` : ""}`
+            : "Sube una fotografía de vehículo";
         }
-        document.getElementById("btn-subir-foto").addEventListener("click", () => fileInput.click());
-        fileInput.addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-              const newId = `custom_photo_${Date.now()}`;
-              this.photos.push({ id: newId, angle: "rear", label: "Foto de Taller", src: ev.target.result });
-              this.loadedImages.set(newId, img);
-              this.photoPaints.set(newId, new Map());
-              this.customPieces.set(newId, []);
-              this.currentPhotoIndex = this.photos.length - 1;
-              this._renderThumbnails();
-              this._updateUIState();
-              this._renderCanvas();
-              const currentPhoto = this.photos[this.currentPhotoIndex];
-              this._requestAutoSegmentAI(currentPhoto, img);
-            };
-            img.src = ev.target.result;
-          };
-          reader.readAsDataURL(file);
-        });
-
-        document.getElementById("btn-export-4k").addEventListener("click", () => {
-          const link = document.createElement("a");
-          link.download = `el-rayo-autodesign-${Date.now()}.png`;
-          link.href = this.canvas.toDataURL("image/png", 1.0);
-          link.click();
-          this._showToast("Imagen exportada con éxito");
-        });
-      }
-
-      _onCanvasMouseDown(e) {
-        if (this.photos.length === 0) {
-          const fi = document.getElementById("photo-upload-input");
-          if (fi) fi.click();
-          return;
-        }
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-        const { dx, dy, dw, dh } = this.viewport;
-
-        if (dw <= 0 || dh <= 0) return;
-        const normX = (mouseX - dx) / dw;
-        const normY = (mouseY - dy) / dh;
-
-        if (this.activeTool === "pen") {
-          this.penNodes.push([normX, normY]);
-          this._renderCanvas();
-          return;
-        }
-
-        if (this.activeTool === "node") {
-          this.penNodes.forEach((pt, i) => {
-            const dist = Math.hypot(pt[0] - normX, pt[1] - normY);
-            if (dist < 0.035) {
-              this.activeDraggingNodeIdx = i;
-            }
-          });
-          return;
-        }
-
-        if (this.activeTool === "select") {
-          const model = this._getCurrentAngleModel();
-          let hitPiece = null;
-
-          for (let i = model.pieces.length - 1; i >= 0; i--) {
-            const p = model.pieces[i];
-            if (!p.isBody && this._isPointInPiece(normX, normY, p)) {
-              hitPiece = p;
-              break;
-            }
-          }
-
-          if (hitPiece) {
-            this.selectedPartId = hitPiece.id;
-            this.paintScope = "piece";
-            document.getElementById("btn-scope-piece").classList.add("active");
-            document.getElementById("btn-scope-full").classList.remove("active");
-            this._updateUIState();
-            this._renderCanvas();
-            this._showToast(`Pieza: ${hitPiece.label}`);
+        if (lblPiece) {
+          if (!photo) {
+            lblPiece.textContent = "Sin vehículo";
+          } else {
+            const found = photo.pieces.find(p => p.id === this.selectedPieceId);
+            lblPiece.textContent = this.scope === "full"
+              ? "Modo: Carrocería Completa"
+              : `Pieza: ${found ? found.label : "Ninguna"}`;
           }
         }
+
+        const penBar = document.getElementById("pen-cad-bar");
+        if (penBar) penBar.classList.toggle("hidden", !(this.tool === "pen" || this.tool === "node"));
+
+        this._updateScopeButtons();
       }
 
-      _onCanvasMouseMove(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-        const { dx, dy, dw, dh } = this.viewport;
-
-        if (dw <= 0 || dh <= 0) return;
-        const normX = (mouseX - dx) / dw;
-        const normY = (mouseY - dy) / dh;
-
-        if (this.activeTool === "node" && this.activeDraggingNodeIdx >= 0) {
-          this.penNodes[this.activeDraggingNodeIdx] = [normX, normY];
-          this._renderCanvas();
-          return;
-        }
-
-        if (this.activeTool === "select" && this.paintScope === "piece") {
-          const model = this._getCurrentAngleModel();
-          let hit = null;
-          for (let i = model.pieces.length - 1; i >= 0; i--) {
-            if (!model.pieces[i].isBody && this._isPointInPiece(normX, normY, model.pieces[i])) {
-              hit = model.pieces[i].id;
-              break;
-            }
-          }
-          if (hit !== this.hoveredPartId) {
-            this.hoveredPartId = hit;
-            this._renderCanvas();
-          }
-        }
-      }
-
-      _isPointInPiece(x, y, piece) {
-        if (piece.polygon && piece.polygon.length > 2) {
-          const poly = piece.polygon;
-          let inside = false;
-          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const xi = poly[i][0], yi = poly[i][1];
-            const xj = poly[j][0], yj = poly[j][1];
-            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-          }
-          return inside;
-        }
-        return false;
-      }
-
-      _renderSwatches() {
-        const grid = document.getElementById("oem-swatches-grid");
-        grid.innerHTML = "";
-        OEM_PALETTE.forEach(p => {
-          const btn = document.createElement("button");
-          btn.className = `swatch-btn ${this.currentColorHex.toLowerCase() === p.hex.toLowerCase() ? "active" : ""}`;
-          btn.style.backgroundColor = p.hex;
-          btn.title = p.name;
-          if (this.currentColorHex.toLowerCase() === p.hex.toLowerCase()) {
-            btn.innerHTML = `<span class="swatch-check">✓</span>`;
-          }
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".swatch-btn").forEach(b => {
-              b.classList.remove("active");
-              b.innerHTML = "";
-            });
-            btn.classList.add("active");
-            btn.innerHTML = `<span class="swatch-check">✓</span>`;
-            document.getElementById("native-color-picker").value = p.hex;
-            document.getElementById("hex-text-input").value = p.hex;
-            document.getElementById("badge-color-name").innerText = p.name;
-            this._applyCurrentColor(p.hex);
-          });
-          grid.appendChild(btn);
-        });
-      }
-
-      _renderThumbnails() {
-        const list = document.getElementById("photo-thumbs-list");
-        list.innerHTML = "";
-        this.photos.forEach((p, idx) => {
-          const card = document.createElement("div");
-          card.className = `photo-thumb-card ${idx === this.currentPhotoIndex ? "active" : ""}`;
-          card.innerHTML = `
-            <img src="${p.src}" alt="${p.label}" />
-            <span class="thumb-badge">${idx + 1}</span>
-          `;
-          card.addEventListener("click", () => {
-            this.currentPhotoIndex = idx;
-            this._renderThumbnails();
-            this._updateUIState();
-            this._renderCanvas();
-          });
-          list.appendChild(card);
-        });
-      }
-
-      _applyCurrentColor(hex) {
-        this.currentColorHex = hex;
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        const paintMap = this.photoPaints.get(photo.id);
-
-        if (this.paintScope === "full") {
-          paintMap.set("carroceria", { color: hex, finish: this.currentFinish });
-          this._showToast(`Carrocería completa pintada en ${hex}`);
-        } else {
-          paintMap.set(this.selectedPartId, { color: hex, finish: this.currentFinish });
-          const model = this._getCurrentAngleModel();
-          const p = model.pieces.find(x => x.id === this.selectedPartId);
-          this._showToast(`${p ? p.label : 'Pieza'} pintada`);
-        }
-
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      _clearCurrentPaints() {
-        const photo = this._getCurrentPhoto();
-        if (!photo) return;
-        this.photoPaints.get(photo.id).clear();
-        this._showToast("Pintura restablecida");
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      /* ======================================================================
-         PLUMA VECTORIAL
-         ====================================================================== */
-      _chaikinSmoothNodes() {
-        if (this.penNodes.length < 3) {
-          this._showToast("Coloca al menos 3 nodos para suavizar");
-          return;
-        }
-        const pts = this.penNodes;
-        const smoothed = [];
-        const n = pts.length;
-        for (let i = 0; i < n; i++) {
-          const p0 = pts[i];
-          const p1 = pts[(i + 1) % n];
-          smoothed.push([0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]]);
-          smoothed.push([0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]]);
-        }
-        this.penNodes = smoothed;
-        this._showToast("Curva suavizada");
-        this._renderCanvas();
-      }
-
-      _savePenAsPiece() {
-        if (this.penNodes.length < 3) {
-          this._showToast("Coloca al menos 3 nodos para crear la pieza");
-          return;
-        }
-        const photo = this._getCurrentPhoto();
-        const customArr = this.customPieces.get(photo.id);
-        const newId = `custom_piece_${Date.now()}`;
-        const newPiece = {
-          id: newId,
-          label: `Pieza CAD (${customArr.length + 1})`,
-          polygon: [...this.penNodes]
-        };
-        customArr.push(newPiece);
-        this.selectedPartId = newId;
-        this.penNodes = [];
-        this.activeTool = "select";
-        this.paintScope = "piece";
-        document.getElementById("btn-scope-piece").classList.add("active");
-        document.getElementById("btn-scope-full").classList.remove("active");
-
-        this.photoPaints.get(photo.id).set(newId, { color: this.currentColorHex, finish: this.currentFinish });
-
-        this._showToast("Pieza personalizada creada y pintada");
-        this._updateUIState();
-        this._renderCanvas();
-      }
-
-      /* ======================================================================
-         EVENTOS UI
-         ====================================================================== */
-      _setupEventListeners() {
-        document.getElementById("btn-scope-piece").addEventListener("click", () => {
-          this.paintScope = "piece";
-          document.getElementById("btn-scope-piece").classList.add("active");
-          document.getElementById("btn-scope-full").classList.remove("active");
-          this._showToast("Modo: Pintura por Piezas");
-          this._updateUIState();
-          this._renderCanvas();
-        });
-
-        document.getElementById("btn-scope-full").addEventListener("click", () => {
-          this.paintScope = "full";
-          document.getElementById("btn-scope-full").classList.add("active");
-          document.getElementById("btn-scope-piece").classList.remove("active");
-          this.selectedPartId = "carroceria";
-          this._applyCurrentColor(this.currentColorHex);
-        });
-
-        document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const tool = btn.dataset.tool;
-            this.activeTool = tool;
-            document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-
-            const penBar = document.getElementById("pen-cad-bar");
-            if (tool === "pen" || tool === "node") {
-              penBar.classList.remove("hidden");
-            } else {
-              penBar.classList.add("hidden");
-            }
-            this._renderCanvas();
-          });
-        });
-
-        document.getElementById("btn-tool-clear").addEventListener("click", () => {
-          this._clearCurrentPaints();
-        });
-
-        document.getElementById("btn-pen-smooth").addEventListener("click", () => this._chaikinSmoothNodes());
-        document.getElementById("btn-pen-save").addEventListener("click", () => this._savePenAsPiece());
-        document.getElementById("btn-pen-reset").addEventListener("click", () => {
-          this.penNodes = [];
-          this._renderCanvas();
-          this._showToast("Trazo borrado");
-        });
-
-        document.querySelectorAll(".tab-btn").forEach(t => {
-          t.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
-            t.classList.add("active");
-            const tab = t.dataset.tab;
-            document.getElementById("pane-colores").style.display = tab === "colores" ? "block" : "none";
-            document.getElementById("pane-piezas").style.display = tab === "piezas" ? "block" : "none";
-          });
-        });
-
-        document.querySelectorAll(".finish-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".finish-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            this.currentFinish = btn.dataset.finish;
-            this._applyCurrentColor(this.currentColorHex);
-          });
-        });
-
-        const picker = document.getElementById("native-color-picker");
-        const hexText = document.getElementById("hex-text-input");
-
-        picker.addEventListener("input", (e) => {
-          hexText.value = e.target.value.toUpperCase();
-          this._applyCurrentColor(e.target.value);
-        });
-
-        hexText.addEventListener("change", (e) => {
-          const val = e.target.value.trim();
-          if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-            picker.value = val;
-            this._applyCurrentColor(val);
-          }
-        });
-
-        this.canvas.addEventListener("mousedown", (e) => this._onCanvasMouseDown(e));
-        this.canvas.addEventListener("mousemove", (e) => this._onCanvasMouseMove(e));
-        window.addEventListener("mouseup", () => { this.activeDraggingNodeIdx = -1; });
-
-        const fileInput = document.getElementById("photo-upload-input");
-        document.getElementById("btn-subir-foto").addEventListener("click", () => fileInput.click());
-        fileInput.addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-              const newId = `custom_photo_${Date.now()}`;
-              this.photos.push({ id: newId, angle: "rear", label: "Foto de Taller", src: ev.target.result });
-              this.loadedImages.set(newId, img);
-              this.photoPaints.set(newId, new Map());
-              this.customPieces.set(newId, []);
-              this.currentPhotoIndex = this.photos.length - 1;
-              this._renderThumbnails();
-              this._updateUIState();
-              this._renderCanvas();
-              this._showToast("Foto cargada con éxito");
-            };
-            img.src = ev.target.result;
-          };
-          reader.readAsDataURL(file);
-        });
-
-        document.getElementById("btn-export-4k").addEventListener("click", () => {
-          const link = document.createElement("a");
-          link.download = `el-rayo-autodesign-${Date.now()}.png`;
-          link.href = this.canvas.toDataURL("image/png", 1.0);
-          link.click();
-          this._showToast("Imagen exportada con éxito");
-        });
-      }
-
-      _onCanvasMouseDown(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-        const { dx, dy, dw, dh } = this.viewport;
-
-        if (dw <= 0 || dh <= 0) return;
-        const normX = (mouseX - dx) / dw;
-        const normY = (mouseY - dy) / dh;
-
-        if (this.activeTool === "pen") {
-          this.penNodes.push([normX, normY]);
-          this._renderCanvas();
-          return;
-        }
-
-        if (this.activeTool === "node") {
-          this.penNodes.forEach((pt, i) => {
-            const dist = Math.hypot(pt[0] - normX, pt[1] - normY);
-            if (dist < 0.035) {
-              this.activeDraggingNodeIdx = i;
-            }
-          });
-          return;
-        }
-
-        if (this.activeTool === "select") {
-          const model = this._getCurrentAngleModel();
-          let hitPiece = null;
-
-          for (let i = model.pieces.length - 1; i >= 0; i--) {
-            const p = model.pieces[i];
-            if (!p.isBody && this._isPointInPiece(normX, normY, p)) {
-              hitPiece = p;
-              break;
-            }
-          }
-
-          if (hitPiece) {
-            this.selectedPartId = hitPiece.id;
-            this.paintScope = "piece";
-            document.getElementById("btn-scope-piece").classList.add("active");
-            document.getElementById("btn-scope-full").classList.remove("active");
-            this._updateUIState();
-            this._renderCanvas();
-            this._showToast(`Pieza: ${hitPiece.label}`);
-          }
-        }
-      }
-
-      _onCanvasMouseMove(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-        const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-        const { dx, dy, dw, dh } = this.viewport;
-
-        if (dw <= 0 || dh <= 0) return;
-        const normX = (mouseX - dx) / dw;
-        const normY = (mouseY - dy) / dh;
-
-        if (this.activeTool === "node" && this.activeDraggingNodeIdx >= 0) {
-          this.penNodes[this.activeDraggingNodeIdx] = [normX, normY];
-          this._renderCanvas();
-          return;
-        }
-
-        if (this.activeTool === "select" && this.paintScope === "piece") {
-          const model = this._getCurrentAngleModel();
-          let hit = null;
-          for (let i = model.pieces.length - 1; i >= 0; i--) {
-            if (!model.pieces[i].isBody && this._isPointInPiece(normX, normY, model.pieces[i])) {
-              hit = model.pieces[i].id;
-              break;
-            }
-          }
-          if (hit !== this.hoveredPartId) {
-            this.hoveredPartId = hit;
-            this._renderCanvas();
-          }
-        }
-      }
-
-      _isPointInPiece(x, y, piece) {
-        if (piece.polygon && piece.polygon.length > 2) {
-          const poly = piece.polygon;
-          let inside = false;
-          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const xi = poly[i][0], yi = poly[i][1];
-            const xj = poly[j][0], yj = poly[j][1];
-            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-          }
-          return inside;
-        }
-        return false;
-      }
-
-      _showToast(msg) {
+      showToast(msg) {
         const toast = document.getElementById("studio-toast");
-        toast.innerText = msg;
+        if (!toast) return;
+        toast.textContent = msg;
         toast.classList.add("show");
         clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => {
-          toast.classList.remove("show");
-        }, 2200);
+        this._toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+      }
+
+      _setLoading(active, msg) {
+        const ov = document.getElementById("ai-loading-overlay");
+        const txt = document.getElementById("ai-loading-text");
+        if (txt && msg) txt.textContent = msg;
+        if (ov) ov.classList.toggle("active", !!active);
+      }
+
+      _setupEventListeners() {
+        document.getElementById("btn-scope-piece")?.addEventListener("click", () => {
+          this.scope = "piece";
+          if (this.activePhoto && this.selectedPieceId === "carroceria") {
+            const firstPart = this.activePhoto.pieces.find(p => !p.isBody);
+            if (firstPart) this.selectedPieceId = firstPart.id;
+          }
+          this._updateScopeButtons();
+          this._renderPiecesList();
+          this._syncUIFromState();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast("Modo Por Piezas activo — haz clic sobre cualquier panel del auto");
+        });
+
+        document.getElementById("btn-scope-full")?.addEventListener("click", () => {
+          this.scope = "full";
+          this.selectedPieceId = "carroceria";
+          this._updateScopeButtons();
+          this._renderPiecesList();
+          this._syncUIFromState();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast("Modo Auto Completo activo");
+        });
+
+        document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
+          btn.addEventListener("click", () => this._selectTool(btn.dataset.tool));
+        });
+
+        document.getElementById("btn-tool-curves-shortcut")?.addEventListener("click", () => {
+          this._selectTab("colores");
+          document.getElementById("curves-panel-card")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          this.showToast("Curvas Tonales de Laca activas — arrastra los puntos S / M / L");
+        });
+
+        document.getElementById("btn-tool-clear")?.addEventListener("click", () => {
+          const p = this.activePhoto;
+          if (!p) return;
+          p.fullPaint = null;
+          p.piecePaints = {};
+          p.stickers = [];
+          this.penNodes = [];
+          this.penClosed = false;
+          this.lassoPoints = [];
+          this.selectedStickerId = null;
+          this._syncStickerInspector();
+          this._renderPiecesList();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast("Pintura y calcomanías restauradas al color original");
+        });
+
+        document.querySelectorAll(".tab-btn[data-tab]").forEach(btn => {
+          btn.addEventListener("click", () => this._selectTab(btn.dataset.tab));
+        });
+
+        document.getElementById("native-color-picker")?.addEventListener("input", e => {
+          this.selectedColor = e.target.value.toUpperCase();
+          this.selectedColorName = "Personalizado";
+          this.applyColorToCurrentTarget();
+          this._renderSwatches();
+          this._syncUIFromState();
+        });
+
+        document.getElementById("hex-text-input")?.addEventListener("change", e => {
+          let v = e.target.value.trim();
+          if (!v.startsWith("#")) v = "#" + v;
+          if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+            this.selectedColor = v.toUpperCase();
+            this.selectedColorName = "Personalizado HEX";
+            this.applyColorToCurrentTarget();
+            this._renderSwatches();
+            this._syncUIFromState();
+          }
+        });
+
+        document.querySelectorAll(".finish-btn[data-finish]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            this.selectedFinish = btn.dataset.finish;
+            this.applyColorToCurrentTarget();
+            this._syncUIFromState();
+          });
+        });
+
+        document.getElementById("btn-reset-selected-piece")?.addEventListener("click", () => {
+          const p = this.activePhoto;
+          if (!p) return;
+          if (this.selectedPieceId === "carroceria" || this.scope === "full") {
+            p.fullPaint = null;
+          } else {
+            delete p.piecePaints[this.selectedPieceId];
+          }
+          this._renderPiecesList();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast("Color original restaurado en la selección");
+        });
+
+        document.getElementById("btn-scan-ai")?.addEventListener("click", () => {
+          if (!this.activePhoto) {
+            document.getElementById("photo-upload-input")?.click();
+            return;
+          }
+          this.runAutoAIScan(this.activePhoto);
+        });
+
+        const fileInput = document.getElementById("photo-upload-input");
+        document.getElementById("btn-subir-foto")?.addEventListener("click", () => fileInput?.click());
+        fileInput?.addEventListener("change", e => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = ev => {
+            const dataUrl = ev.target.result;
+            const img = new Image();
+            img.onload = () => {
+              const cleanName = file.name.replace(/\.[^.]+$/, "").slice(0, 28);
+              const photoObj = {
+                id: "car_" + Date.now(),
+                label: cleanName || "Vehículo Subido",
+                url: dataUrl,
+                imgEl: img,
+                fullPaint: null,
+                piecePaints: {},
+                stickers: [],
+                hitGrid: null,
+                hitW: 0,
+                hitH: 0,
+                pieces: [{ id: "carroceria", label: "Carrocería Completa", isBody: true }],
+                aiStats: null
+              };
+              this.photos.push(photoObj);
+              this.activePhotoIndex = this.photos.length - 1;
+              this.selectedPieceId = "carroceria";
+              this.selectedStickerId = null;
+              this._renderThumbnails();
+              this._renderPiecesList();
+              this._syncStickerInspector();
+              this._syncUIFromState();
+              this._updateFichaSummary();
+              this.render();
+              this.runAutoAIScan(photoObj);
+            };
+            img.src = dataUrl;
+          };
+          reader.readAsDataURL(file);
+          fileInput.value = "";
+        });
+
+        const stInput = document.getElementById("sticker-upload-input");
+        document.getElementById("btn-upload-sticker")?.addEventListener("click", () => stInput?.click());
+        stInput?.addEventListener("change", e => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = ev => {
+            this.addStickerFromSource(file.name.replace(/\.[^.]+$/, "").slice(0, 18), ev.target.result);
+          };
+          reader.readAsDataURL(file);
+          stInput.value = "";
+        });
+
+        const syncStickerCtrl = () => {
+          const st = this._getSelectedSticker();
+          if (!st) return;
+          st.scale = Number(document.getElementById("range-sticker-scale").value) / 100;
+          st.rotationDeg = Number(document.getElementById("range-sticker-rot").value);
+          st.alpha = Number(document.getElementById("range-sticker-alpha").value) / 100;
+          st.clipToBody = !!document.getElementById("chk-sticker-clip").checked;
+          document.getElementById("lbl-sticker-scale").textContent = Math.round(st.scale * 100) + "%";
+          document.getElementById("lbl-sticker-rot").textContent = st.rotationDeg + "°";
+          document.getElementById("lbl-sticker-alpha").textContent = Math.round(st.alpha * 100) + "%";
+          this._updateFichaSummary();
+          this.render();
+        };
+        ["range-sticker-scale", "range-sticker-rot", "range-sticker-alpha", "chk-sticker-clip"].forEach(id => {
+          document.getElementById(id)?.addEventListener("input", syncStickerCtrl);
+          document.getElementById(id)?.addEventListener("change", syncStickerCtrl);
+        });
+
+        document.getElementById("btn-delete-sticker")?.addEventListener("click", () => {
+          const p = this.activePhoto;
+          if (!p || !this.selectedStickerId) return;
+          p.stickers = p.stickers.filter(s => s.id !== this.selectedStickerId);
+          this.selectedStickerId = null;
+          this._syncStickerInspector();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast("Sticker eliminado");
+        });
+
+        // Illustrator Pen & Node Controls
+        document.getElementById("btn-pen-smooth")?.addEventListener("click", () => {
+          const nodes = this._getEditableBezierNodes();
+          if (!nodes || nodes.length < 3) {
+            this.showToast("Traza al menos 3 nodos con la Pluma para suavizar curvas.");
+            return;
+          }
+          this._smoothCatmullRom(nodes);
+          this._refreshActiveBezierPiece();
+          this.render();
+          this.showToast("Curvas Bézier suavizadas estilo Illustrator");
+        });
+
+        document.getElementById("btn-pen-close")?.addEventListener("click", () => {
+          if (this.penNodes.length < 3) {
+            this.showToast("Agrega al menos 3 nodos para cerrar la figura.");
+            return;
+          }
+          this.penClosed = true;
+          this.render();
+          this.showToast("Ruta cerrada — usa Corregir Nodos (A) o Guardar Pieza");
+        });
+
+        document.getElementById("btn-pen-save")?.addEventListener("click", () => {
+          if (this.penNodes.length >= 3) {
+            this.penClosed = true;
+            this._commitBezierPiece(this.penNodes);
+            this.penNodes = [];
+            this.penClosed = false;
+            this.render();
+          } else {
+            this._refreshActiveBezierPiece();
+            this.render();
+          }
+        });
+
+        document.getElementById("btn-pen-reset")?.addEventListener("click", () => {
+          this.penNodes = [];
+          this.penClosed = false;
+          this.render();
+        });
+
+        // Curves LUT events (Photoshop Ctrl+M style)
+        this._setupCurveEvents();
+
+        // Ficha de Materiales & PDF Print
+        ["ficha-client-name", "ficha-vehicle-model", "ficha-notes"].forEach(id => {
+          document.getElementById(id)?.addEventListener("input", () => this._updateFichaSummary());
+        });
+        document.getElementById("btn-print-pdf")?.addEventListener("click", () => this.printOrderPDF());
+        document.getElementById("btn-export-4k")?.addEventListener("click", () => this.exportCompositePNG());
+
+        // Keyboard shortcuts (Illustrator / Photoshop)
+        window.addEventListener("keydown", e => {
+          if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+          const k = e.key.toLowerCase();
+          if (k === "v") this._selectTool("select");
+          else if (k === "p") this._selectTool("pen");
+          else if (k === "a") this._selectTool("node");
+          else if (k === "l") this._selectTool("lasso");
+          else if (k === "w") this._selectTool("wand");
+          else if (k === "i") this._selectTool("pipette");
+          else if (k === "m") this._selectTab("colores");
+          else if (k === "enter" && this.tool === "pen" && this.penNodes.length >= 3) {
+            this.penClosed = true;
+            this._commitBezierPiece(this.penNodes);
+            this.penNodes = [];
+            this.penClosed = false;
+            this.render();
+          } else if (k === "backspace" && this.tool === "pen" && this.penNodes.length > 0) {
+            e.preventDefault();
+            this.penNodes.pop();
+            this.render();
+          } else if (k === "escape" && this.tool === "pen") {
+            this.penNodes = [];
+            this.penClosed = false;
+            this.render();
+          }
+        });
+
+        // Canvas mouse events
+        this.canvas.addEventListener("mousedown", e => this._onCanvasMouseDown(e));
+        this.canvas.addEventListener("dblclick", () => {
+          if (this.tool === "pen" && this.penNodes.length >= 3) {
+            this.penClosed = true;
+            this._commitBezierPiece(this.penNodes);
+            this.penNodes = [];
+            this.penClosed = false;
+            this.render();
+          }
+        });
+        window.addEventListener("mousemove", e => this._onCanvasMouseMove(e));
+        window.addEventListener("mouseup", () => this._onCanvasMouseUp());
+        window.addEventListener("resize", () => this.render());
+      }
+
+      /* ---------------- CURVAS TONALES PHOTOSHOP (LUT 256) ---------------- */
+      _setupCurveEvents() {
+        const svg = document.getElementById("curves-editor-svg");
+        if (!svg) return;
+
+        const ptMap = { "curve-pt-shadow": "shadow", "curve-pt-mid": "mid", "curve-pt-high": "high" };
+        Object.keys(ptMap).forEach(elId => {
+          document.getElementById(elId)?.addEventListener("mousedown", e => {
+            e.stopPropagation();
+            this.draggingCurveKey = ptMap[elId];
+          });
+        });
+
+        window.addEventListener("mousemove", e => {
+          if (!this.draggingCurveKey) return;
+          const rect = svg.getBoundingClientRect();
+          const ny = 1 - Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+          this.curvePoints[this.draggingCurveKey] = Math.round(ny * 100) / 100;
+          this._rebuildCurveLUT();
+          this._updateCurveUI();
+          this.render();
+        });
+
+        window.addEventListener("mouseup", () => {
+          this.draggingCurveKey = null;
+        });
+
+        document.querySelectorAll(".curve-preset-btn[data-curve]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const p = btn.dataset.curve;
+            if (p === "showroom") this.curvePoints = { shadow: 0.16, mid: 0.56, high: 0.86 };
+            else if (p === "deep") this.curvePoints = { shadow: 0.14, mid: 0.40, high: 0.72 };
+            else if (p === "gloss") this.curvePoints = { shadow: 0.22, mid: 0.54, high: 0.92 };
+            else this.curvePoints = { shadow: 0.25, mid: 0.50, high: 0.75 };
+            document.querySelectorAll(".curve-preset-btn[data-curve]").forEach(b => b.classList.toggle("active", b === btn));
+            this._rebuildCurveLUT();
+            this._updateCurveUI();
+            this.render();
+          });
+        });
+
+        document.getElementById("btn-curve-reset")?.addEventListener("click", () => {
+          this.curvePoints = { shadow: 0.25, mid: 0.50, high: 0.75 };
+          document.querySelectorAll(".curve-preset-btn[data-curve]").forEach(b => b.classList.toggle("active", b.dataset.curve === "linear"));
+          this._rebuildCurveLUT();
+          this._updateCurveUI();
+          this.render();
+        });
+      }
+
+      _rebuildCurveLUT() {
+        const xs = [0, 0.25, 0.50, 0.75, 1.0];
+        const ys = [0, this.curvePoints.shadow, this.curvePoints.mid, this.curvePoints.high, 1.0];
+        for (let i = 0; i < 256; i++) {
+          const x = i / 255.0;
+          let seg = 0;
+          while (seg < 3 && x > xs[seg + 1]) seg++;
+          const x0 = xs[seg], x1 = xs[seg + 1];
+          const t = (x - x0) / Math.max(1e-6, x1 - x0);
+          // Smoothstep Hermite blend for natural tone curve
+          const st = t * t * (3 - 2 * t);
+          const v = ys[seg] * (1 - st) + ys[seg + 1] * st;
+          this.curveLUT[i] = Math.min(255, Math.max(0, Math.round(v * 255)));
+        }
+      }
+
+      _updateCurveUI() {
+        const toY = v => Math.round((1 - v) * 120);
+        const ys = toY(this.curvePoints.shadow), ym = toY(this.curvePoints.mid), yh = toY(this.curvePoints.high);
+        document.getElementById("curve-pt-shadow")?.setAttribute("cy", ys);
+        document.getElementById("curve-pt-mid")?.setAttribute("cy", ym);
+        document.getElementById("curve-pt-high")?.setAttribute("cy", yh);
+        document.getElementById("curves-svg-path")?.setAttribute(
+          "d",
+          `M 0 120 C 25 ${Math.round((120 + ys) / 2)}, 40 ${ys}, 50 ${ys} S 85 ${ym}, 100 ${ym} S 135 ${yh}, 150 ${yh} S 185 ${Math.round(yh / 2)}, 200 0`
+        );
+      }
+
+      applyColorToCurrentTarget() {
+        const p = this.activePhoto;
+        if (!p) return;
+        const paint = { color: this.selectedColor, finish: this.selectedFinish };
+        if (this.scope === "full" || this.selectedPieceId === "carroceria") {
+          p.fullPaint = paint;
+        } else {
+          p.piecePaints[this.selectedPieceId] = paint;
+        }
+        this._renderPiecesList();
+        this._updateFichaSummary();
+        this.render();
+      }
+
+      _decodeImgFromB64(b64) {
+        return new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = im.naturalWidth; c.height = im.naturalHeight;
+            c.getContext("2d").drawImage(im, 0, 0);
+            resolve(c);
+          };
+          im.onerror = reject;
+          im.src = b64;
+        });
+      }
+
+      _buildHitGrid(photo) {
+        const img = photo.imgEl;
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        const hitW = 320;
+        const hitH = Math.max(1, Math.round((hitW * h) / w));
+        const grid = new Int16Array(hitW * hitH).fill(-1);
+
+        const tmp = document.createElement("canvas");
+        tmp.width = hitW; tmp.height = hitH;
+        const tctx = tmp.getContext("2d");
+
+        for (let pi = photo.pieces.length - 1; pi >= 0; pi--) {
+          const piece = photo.pieces[pi];
+          if (piece.isBody || !piece.maskCanvas) continue;
+          tctx.clearRect(0, 0, hitW, hitH);
+          tctx.drawImage(piece.maskCanvas, 0, 0, hitW, hitH);
+          const data = tctx.getImageData(0, 0, hitW, hitH).data;
+          for (let i = 0; i < hitW * hitH; i++) {
+            if (grid[i] === -1 && data[(i << 2) + 3] > 80) {
+              grid[i] = pi;
+            }
+          }
+        }
+        photo.hitGrid = grid;
+        photo.hitW = hitW;
+        photo.hitH = hitH;
+      }
+
+      async runAutoAIScan(photo) {
+        if (!photo || !photo.imgEl) return;
+        this._setLoading(true, "Analizando vehículo y separando piezas...");
+        try {
+          const isLocalServer =
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1";
+
+          let result = null;
+          if (isLocalServer) {
+            try {
+              this._setLoading(true, "Ejecutando motor ONNX Car-Parts (33 clases)...");
+              const resp = await fetch("/api/ai/auto-segment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: photo.url })
+              });
+              if (resp.ok) {
+                const json = await resp.json();
+                if (json.success && json.mask_b64) {
+                  const bodyCanvas = await this._decodeImgFromB64(json.mask_b64);
+                  const decodedParts = [];
+                  for (const pt of (json.stats?.parts || [])) {
+                    const mc = await this._decodeImgFromB64(pt.mask_b64);
+                    decodedParts.push({
+                      id: pt.id,
+                      label: pt.label,
+                      areaPct: pt.area_pct,
+                      confidence: pt.confidence,
+                      maskCanvas: mc
+                    });
+                  }
+                  result = {
+                    maskCanvas: bodyCanvas,
+                    vehicleDetected: json.stats?.vehicle_detected,
+                    bodyCoveragePct: json.stats?.body_coverage_pct || 0,
+                    wheelsProtected: json.stats?.wheels_protected || 0,
+                    parts: decodedParts,
+                    inferenceMs: json.stats?.inference_ms || 0,
+                    method: json.stats?.method || "server_yolo26_carparts"
+                  };
+                }
+              }
+            } catch (e) {
+              console.warn("Backend local no respondió, usando WebAssembly:", e);
+            }
+          }
+
+          if (!result) {
+            result = await InBrowserCarAI.segmentImage(photo.imgEl, msg => this._setLoading(true, msg));
+          }
+
+          if (!result.vehicleDetected || result.bodyCoveragePct < 0.5) {
+            this.showToast("No se detectó carrocería clara en esta foto. Usa Pluma Bézier (P) o Lazo (L).");
+            return;
+          }
+
+          const customSaved = photo.pieces.filter(pt => pt.bezierNodes || pt.id.startsWith("manual_") || pt.id.startsWith("wand_"));
+          photo.pieces = [
+            {
+              id: "carroceria",
+              label: "Carrocería Completa",
+              isBody: true,
+              areaPct: result.bodyCoveragePct,
+              maskCanvas: result.maskCanvas
+            },
+            ...result.parts,
+            ...customSaved
+          ];
+          photo.aiStats = {
+            partsCount: result.parts.length,
+            wheelsProtected: result.wheelsProtected,
+            inferenceMs: result.inferenceMs,
+            method: result.method
+          };
+          this._buildHitGrid(photo);
+
+          if (!photo.fullPaint && Object.keys(photo.piecePaints).length === 0) {
+            photo.fullPaint = { color: this.selectedColor, finish: this.selectedFinish };
+          }
+
+          this._renderPiecesList();
+          this._syncUIFromState();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast(`IA lista: ${result.parts.length} piezas detectadas en ${result.inferenceMs} ms`);
+        } catch (err) {
+          console.error("Error IA:", err);
+          this.showToast("Error en análisis IA: " + (err.message || err));
+        } finally {
+          this._setLoading(false);
+        }
+      }
+
+      /* ---------------- GEOMETRÍA CANVAS & COORDENADAS ---------------- */
+      _getImageDrawRect() {
+        const p = this.activePhoto;
+        if (!p || !p.imgEl) return null;
+        const cw = this.canvas.width, ch = this.canvas.height;
+        const iw = p.imgEl.naturalWidth || p.imgEl.width;
+        const ih = p.imgEl.naturalHeight || p.imgEl.height;
+        const pad = 20;
+        const scale = Math.min((cw - pad * 2) / iw, (ch - pad * 2) / ih);
+        const dw = iw * scale, dh = ih * scale;
+        const dx = (cw - dw) * 0.5, dy = (ch - dh) * 0.5;
+        return { dx, dy, dw, dh, iw, ih, scale };
+      }
+
+      _clientToCanvas(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const sx = this.canvas.width / Math.max(1, rect.width);
+        const sy = this.canvas.height / Math.max(1, rect.height);
+        return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+      }
+
+      _canvasToNorm(pt) {
+        const r = this._getImageDrawRect();
+        if (!r) return null;
+        return { nx: (pt.x - r.dx) / r.dw, ny: (pt.y - r.dy) / r.dh };
+      }
+
+      _hitTestPiece(nx, ny) {
+        const p = this.activePhoto;
+        if (!p || !p.hitGrid || nx < 0 || nx > 1 || ny < 0 || ny > 1) return null;
+        const gx = Math.min(p.hitW - 1, Math.max(0, Math.floor(nx * p.hitW)));
+        const gy = Math.min(p.hitH - 1, Math.max(0, Math.floor(ny * p.hitH)));
+        const pi = p.hitGrid[gy * p.hitW + gx];
+        return pi >= 0 ? p.pieces[pi] : null;
+      }
+
+      _hitTestSticker(pt) {
+        const p = this.activePhoto;
+        const r = this._getImageDrawRect();
+        if (!p || !r || !p.stickers.length) return null;
+        for (let i = p.stickers.length - 1; i >= 0; i--) {
+          const st = p.stickers[i];
+          const cx = r.dx + st.xNorm * r.dw;
+          const cy = r.dy + st.yNorm * r.dh;
+          const baseW = r.dw * 0.24 * st.scale;
+          const aspect = (st.img.naturalHeight || 100) / Math.max(1, st.img.naturalWidth || 200);
+          const baseH = baseW * aspect;
+          const rad = (-st.rotationDeg * Math.PI) / 180;
+          const tx = pt.x - cx, ty = pt.y - cy;
+          const lx = tx * Math.cos(rad) - ty * Math.sin(rad);
+          const ly = tx * Math.sin(rad) + ty * Math.cos(rad);
+          if (Math.abs(lx) <= baseW * 0.55 && Math.abs(ly) <= baseH * 0.55) {
+            return st;
+          }
+        }
+        return null;
+      }
+
+      /* ---------------- ILLUSTRATOR VECTORIAL (BÉZIER PEN + NODES) ---------------- */
+      _getEditableBezierNodes() {
+        if (this.penNodes.length > 0) return this.penNodes;
+        const p = this.activePhoto;
+        if (!p) return null;
+        const sel = p.pieces.find(pt => pt.id === this.selectedPieceId && pt.bezierNodes);
+        return sel ? sel.bezierNodes : null;
+      }
+
+      _smoothCatmullRom(nodes) {
+        const n = nodes.length;
+        if (n < 3) return;
+        for (let i = 0; i < n; i++) {
+          const prev = nodes[(i - 1 + n) % n];
+          const curr = nodes[i];
+          const next = nodes[(i + 1) % n];
+          const tx = (next.nx - prev.nx) * 0.20;
+          const ty = (next.ny - prev.ny) * 0.20;
+          curr.inDx = -tx; curr.inDy = -ty;
+          curr.outDx = tx; curr.outDy = ty;
+        }
+      }
+
+      _rasterizeBezierMask(nodes, iw, ih) {
+        const mc = document.createElement("canvas");
+        mc.width = iw; mc.height = ih;
+        const ctx = mc.getContext("2d");
+        ctx.fillStyle = "#FFFFFF";
+        ctx.beginPath();
+        const n = nodes.length;
+        ctx.moveTo(nodes[0].nx * iw, nodes[0].ny * ih);
+        for (let i = 0; i < n; i++) {
+          const a = nodes[i];
+          const b = nodes[(i + 1) % n];
+          ctx.bezierCurveTo(
+            (a.nx + a.outDx) * iw, (a.ny + a.outDy) * ih,
+            (b.nx + b.inDx) * iw, (b.ny + b.inDy) * ih,
+            b.nx * iw, b.ny * ih
+          );
+        }
+        ctx.closePath();
+        ctx.fill();
+        return mc;
+      }
+
+      _commitBezierPiece(nodes) {
+        const p = this.activePhoto;
+        if (!p || !p.imgEl || nodes.length < 3) return;
+        const iw = p.imgEl.naturalWidth || p.imgEl.width;
+        const ih = p.imgEl.naturalHeight || p.imgEl.height;
+        const copyNodes = nodes.map(nd => ({ ...nd }));
+        const mc = this._rasterizeBezierMask(copyNodes, iw, ih);
+        const id = "bezier_" + Date.now();
+        p.pieces.push({
+          id,
+          label: `Trazo Pluma #${p.pieces.length}`,
+          areaPct: 0,
+          maskCanvas: mc,
+          bezierNodes: copyNodes
+        });
+        this.selectedPieceId = id;
+        this.scope = "piece";
+        p.piecePaints[id] = { color: this.selectedColor, finish: this.selectedFinish };
+        this._buildHitGrid(p);
+        this._renderPiecesList();
+        this._syncUIFromState();
+        this._updateFichaSummary();
+        this.showToast("Trazo Bézier guardado como pieza editable con Nodos (A)");
+      }
+
+      _refreshActiveBezierPiece() {
+        const p = this.activePhoto;
+        if (!p || !p.imgEl) return;
+        const sel = p.pieces.find(pt => pt.id === this.selectedPieceId && pt.bezierNodes);
+        if (!sel) return;
+        const iw = p.imgEl.naturalWidth || p.imgEl.width;
+        const ih = p.imgEl.naturalHeight || p.imgEl.height;
+        sel.maskCanvas = this._rasterizeBezierMask(sel.bezierNodes, iw, ih);
+        p._paintCacheKey = null;
+        this._buildHitGrid(p);
+      }
+
+      /* ---------------- STICKERS ---------------- */
+      addStickerFromSource(name, srcUrl) {
+        const p = this.activePhoto;
+        if (!p) {
+          this.showToast("Primero sube la foto de un vehículo.");
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          const st = {
+            id: "stk_" + Date.now() + "_" + Math.floor(Math.random() * 999),
+            name: name || "Calcomanía",
+            img,
+            xNorm: 0.50,
+            yNorm: 0.54,
+            scale: 0.80,
+            rotationDeg: 0,
+            alpha: 0.95,
+            clipToBody: true
+          };
+          p.stickers.push(st);
+          this.selectedStickerId = st.id;
+          this._syncStickerInspector();
+          this._updateFichaSummary();
+          this.render();
+          this.showToast(`Sticker "${st.name}" agregado — arrástralo sobre el vehículo`);
+        };
+        img.src = srcUrl;
+      }
+
+      _getSelectedSticker() {
+        const p = this.activePhoto;
+        if (!p || !this.selectedStickerId) return null;
+        return p.stickers.find(s => s.id === this.selectedStickerId) || null;
+      }
+
+      _syncStickerInspector() {
+        const card = document.getElementById("sticker-inspector-card");
+        const st = this._getSelectedSticker();
+        if (!card) return;
+        if (!st) {
+          card.style.display = "none";
+          return;
+        }
+        card.style.display = "block";
+        document.getElementById("sticker-selected-name").textContent = st.name;
+        document.getElementById("range-sticker-scale").value = Math.round(st.scale * 100);
+        document.getElementById("lbl-sticker-scale").textContent = Math.round(st.scale * 100) + "%";
+        document.getElementById("range-sticker-rot").value = st.rotationDeg;
+        document.getElementById("lbl-sticker-rot").textContent = st.rotationDeg + "°";
+        document.getElementById("range-sticker-alpha").value = Math.round(st.alpha * 100);
+        document.getElementById("lbl-sticker-alpha").textContent = Math.round(st.alpha * 100) + "%";
+        document.getElementById("chk-sticker-clip").checked = !!st.clipToBody;
+      }
+
+      /* ---------------- EVENTOS CANVAS ---------------- */
+      _onCanvasMouseDown(e) {
+        if (!this.activePhoto) {
+          document.getElementById("photo-upload-input")?.click();
+          return;
+        }
+        const pt = this._clientToCanvas(e);
+        const norm = this._canvasToNorm(pt);
+        if (!norm) return;
+        const r = this._getImageDrawRect();
+
+        // 1. Herramienta Seleccionar (V): stickers o piezas pintables IA
+        if (this.tool === "select") {
+          const hitStk = this._hitTestSticker(pt);
+          if (hitStk) {
+            this.selectedStickerId = hitStk.id;
+            this.draggingSticker = true;
+            this.dragStickerOffset = {
+              dx: pt.x - (r.dx + hitStk.xNorm * r.dw),
+              dy: pt.y - (r.dy + hitStk.yNorm * r.dh)
+            };
+            this._syncStickerInspector();
+            this.render();
+            return;
+          }
+
+          if (this.selectedStickerId) {
+            this.selectedStickerId = null;
+            this._syncStickerInspector();
+          }
+
+          const hitPiece = this._hitTestPiece(norm.nx, norm.ny);
+          if (hitPiece) {
+            this.selectedPieceId = hitPiece.id;
+            if (this.scope === "piece") {
+              this.activePhoto.piecePaints[hitPiece.id] = {
+                color: this.selectedColor,
+                finish: this.selectedFinish
+              };
+              this.showToast(`Pieza "${hitPiece.label}" pintada`);
+            } else {
+              this.showToast(`Detectado: ${hitPiece.label} (cambia a "Por Piezas" para pintar individual)`);
+            }
+            this._renderPiecesList();
+            this._syncUIFromState();
+            this._updateFichaSummary();
+            this.render();
+          }
+          return;
+        }
+
+        // 2. Cuentagotas Photoshop (I)
+        if (this.tool === "pipette") {
+          const ix = Math.min(r.iw - 1, Math.max(0, Math.round(norm.nx * r.iw)));
+          const iy = Math.min(r.ih - 1, Math.max(0, Math.round(norm.ny * r.ih)));
+          const tmpC = document.createElement("canvas");
+          tmpC.width = 1; tmpC.height = 1;
+          tmpC.getContext("2d").drawImage(this.activePhoto.imgEl, ix, iy, 1, 1, 0, 0, 1, 1);
+          const px = tmpC.getContext("2d").getImageData(0, 0, 1, 1).data;
+          const hex = "#" + [px[0], px[1], px[2]].map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase();
+          this.selectedColor = hex;
+          this.selectedColorName = "Muestreo " + hex;
+          this._renderSwatches();
+          this._syncUIFromState();
+          this.showToast(`Color muestreado: ${hex}`);
+          return;
+        }
+
+        // 3. Pluma Bézier Illustrator/Photoshop (P): clic = vértice, arrastrar = curva
+        if (this.tool === "pen") {
+          if (!this.penClosed && this.penNodes.length >= 3) {
+            const p0 = this.penNodes[0];
+            const px0 = r.dx + p0.nx * r.dw, py0 = r.dy + p0.ny * r.dh;
+            if (Math.hypot(pt.x - px0, pt.y - py0) < 14) {
+              this.penClosed = true;
+              this._commitBezierPiece(this.penNodes);
+              this.penNodes = [];
+              this.penClosed = false;
+              this.render();
+              return;
+            }
+          }
+          this.penClosed = false;
+          this.penNodes.push({ nx: norm.nx, ny: norm.ny, inDx: 0, inDy: 0, outDx: 0, outDy: 0 });
+          this.penDraggingNewIdx = this.penNodes.length - 1;
+          this.render();
+          return;
+        }
+
+        // 4. Corregir Nodos Illustrator (A): arrastrar anclas o manejadores Bézier
+        if (this.tool === "node") {
+          const nodes = this._getEditableBezierNodes();
+          if (!nodes || nodes.length === 0) {
+            this.showToast("Traza primero con Pluma Bézier (P) o selecciona una pieza trazada.");
+            return;
+          }
+          let best = null, bestDist = 14;
+          nodes.forEach((nd, idx) => {
+            const ax = r.dx + nd.nx * r.dw, ay = r.dy + nd.ny * r.dh;
+            const ix = r.dx + (nd.nx + nd.inDx) * r.dw, iy = r.dy + (nd.ny + nd.inDy) * r.dh;
+            const ox = r.dx + (nd.nx + nd.outDx) * r.dw, oy = r.dy + (nd.ny + nd.outDy) * r.dh;
+            const dIn = Math.hypot(pt.x - ix, pt.y - iy);
+            const dOut = Math.hypot(pt.x - ox, pt.y - oy);
+            const dAnc = Math.hypot(pt.x - ax, pt.y - ay);
+            if ((Math.abs(nd.inDx) > 1e-4 || Math.abs(nd.inDy) > 1e-4) && dIn < bestDist) {
+              bestDist = dIn; best = { nodes, idx, kind: "in" };
+            }
+            if ((Math.abs(nd.outDx) > 1e-4 || Math.abs(nd.outDy) > 1e-4) && dOut < bestDist) {
+              bestDist = dOut; best = { nodes, idx, kind: "out" };
+            }
+            if (dAnc < bestDist) {
+              bestDist = dAnc; best = { nodes, idx, kind: "anchor" };
+            }
+          });
+          this.nodeDragTarget = best;
+          return;
+        }
+
+        // 5. Varita Mágica (W)
+        if (this.tool === "wand") {
+          this._runMagicWandAt(norm.nx, norm.ny);
+          return;
+        }
+
+        // 6. Lazo Libre (L)
+        if (this.tool === "lasso") {
+          this.isDrawing = true;
+          this.lassoPoints = [[norm.nx, norm.ny]];
+          this.render();
+        }
+      }
+
+      _onCanvasMouseMove(e) {
+        if (!this.activePhoto) return;
+        const pt = this._clientToCanvas(e);
+        const r = this._getImageDrawRect();
+        if (!r) return;
+        const norm = this._canvasToNorm(pt);
+        this.cursorNorm = norm;
+
+        if (this.draggingSticker && this.selectedStickerId) {
+          const st = this._getSelectedSticker();
+          if (st) {
+            st.xNorm = Math.min(1, Math.max(0, (pt.x - this.dragStickerOffset.dx - r.dx) / r.dw));
+            st.yNorm = Math.min(1, Math.max(0, (pt.y - this.dragStickerOffset.dy - r.dy) / r.dh));
+            this.render();
+          }
+          return;
+        }
+
+        if (this.tool === "pen" && this.penDraggingNewIdx >= 0 && norm) {
+          const nd = this.penNodes[this.penDraggingNewIdx];
+          if (nd) {
+            nd.outDx = norm.nx - nd.nx;
+            nd.outDy = norm.ny - nd.ny;
+            nd.inDx = -nd.outDx;
+            nd.inDy = -nd.outDy;
+            this.render();
+          }
+          return;
+        }
+
+        if (this.tool === "pen" && this.penNodes.length > 0) {
+          this.render();
+          return;
+        }
+
+        if (this.tool === "node" && this.nodeDragTarget && norm) {
+          const { nodes, idx, kind } = this.nodeDragTarget;
+          const nd = nodes[idx];
+          if (kind === "anchor") {
+            nd.nx = norm.nx; nd.ny = norm.ny;
+          } else if (kind === "in") {
+            nd.inDx = norm.nx - nd.nx; nd.inDy = norm.ny - nd.ny;
+            nd.outDx = -nd.inDx; nd.outDy = -nd.inDy;
+          } else if (kind === "out") {
+            nd.outDx = norm.nx - nd.nx; nd.outDy = norm.ny - nd.ny;
+            nd.inDx = -nd.outDx; nd.inDy = -nd.outDy;
+          }
+          this._refreshActiveBezierPiece();
+          this.render();
+          return;
+        }
+
+        if (this.tool === "lasso" && this.isDrawing && norm) {
+          this.lassoPoints.push([norm.nx, norm.ny]);
+          this.render();
+          return;
+        }
+
+        if (this.tool === "select") {
+          const hp = norm ? this._hitTestPiece(norm.nx, norm.ny) : null;
+          const nextHover = hp ? hp.id : null;
+          if (nextHover !== this.hoveredPieceId) {
+            this.hoveredPieceId = nextHover;
+            this.canvas.style.cursor = nextHover ? "pointer" : "default";
+            const lbl = document.getElementById("label-active-piece");
+            if (lbl && hp) lbl.textContent = `Cursor: ${hp.label}`;
+            else if (lbl) this._syncUIFromState();
+          }
+        } else {
+          this.canvas.style.cursor = "crosshair";
+        }
+      }
+
+      _onCanvasMouseUp() {
+        this.draggingSticker = false;
+        this.penDraggingNewIdx = -1;
+        this.nodeDragTarget = null;
+
+        if (this.tool === "lasso" && this.isDrawing) {
+          this.isDrawing = false;
+          if (this.lassoPoints.length > 5) {
+            this._commitPolygonMask(this.lassoPoints);
+          }
+          this.lassoPoints = [];
+          this.render();
+        }
+      }
+
+      _commitPolygonMask(normPoly) {
+        const nodes = normPoly.map(([nx, ny]) => ({ nx, ny, inDx: 0, inDy: 0, outDx: 0, outDy: 0 }));
+        this._commitBezierPiece(nodes);
+      }
+
+      _runMagicWandAt(nx, ny) {
+        const p = this.activePhoto;
+        if (!p || !p.imgEl || nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
+        const w = Math.min(640, p.imgEl.naturalWidth || p.imgEl.width);
+        const h = Math.round(w * ((p.imgEl.naturalHeight || p.imgEl.height) / (p.imgEl.naturalWidth || p.imgEl.width)));
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(p.imgEl, 0, 0, w, h);
+        const img = ctx.getImageData(0, 0, w, h);
+        const d = img.data;
+
+        const sx = Math.min(w - 1, Math.max(0, Math.floor(nx * w)));
+        const sy = Math.min(h - 1, Math.max(0, Math.floor(ny * h)));
+        const sIdx = (sy * w + sx) << 2;
+        const sr = d[sIdx], sg = d[sIdx + 1], sb = d[sIdx + 2];
+
+        const visited = new Uint8Array(w * h);
+        const queue = [sy * w + sx];
+        visited[sy * w + sx] = 1;
+        let head = 0;
+        const tol = 34;
+
+        while (head < queue.length && head < w * h) {
+          const cur = queue[head++];
+          const cx = cur % w, cy = (cur - cx) / w;
+          const neighbors = [];
+          if (cx > 0) neighbors.push(cur - 1);
+          if (cx + 1 < w) neighbors.push(cur + 1);
+          if (cy > 0) neighbors.push(cur - w);
+          if (cy + 1 < h) neighbors.push(cur + w);
+          for (const nb of neighbors) {
+            if (visited[nb]) continue;
+            const j = nb << 2;
+            const dist = Math.abs(d[j] - sr) + Math.abs(d[j + 1] - sg) + Math.abs(d[j + 2] - sb);
+            if (dist <= tol * 3) {
+              visited[nb] = 1;
+              queue.push(nb);
+            }
+          }
+        }
+
+        const outC = document.createElement("canvas");
+        outC.width = w; outC.height = h;
+        const octx = outC.getContext("2d");
+        const oimg = octx.createImageData(w, h);
+        for (let i = 0; i < w * h; i++) {
+          if (visited[i]) {
+            const j = i << 2;
+            oimg.data[j] = 255; oimg.data[j + 1] = 255; oimg.data[j + 2] = 255; oimg.data[j + 3] = 255;
+          }
+        }
+        octx.putImageData(oimg, 0, 0);
+
+        const id = "wand_" + Date.now();
+        p.pieces.push({ id, label: `Varita #${p.pieces.length}`, areaPct: 0, maskCanvas: outC });
+        this.selectedPieceId = id;
+        this.scope = "piece";
+        p.piecePaints[id] = { color: this.selectedColor, finish: this.selectedFinish };
+        this._buildHitGrid(p);
+        this._renderPiecesList();
+        this._syncUIFromState();
+        this._updateFichaSummary();
+        this.render();
+        this.showToast("Varita mágica aplicada");
+      }
+
+      /* ---------------- MOTOR FÍSICO DE PINTURA (REC.709 + CURVAS LUT + CLEARCOAT) ---------------- */
+      _hexToRgb(hex) {
+        const clean = hex.replace("#", "");
+        return [
+          parseInt(clean.slice(0, 2), 16),
+          parseInt(clean.slice(2, 4), 16),
+          parseInt(clean.slice(4, 6), 16)
+        ];
+      }
+
+      _applyPaintShader(baseCanvas, maskCanvas, hexColor, finish, dx, dy, dw, dh) {
+        const w = baseCanvas.width, h = baseCanvas.height;
+        const bCtx = baseCanvas.getContext("2d");
+        const bImg = bCtx.getImageData(0, 0, w, h);
+        const bData = bImg.data;
+
+        const mCanvas = this._paintLayerCanvas;
+        mCanvas.width = w; mCanvas.height = h;
+        const mCtx = mCanvas.getContext("2d");
+        mCtx.clearRect(0, 0, w, h);
+        mCtx.drawImage(maskCanvas, dx, dy, dw, dh);
+        const mData = mCtx.getImageData(0, 0, w, h).data;
+
+        const [tr, tg, tb] = this._hexToRgb(hexColor);
+        const cr = tr / 255, cg = tg / 255, cb = tb / 255;
+        const lut = this.curveLUT;
+
+        const n = w * h;
+        for (let i = 0; i < n; i++) {
+          const alpha = mData[(i << 2) + 3] / 255;
+          if (alpha < 0.02) continue;
+
+          const j = i << 2;
+          const r0 = bData[j] / 255, g0 = bData[j + 1] / 255, b0 = bData[j + 2] / 255;
+          const Lraw = 0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0;
+          const Lidx = Math.min(255, Math.max(0, Math.round(Lraw * 255)));
+          const L = lut[Lidx] / 255.0;
+
+          let nr, ng, nb;
+          if (finish === "matte") {
+            const Lm = Math.pow(L, 0.92) * 0.88 + 0.04;
+            nr = cr * Lm * 1.18;
+            ng = cg * Lm * 1.18;
+            nb = cb * Lm * 1.18;
+          } else if (finish === "pearl") {
+            const ov = (c, l) => (l < 0.5 ? 2 * c * l : 1 - 2 * (1 - c) * (1 - l));
+            const spec = Math.max(0, L - 0.76) * 1.5;
+            nr = ov(cr, L) * 0.85 + cr * L * 0.22 + spec * 0.95;
+            ng = ov(cg, L) * 0.85 + cg * L * 0.22 + spec * 0.92;
+            nb = ov(cb, L) * 0.85 + cb * L * 0.22 + spec * 1.0;
+          } else if (finish === "solid") {
+            const spec = Math.max(0, L - 0.80) * 1.8;
+            nr = cr * Math.min(1.18, L * 1.35 + 0.08) + spec;
+            ng = cg * Math.min(1.18, L * 1.35 + 0.08) + spec;
+            nb = cb * Math.min(1.18, L * 1.35 + 0.08) + spec;
+          } else {
+            const ov = (c, l) => (l < 0.5 ? 2 * c * l : 1 - 2 * (1 - c) * (1 - l));
+            const baseL = Math.min(1, L * 1.12);
+            const spec = Math.max(0, L - 0.78) * 1.65;
+            nr = ov(cr, baseL) * 0.72 + cr * baseL * 0.45 + spec;
+            ng = ov(cg, baseL) * 0.72 + cg * baseL * 0.45 + spec;
+            nb = ov(cb, baseL) * 0.72 + cb * baseL * 0.45 + spec;
+          }
+
+          nr = Math.max(0, Math.min(1, nr));
+          ng = Math.max(0, Math.min(1, ng));
+          nb = Math.max(0, Math.min(1, nb));
+
+          bData[j]     = Math.round((r0 * (1 - alpha) + nr * alpha) * 255);
+          bData[j + 1] = Math.round((g0 * (1 - alpha) + ng * alpha) * 255);
+          bData[j + 2] = Math.round((b0 * (1 - alpha) + nb * alpha) * 255);
+        }
+        bCtx.putImageData(bImg, 0, 0);
+      }
+
+      /* ---------------- FICHA DE MATERIALES & IMPRESIÓN PDF ---------------- */
+      _buildMaterialsSpec() {
+        const photo = this.activePhoto;
+        if (!photo) return null;
+
+        const items = [];
+        const bodyPiece = photo.pieces.find(p => p.isBody);
+        const paintedEntries = Object.entries(photo.piecePaints);
+
+        if (this.scope === "full" && photo.fullPaint) {
+          items.push({
+            pieza: "Carrocería Completa (Todos los paneles)",
+            hex: photo.fullPaint.color,
+            acabado: FINISH_LABELS_ES[photo.fullPaint.finish] || photo.fullPaint.finish,
+            baseMl: 2800,
+            reductorMl: 1400,
+            clearMl: photo.fullPaint.finish === "matte" ? 1800 : 2000
+          });
+        } else if (paintedEntries.length > 0) {
+          for (const [pid, cfg] of paintedEntries) {
+            const piece = photo.pieces.find(pt => pt.id === pid);
+            const estMl = Math.max(180, Math.round(((piece?.areaPct || 3.5) / 30) * 2600));
+            items.push({
+              pieza: piece ? piece.label : pid,
+              hex: cfg.color,
+              acabado: FINISH_LABELS_ES[cfg.finish] || cfg.finish,
+              baseMl: estMl,
+              reductorMl: Math.round(estMl * 0.5),
+              clearMl: Math.round(estMl * 0.75)
+            });
+          }
+        } else if (photo.fullPaint && bodyPiece) {
+          items.push({
+            pieza: "Carrocería Completa",
+            hex: photo.fullPaint.color,
+            acabado: FINISH_LABELS_ES[photo.fullPaint.finish] || photo.fullPaint.finish,
+            baseMl: 2800,
+            reductorMl: 1400,
+            clearMl: 2000
+          });
+        }
+
+        const totalBase = items.reduce((a, b) => a + b.baseMl, 0);
+        const totalRed = items.reduce((a, b) => a + b.reductorMl, 0);
+        const totalClear = items.reduce((a, b) => a + b.clearMl, 0);
+        const catalizador = Math.round(totalClear * 0.5);
+        const primerMl = Math.round(totalBase * 0.45);
+
+        return {
+          client: (document.getElementById("ficha-client-name")?.value || "").trim() || "Cliente Mostrador",
+          vehicle: (document.getElementById("ficha-vehicle-model")?.value || "").trim() || photo.label,
+          notes: (document.getElementById("ficha-notes")?.value || "").trim() || "Preparación de lámina, fondeo, aplicación bicapa/tricapa y pulido espejo.",
+          folio: document.getElementById("ficha-folio-badge")?.textContent || "ORD-001",
+          items,
+          stickers: photo.stickers || [],
+          totals: { totalBase, totalRed, totalClear, catalizador, primerMl }
+        };
+      }
+
+      _updateFichaSummary() {
+        const box = document.getElementById("ficha-materials-summary");
+        if (!box) return;
+        const spec = this._buildMaterialsSpec();
+        if (!spec || (spec.items.length === 0 && spec.stickers.length === 0)) {
+          box.innerHTML = `<div style="color:var(--text-muted); padding:6px 0;">Sube un vehículo y aplica al menos un color o sticker para generar la lista de materiales.</div>`;
+          return;
+        }
+
+        let html = `<table class="ficha-table"><thead><tr><th>Pieza</th><th>Color</th><th>Base / Laca</th></tr></thead><tbody>`;
+        for (const it of spec.items) {
+          html += `<tr>
+            <td>${it.pieza}</td>
+            <td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${it.hex};border:1px solid #94A3B8;vertical-align:middle;margin-right:4px;"></span>${it.hex}</td>
+            <td>${(it.baseMl / 1000).toFixed(2)} L</td>
+          </tr>`;
+        }
+        html += `</tbody></table>
+        <div style="margin-top:8px; padding:8px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0; line-height:1.5;">
+          <div><b>Base Color Total:</b> ${(spec.totals.totalBase / 1000).toFixed(2)} L</div>
+          <div><b>Reductor Acrílico / Uretano:</b> ${(spec.totals.totalRed / 1000).toFixed(2)} L</div>
+          <div><b>Transparente / Barniz 2K:</b> ${(spec.totals.totalClear / 1000).toFixed(2)} L</div>
+          <div><b>Catalizador 2K (2:1):</b> ${(spec.totals.catalizador / 1000).toFixed(2)} L</div>
+          <div><b>Primer / Rellenador:</b> ${(spec.totals.primerMl / 1000).toFixed(2)} L</div>
+          <div><b>Viniles / Stickers:</b> ${spec.stickers.length} pieza(s)</div>
+        </div>`;
+        box.innerHTML = html;
+      }
+
+      printOrderPDF() {
+        const spec = this._buildMaterialsSpec();
+        const photo = this.activePhoto;
+        if (!spec || !photo) {
+          this.showToast("Sube un vehículo primero para generar la Ficha PDF.");
+          return;
+        }
+        const compositeUrl = this.exportCompositePNG(true);
+        const sheet = document.getElementById("print-order-sheet");
+        if (!sheet) return;
+
+        const fecha = new Date().toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" });
+        const rowsHtml = spec.items.map(it => `
+          <tr>
+            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.pieza}</td>
+            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${it.hex};border:1px solid #475569;vertical-align:middle;margin-right:6px;"></span>
+              ${it.hex}
+            </td>
+            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.acabado}</td>
+            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.baseMl} ml</td>
+            <td style="padding:6px; border-bottom:1px solid #E2E8F0;">${it.clearMl} ml</td>
+          </tr>
+        `).join("");
+
+        const stickersHtml = spec.stickers.length
+          ? spec.stickers.map(s => `<li>${s.name} (Escala ${Math.round(s.scale * 100)}%, Rotación ${s.rotationDeg}°, ${s.clipToBody ? "Recortado a lámina" : "Libre"})</li>`).join("")
+          : "<li>Sin calcomanías ni franjas adicionales</li>";
+
+        sheet.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #C8102E; padding-bottom:12px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="./logo_el_rayo.png" style="height:48px; width:auto;" />
+              <div>
+                <div style="font-size:18px; font-weight:900; color:#0F172A;">EL RAYO AUTODESIGN STUDIO</div>
+                <div style="font-size:11px; color:#475569;">Orden de Pintura Automotriz, Viniles & Ficha de Materiales</div>
+              </div>
+            </div>
+            <div style="text-align:right; font-size:11px;">
+              <div><b>Folio:</b> ${spec.folio}</div>
+              <div><b>Fecha:</b> ${fecha}</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:#F8FAFC; padding:10px 14px; border:1px solid #CBD5E1; border-radius:8px; font-size:12px; margin-bottom:14px;">
+            <div><b>Cliente:</b> ${spec.client}</div>
+            <div><b>Vehículo:</b> ${spec.vehicle}</div>
+            <div style="grid-column:1 / -1;"><b>Notas de Taller:</b> ${spec.notes}</div>
+          </div>
+
+          <div style="text-align:center; margin-bottom:14px;">
+            <img src="${compositeUrl}" style="max-width:100%; max-height:310px; border-radius:8px; border:1px solid #CBD5E1;" />
+          </div>
+
+          <h3 style="font-size:13px; margin:0 0 6px 0; text-transform:uppercase; color:#C8102E;">Desglose de Piezas y Pintura</h3>
+          <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:14px;">
+            <thead>
+              <tr style="background:#F1F5F9; text-align:left;">
+                <th style="padding:6px;">Pieza / Panel</th>
+                <th style="padding:6px;">Código Color</th>
+                <th style="padding:6px;">Sistema / Acabado</th>
+                <th style="padding:6px;">Base Color</th>
+                <th style="padding:6px;">Barniz 2K</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml || '<tr><td colspan="5" style="padding:8px;">Color original conservado (solo viniles/gráficos)</td></tr>'}</tbody>
+          </table>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:11px; margin-bottom:18px;">
+            <div style="padding:10px; border:1px solid #CBD5E1; border-radius:6px;">
+              <div style="font-weight:800; margin-bottom:4px; color:#0F172A;">Resumen de Insumos a Surtir</div>
+              <div>• Base Color Automotriz: <b>${(spec.totals.totalBase / 1000).toFixed(2)} L</b></div>
+              <div>• Reductor Uretano: <b>${(spec.totals.totalRed / 1000).toFixed(2)} L</b></div>
+              <div>• Transparente / Laca 2K HS: <b>${(spec.totals.totalClear / 1000).toFixed(2)} L</b></div>
+              <div>• Catalizador 2K: <b>${(spec.totals.catalizador / 1000).toFixed(2)} L</b></div>
+              <div>• Primer Rellenador: <b>${(spec.totals.primerMl / 1000).toFixed(2)} L</b></div>
+            </div>
+            <div style="padding:10px; border:1px solid #CBD5E1; border-radius:6px;">
+              <div style="font-weight:800; margin-bottom:4px; color:#0F172A;">Stickers & Calcomanías en Vinil</div>
+              <ul style="margin:0; padding-left:16px;">${stickersHtml}</ul>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; margin-top:26px; font-size:11px; color:#475569;">
+            <div style="width:42%; border-top:1px solid #64748B; padding-top:4px; text-align:center;">Firma de Autorización del Cliente</div>
+            <div style="width:42%; border-top:1px solid #64748B; padding-top:4px; text-align:center;">Responsable de Colorimetría / Taller El Rayo</div>
+          </div>
+        `;
+        window.print();
+      }
+
+      /* ---------------- RENDER PRINCIPAL (60FPS CACHED) ---------------- */
+      _syncCanvasDimensions() {
+        const vp = document.getElementById("canvas-viewport");
+        if (!vp) return;
+        const w = Math.max(640, vp.clientWidth);
+        const h = Math.max(400, vp.clientHeight);
+        if (this.canvas.width !== w || this.canvas.height !== h) {
+          this.canvas.width = w;
+          this.canvas.height = h;
+        }
+      }
+
+      _renderPaintedImage(photo) {
+        const iw = photo.imgEl.naturalWidth || photo.imgEl.width;
+        const ih = photo.imgEl.naturalHeight || photo.imgEl.height;
+        const cacheKey = JSON.stringify({
+          scope: this.scope,
+          fullPaint: photo.fullPaint,
+          piecePaints: photo.piecePaints,
+          nPieces: photo.pieces.length,
+          curve: this.curvePoints
+        });
+        if (photo._paintCacheCanvas && photo._paintCacheKey === cacheKey) {
+          return photo._paintCacheCanvas;
+        }
+
+        const c = photo._paintCacheCanvas || document.createElement("canvas");
+        c.width = iw;
+        c.height = ih;
+        const cctx = c.getContext("2d");
+        cctx.clearRect(0, 0, iw, ih);
+        cctx.drawImage(photo.imgEl, 0, 0, iw, ih);
+
+        const bodyPiece = photo.pieces.find(p => p.isBody);
+        if (this.scope === "full" && photo.fullPaint && bodyPiece?.maskCanvas) {
+          this._applyPaintShader(c, bodyPiece.maskCanvas, photo.fullPaint.color, photo.fullPaint.finish, 0, 0, iw, ih);
+        } else {
+          if (photo.fullPaint && bodyPiece?.maskCanvas && Object.keys(photo.piecePaints).length === 0) {
+            this._applyPaintShader(c, bodyPiece.maskCanvas, photo.fullPaint.color, photo.fullPaint.finish, 0, 0, iw, ih);
+          }
+          for (const piece of photo.pieces) {
+            if (piece.isBody || !piece.maskCanvas) continue;
+            const cfg = photo.piecePaints[piece.id];
+            if (cfg) {
+              this._applyPaintShader(c, piece.maskCanvas, cfg.color, cfg.finish, 0, 0, iw, ih);
+            }
+          }
+        }
+
+        photo._paintCacheCanvas = c;
+        photo._paintCacheKey = cacheKey;
+        return c;
+      }
+
+      render() {
+        this._syncCanvasDimensions();
+        const ctx = this.ctx;
+        const cw = this.canvas.width, ch = this.canvas.height;
+        ctx.clearRect(0, 0, cw, ch);
+
+        const photo = this.activePhoto;
+        if (!photo || !photo.imgEl) {
+          this._renderEmptyPlaceholder(ctx, cw, ch);
+          return;
+        }
+
+        const r = this._getImageDrawRect();
+        if (!r) return;
+
+        const painted = this._renderPaintedImage(photo);
+        ctx.drawImage(painted, r.dx, r.dy, r.dw, r.dh);
+
+        const bodyPiece = photo.pieces.find(p => p.isBody);
+        this._renderStickers(ctx, photo, bodyPiece, r, true);
+
+        // Dibujar Lazo libre
+        if (this.lassoPoints.length > 1) {
+          ctx.save();
+          ctx.strokeStyle = "#C8102E";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          this.lassoPoints.forEach(([nx, ny], i) => {
+            const px = r.dx + nx * r.dw, py = r.dy + ny * r.dh;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          });
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Dibujar Trazado Vectorial Illustrator (Pluma / Nodos Bézier + Manejadores)
+        const activeNodes = (this.tool === "pen" || this.tool === "node") ? this._getEditableBezierNodes() : null;
+        if (activeNodes && activeNodes.length > 0) {
+          this._renderBezierOverlay(ctx, activeNodes, r, this.penNodes.length > 0 ? this.penClosed : true);
+        }
+      }
+
+      _renderBezierOverlay(ctx, nodes, r, closed) {
+        ctx.save();
+        const toPx = (nx, ny) => [r.dx + nx * r.dw, r.dy + ny * r.dh];
+
+        // Ruta principal Bézier
+        ctx.strokeStyle = "#1558C4";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        const [sx, sy] = toPx(nodes[0].nx, nodes[0].ny);
+        ctx.moveTo(sx, sy);
+        const segLimit = closed ? nodes.length : nodes.length - 1;
+        for (let i = 0; i < segLimit; i++) {
+          const a = nodes[i];
+          const b = nodes[(i + 1) % nodes.length];
+          const [c1x, c1y] = toPx(a.nx + a.outDx, a.ny + a.outDy);
+          const [c2x, c2y] = toPx(b.nx + b.inDx, b.ny + b.inDy);
+          const [ex, ey] = toPx(b.nx, b.ny);
+          ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
+        }
+        ctx.stroke();
+
+        // Línea elástica hacia cursor mientras dibuja con Pluma
+        if (!closed && this.tool === "pen" && this.cursorNorm) {
+          const last = nodes[nodes.length - 1];
+          const [lx, ly] = toPx(last.nx, last.ny);
+          const [c1x, c1y] = toPx(last.nx + last.outDx, last.ny + last.outDy);
+          const [mx, my] = toPx(this.cursorNorm.nx, this.cursorNorm.ny);
+          ctx.save();
+          ctx.strokeStyle = "#EF4444";
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+          ctx.quadraticCurveTo(c1x, c1y, mx, my);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Manejadores Bézier y anclas
+        nodes.forEach((nd, i) => {
+          const [ax, ay] = toPx(nd.nx, nd.ny);
+          if (Math.abs(nd.inDx) > 1e-4 || Math.abs(nd.inDy) > 1e-4) {
+            const [ix, iy] = toPx(nd.nx + nd.inDx, nd.ny + nd.inDy);
+            ctx.strokeStyle = "#64748B";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ix, iy); ctx.stroke();
+            ctx.fillStyle = "#FACC15";
+            ctx.beginPath(); ctx.arc(ix, iy, 3.8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          }
+          if (Math.abs(nd.outDx) > 1e-4 || Math.abs(nd.outDy) > 1e-4) {
+            const [ox, oy] = toPx(nd.nx + nd.outDx, nd.ny + nd.outDy);
+            ctx.strokeStyle = "#64748B";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ox, oy); ctx.stroke();
+            ctx.fillStyle = "#FACC15";
+            ctx.beginPath(); ctx.arc(ox, oy, 3.8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          }
+
+          ctx.fillStyle = i === 0 ? "#10B981" : "#FFFFFF";
+          ctx.strokeStyle = "#C8102E";
+          ctx.lineWidth = 2;
+          ctx.fillRect(ax - 4, ay - 4, 8, 8);
+          ctx.strokeRect(ax - 4, ay - 4, 8, 8);
+        });
+        ctx.restore();
+      }
+
+      _renderStickers(targetCtx, photo, bodyPiece, rect, showSelectionBox) {
+        if (!photo.stickers || photo.stickers.length === 0) return;
+        const w = targetCtx.canvas.width, h = targetCtx.canvas.height;
+
+        const drawOne = (ctx, st) => {
+          const cx = rect.dx + st.xNorm * rect.dw;
+          const cy = rect.dy + st.yNorm * rect.dh;
+          const drawW = rect.dw * 0.24 * st.scale;
+          const aspect = (st.img.naturalHeight || 100) / Math.max(1, st.img.naturalWidth || 200);
+          const drawH = drawW * aspect;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate((st.rotationDeg * Math.PI) / 180);
+          ctx.globalAlpha = st.alpha;
+          ctx.drawImage(st.img, -drawW * 0.5, -drawH * 0.5, drawW, drawH);
+          ctx.restore();
+          return { cx, cy, drawW, drawH };
+        };
+
+        const clipped = photo.stickers.filter(s => s.clipToBody && bodyPiece?.maskCanvas);
+        if (clipped.length > 0) {
+          const sc = this._stickerLayerCanvas;
+          sc.width = w; sc.height = h;
+          const sctx = sc.getContext("2d");
+          sctx.clearRect(0, 0, w, h);
+          clipped.forEach(st => drawOne(sctx, st));
+          sctx.save();
+          sctx.globalCompositeOperation = "destination-in";
+          sctx.drawImage(bodyPiece.maskCanvas, rect.dx, rect.dy, rect.dw, rect.dh);
+          sctx.restore();
+          targetCtx.drawImage(sc, 0, 0);
+        }
+
+        photo.stickers.forEach(st => {
+          const box = (!(st.clipToBody && bodyPiece?.maskCanvas))
+            ? drawOne(targetCtx, st)
+            : (() => {
+                const drawW = rect.dw * 0.24 * st.scale;
+                const aspect = (st.img.naturalHeight || 100) / Math.max(1, st.img.naturalWidth || 200);
+                return {
+                  cx: rect.dx + st.xNorm * rect.dw,
+                  cy: rect.dy + st.yNorm * rect.dh,
+                  drawW,
+                  drawH: drawW * aspect
+                };
+              })();
+
+          if (showSelectionBox && st.id === this.selectedStickerId) {
+            targetCtx.save();
+            targetCtx.translate(box.cx, box.cy);
+            targetCtx.rotate((st.rotationDeg * Math.PI) / 180);
+            targetCtx.strokeStyle = "#C8102E";
+            targetCtx.lineWidth = 1.8;
+            targetCtx.setLineDash([5, 4]);
+            targetCtx.strokeRect(-box.drawW * 0.5, -box.drawH * 0.5, box.drawW, box.drawH);
+            targetCtx.restore();
+          }
+        });
+      }
+
+      _renderEmptyPlaceholder(ctx, cw, ch) {
+        ctx.save();
+        ctx.strokeStyle = "#CBD5E1";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        const bw = Math.min(480, cw - 80), bh = 210;
+        const bx = (cw - bw) / 2, by = (ch - bh) / 2;
+        ctx.fillStyle = "rgba(255,255,255,0.88)";
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#C8102E";
+        ctx.font = "800 18px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Sube una foto de tu vehículo (Auto, SUV o Pickup)", cw / 2, by + 76);
+
+        ctx.fillStyle = "#475569";
+        ctx.font = "600 13px Inter, system-ui, sans-serif";
+        ctx.fillText("Haz clic aquí o en \"Subir Foto\" para desglosar pieza por pieza con IA", cw / 2, by + 110);
+        ctx.fillStyle = "#94A3B8";
+        ctx.font = "500 11px Inter, system-ui, sans-serif";
+        ctx.fillText("Protege vidrios, rines, llantas, faros y parrilla · Pluma Bézier · Ficha PDF", cw / 2, by + 140);
+        ctx.restore();
+      }
+
+      exportCompositePNG(returnDataUrl = false) {
+        const photo = this.activePhoto;
+        if (!photo || !photo.imgEl) {
+          if (!returnDataUrl) this.showToast("Sube un vehículo primero para exportar.");
+          return "";
+        }
+        const iw = photo.imgEl.naturalWidth || photo.imgEl.width;
+        const ih = photo.imgEl.naturalHeight || photo.imgEl.height;
+        const expC = document.createElement("canvas");
+        expC.width = iw; expC.height = ih;
+        const ectx = expC.getContext("2d");
+        const painted = this._renderPaintedImage(photo);
+        ectx.drawImage(painted, 0, 0, iw, ih);
+
+        const fullRect = { dx: 0, dy: 0, dw: iw, dh: ih };
+        const bodyPiece = photo.pieces.find(p => p.isBody);
+        this._renderStickers(ectx, photo, bodyPiece, fullRect, false);
+
+        const url = expC.toDataURL("image/png");
+        if (returnDataUrl) return url;
+
+        const link = document.createElement("a");
+        link.download = `el_rayo_${photo.label.replace(/\s+/g, "_")}.png`;
+        link.href = url;
+        link.click();
+        this.showToast("Render HD exportado en PNG");
+        return url;
       }
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", () => {
       window.studio = new ElRayoStudio();
     });
   </script>
