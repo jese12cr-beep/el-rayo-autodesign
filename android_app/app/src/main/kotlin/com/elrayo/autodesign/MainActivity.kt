@@ -17,6 +17,9 @@ import android.print.PrintAttributes
 import android.print.PrintManager
 import android.provider.MediaStore
 import android.util.Base64
+import android.util.Log
+import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -143,7 +146,13 @@ class MainActivity : ComponentActivity() {
         AndroidView(
           modifier = Modifier.fillMaxSize(),
           factory = { ctx ->
+            WebView.setWebContentsDebuggingEnabled(true)
             WebView(ctx).apply {
+              layoutParams =
+                ViewGroup.LayoutParams(
+                  ViewGroup.LayoutParams.MATCH_PARENT,
+                  ViewGroup.LayoutParams.MATCH_PARENT
+                )
               settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
@@ -156,7 +165,6 @@ class MainActivity : ComponentActivity() {
                 mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                 cacheMode = WebSettings.LOAD_DEFAULT
               }
-              setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
               addJavascriptInterface(ElRayoJsBridge(ctx, this), "ElRayoAndroid")
 
               webViewClient =
@@ -204,6 +212,14 @@ class MainActivity : ComponentActivity() {
 
               webChromeClient =
                 object : WebChromeClient() {
+                  override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                    Log.d(
+                      "ElRayoWeb",
+                      "[${consoleMessage.messageLevel()}] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})"
+                    )
+                    return super.onConsoleMessage(consoleMessage)
+                  }
+
                   override fun onShowFileChooser(
                     webView: WebView?,
                     filePathCallback: ValueCallback<Array<Uri>>,
