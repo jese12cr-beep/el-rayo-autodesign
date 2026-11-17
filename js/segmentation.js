@@ -49,6 +49,8 @@ export class SegmentationController {
 
     this.points = [];
     this.labels = [];
+    this.pendingClicks = [];
+    this.autoSegmentOnEncode = true;
     this.undoStack = [];
     this.isBrushing = false;
     this.lastBrushPt = null;
@@ -72,6 +74,19 @@ export class SegmentationController {
       } else if (msg.type === "encoded") {
         this.isEncoded = true;
         this.onProgress(false, "Vehículo analizado por IA", 100);
+        if (this.pendingClicks.length > 0) {
+          const queued = this.pendingClicks.splice(0);
+          for (const item of queued) {
+            this.points.push([Math.round(item.x), Math.round(item.y)]);
+            this.labels.push(item.label);
+          }
+          this._dispatchSegment(this.points.length <= 2);
+        } else if (this.autoSegmentOnEncode && this.lastCoveragePct < 0.2) {
+          // Autodetectar carrocería central al subir foto para aplicar color inmediatamente
+          this.points = [[Math.round(this.width * 0.50), Math.round(this.height * 0.54)]];
+          this.labels = [1];
+          this._dispatchSegment(true);
+        }
       } else if (msg.type === "mask") {
         this._applyWorkerMask(msg.maskBuffer, msg.width, msg.height);
         this.onProgress(false, "Segmentación lista", 100);
@@ -177,9 +192,11 @@ export class SegmentationController {
     this.renderOverlay();
   }
 
-  async encodeImageData(imageData) {
+  async encodeImageData(imageData, { autoSegment = true } = {}) {
     this.hasImage = true;
     this.isEncoded = false;
+    this.pendingClicks = [];
+    this.autoSegmentOnEncode = Boolean(autoSegment);
     this.resetMask(false);
     this.undoStack = [];
     this.onProgress(true, "Preparando embeddings de imagen para MobileSAM…", 35);
@@ -197,26 +214,46 @@ export class SegmentationController {
     );
   }
 
-  _addAiPoint(x, y, label) {
-    if (!this.isEncoded) {
-      this.onStatus("loading", "Esperando codificación MobileSAM…");
-      return;
-    }
-    this._pushUndo();
-    this.points.push([Math.round(x), Math.round(y)]);
-    this.labels.push(label);
+  _dispatchSegment(preferFullObject = true) {
     this.renderOverlay();
-
     const requestId = ++this.requestSeq;
-    this.onProgress(true, label === 1 ? "Segmentando pieza con IA…" : "Excluyendo zona con IA…", 70);
+    const lastLabel = this.labels[this.labels.length - 1] ?? 1;
+    this.onProgress(true, lastLabel === 1 ? "Segmentando pieza con IA…" : "Excluyendo zona con IA…", 70);
     this.worker.postMessage({
       type: "segment",
       payload: {
         requestId,
         points: this.points,
-        labels: this.labels
+        labels: this.labels,
+        preferFullObject
       }
     });
+  }
+
+  triggerAutoSegment() {
+    if (!this.hasImage) return;
+    if (!this.isEncoded) {
+      if (this.pendingClicks.length === 0) {
+        this.pendingClicks.push({ x: this.width * 0.50, y: this.height * 0.54, label: 1 });
+      }
+      return;
+    }
+    this._pushUndo();
+    this.points = [[Math.round(this.width * 0.50), Math.round(this.height * 0.54)]];
+    this.labels = [1];
+    this._dispatchSegment(true);
+  }
+
+  _addAiPoint(x, y, label) {
+    if (!this.isEncoded) {
+      this.pendingClicks.push({ x, y, label });
+      this.onStatus("loading", "Punto en cola — terminando análisis IA…");
+      return;
+    }
+    this._pushUndo();
+    this.points.push([Math.round(x), Math.round(y)]);
+    this.labels.push(label);
+    this._dispatchSegment(this.points.length <= 2);
   }
 
   _applyWorkerMask(maskBuffer, w, h) {

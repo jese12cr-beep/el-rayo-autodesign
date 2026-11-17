@@ -485,6 +485,14 @@ class ElRayoStudioApp {
     });
 
     this.paint.setOptions({ hex: upper });
+    if (this.paint.hasImage && this.seg.lastCoveragePct < 0.2) {
+      this.seg.triggerAutoSegment();
+      this.showToast(
+        this.seg.isEncoded
+          ? "Detectando carrocería automática para aplicar color…"
+          : "Analizando vehículo con IA; en un momento se aplicará el tono."
+      );
+    }
     this._scheduleSave();
   }
 
@@ -702,7 +710,7 @@ class ElRayoStudioApp {
       document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
 
       const imageData = this.paint.setImage(img);
-      this.seg.encodeImageData(imageData);
+      this.seg.encodeImageData(imageData, { autoSegment: !applyDemoMask });
 
       if (applyDemoMask) {
         // Permite probar inmediatamente la pintura WebGL2 y recorte de viniles en el demo
@@ -838,7 +846,7 @@ class ElRayoStudioApp {
             document.getElementById("emptyDropOverlay").hidden = true;
             document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
             const imageData = this.paint.setImage(img);
-            this.seg.encodeImageData(imageData);
+            this.seg.encodeImageData(imageData, { autoSegment: false });
             await this.seg.restoreFromDataUrls({
               committedUrl: saved.committedMaskUrl,
               workingUrl: saved.workingMaskUrl

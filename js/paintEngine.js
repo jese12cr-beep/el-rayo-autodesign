@@ -25,6 +25,7 @@ uniform float u_metallic;
 uniform float u_specular;
 uniform float u_opacity;
 uniform float u_finish; // 0.0=gloss, 1.0=metallic, 2.0=pearl, 3.0=matte
+uniform float u_meanLum;
 uniform vec2 u_resolution;
 
 float flakeNoise(vec2 p) {
@@ -36,7 +37,7 @@ float flakeNoise(vec2 p) {
 void main() {
   vec4 origSample = texture(u_image, v_uv);
   vec3 orig = origSample.rgb;
-  float mask = clamp(texture(u_mask, v_uv).r, 0.0, 1.0);
+  float mask = clamp(max(texture(u_mask, v_uv).r, texture(u_mask, v_uv).a), 0.0, 1.0);
 
   if (mask <= 0.002) {
     outColor = origSample;
@@ -46,8 +47,8 @@ void main() {
   // Luminancia perceptual Rec.709
   float lum = dot(orig, vec3(0.2126, 0.7152, 0.0722));
 
-  // Normalización dinámica para funcionar igual en autos blancos, negros o de color
-  float normLum = clamp((lum - 0.5) * u_contrast + 0.52, 0.14, 0.88);
+  // Normalización dinámica adaptada al tono medio del vehículo (blancos, negros o color)
+  float normLum = clamp((lum - u_meanLum) * u_contrast + 0.52, 0.14, 0.88);
 
   // Curva tonal que respeta volumen de carrocería y evita lavado en colores oscuros o claros
   float targetLum = dot(u_color, vec3(0.2126, 0.7152, 0.0722));
@@ -129,6 +130,7 @@ export class PaintEngine {
     };
 
     this.hasImage = false;
+    this.meanLum = 0.48;
     this.lastDrawRect = { x: 0, y: 0, w: width, h: height };
     this.isWebGL2 = false;
     this.gl = null;
@@ -212,6 +214,7 @@ export class PaintEngine {
       specular: gl.getUniformLocation(program, "u_specular"),
       opacity: gl.getUniformLocation(program, "u_opacity"),
       finish: gl.getUniformLocation(program, "u_finish"),
+      meanLum: gl.getUniformLocation(program, "u_meanLum"),
       resolution: gl.getUniformLocation(program, "u_resolution")
     };
   }
@@ -256,20 +259,41 @@ export class PaintEngine {
     this.lastDrawRect = { x: dx, y: dy, w: dw, h: dh };
     this.hasImage = true;
 
+    const imgData = this.stageCtx.getImageData(0, 0, this.width, this.height);
+    // Estima luminancia media de la zona central del vehículo para evitar aplastamiento en autos negros/blancos
+    const px = imgData.data;
+    const xStart = Math.round(dx + dw * 0.22);
+    const xEnd = Math.round(dx + dw * 0.78);
+    const yStart = Math.round(dy + dh * 0.28);
+    const yEnd = Math.round(dy + dh * 0.78);
+    let lumSum = 0;
+    let lumCount = 0;
+    for (let y = yStart; y < yEnd; y += 6) {
+      for (let x = xStart; x < xEnd; x += 6) {
+        const idx = (y * this.width + x) << 2;
+        const l = (0.2126 * px[idx] + 0.7152 * px[idx + 1] + 0.0722 * px[idx + 2]) / 255.0;
+        lumSum += l;
+        lumCount++;
+      }
+    }
+    this.meanLum = lumCount > 0 ? Math.max(0.16, Math.min(0.80, lumSum / lumCount)) : 0.48;
+
     if (this.isWebGL2 && this.gl) {
       const gl = this.gl;
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.stageCanvas);
     }
 
     this.render();
-    return this.stageCtx.getImageData(0, 0, this.width, this.height);
+    return imgData;
   }
 
   updateMask(maskCanvas) {
     this.fallbackMaskCanvas = maskCanvas;
     if (this.isWebGL2 && this.gl && maskCanvas) {
       const gl = this.gl;
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, maskCanvas);
     }
@@ -338,6 +362,7 @@ export class PaintEngine {
     gl.uniform1f(this.uniforms.specular, this.options.specular);
     gl.uniform1f(this.uniforms.opacity, this.options.opacity);
     gl.uniform1f(this.uniforms.finish, this._finishIndex());
+    gl.uniform1f(this.uniforms.meanLum, this.meanLum);
     gl.uniform2f(this.uniforms.resolution, this.width, this.height);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

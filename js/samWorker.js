@@ -128,7 +128,7 @@ async function encodeImage({ rgbaBuffer, width, height }) {
   self.postMessage({ type: "encoded", width, height });
 }
 
-async function segmentPoints({ points, labels, requestId }) {
+async function segmentPoints({ points, labels, requestId, preferFullObject = true }) {
   if (!model || !processor || !cachedEmbeddings || !cachedImageInputs) {
     throw new Error("La imagen aún no ha sido codificada por MobileSAM.");
   }
@@ -163,24 +163,45 @@ async function segmentPoints({ points, labels, requestId }) {
     cachedImageInputs.reshaped_input_sizes
   );
 
-  const iouData = outputs.iou_scores?.data || [];
-  let bestIdx = 0;
-  let bestIou = -1;
-  for (let i = 0; i < iouData.length; i++) {
-    if (iouData[i] > bestIou) {
-      bestIou = iouData[i];
-      bestIdx = i;
-    }
-  }
-
-  // masks[0] tiene forma [batch=1, num_masks=3, origH, origW] o [num_masks, origH, origW]
   const maskTensor = masks[0];
   const dims = maskTensor.dims;
   const numMasks = dims.length === 4 ? dims[1] : dims[0];
-  const safeBest = Math.min(bestIdx, Math.max(0, numMasks - 1));
   const planeSize = origW * origH;
-  const offset = safeBest * planeSize;
   const rawMaskData = maskTensor.data;
+  const iouData = outputs.iou_scores?.data || [];
+
+  let topIou = -1;
+  for (let m = 0; m < numMasks; m++) {
+    const score = iouData[m] ?? 0.5;
+    if (score > topIou) topIou = score;
+  }
+
+  let bestIdx = 0;
+  let bestScore = -1;
+  for (let m = 0; m < numMasks; m++) {
+    const off = m * planeSize;
+    let hits = 0;
+    const step = 16;
+    for (let i = 0; i < planeSize; i += step) {
+      const val = rawMaskData[off + i];
+      if (val === true || val > 0) hits++;
+    }
+    const covRatio = hits / (planeSize / step);
+    const iou = iouData[m] ?? 0.5;
+
+    let rank = iou;
+    if (preferFullObject && iou >= topIou - 0.14 && covRatio >= 0.04 && covRatio <= 0.78) {
+      // Prefiere la silueta completa de carrocería frente a micro-subpiezas (ej. faro o emblema)
+      rank = iou + Math.min(0.45, covRatio * 1.1);
+    }
+    if (rank > bestScore) {
+      bestScore = rank;
+      bestIdx = m;
+    }
+  }
+
+  const safeBest = Math.min(bestIdx, Math.max(0, numMasks - 1));
+  const offset = safeBest * planeSize;
 
   const alphaMask = new Uint8Array(planeSize);
   for (let i = 0; i < planeSize; i++) {
@@ -204,7 +225,7 @@ async function segmentPoints({ points, labels, requestId }) {
       maskBuffer: alphaMask.buffer,
       width: origW,
       height: origH,
-      iou: Number(bestIou > 0 ? bestIou : 0.85)
+      iou: Number((iouData[safeBest] ?? 0.85))
     },
     [alphaMask.buffer]
   );
