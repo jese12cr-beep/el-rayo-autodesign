@@ -1,5 +1,5 @@
 /* El Rayo — Autodesign Studio Service Worker (Offline PWA + Cache IA) */
-const STATIC_CACHE = "el-rayo-static-v2";
+const STATIC_CACHE = "el-rayo-static-v3";
 const MODEL_CACHE = "el-rayo-models-v2";
 
 const LOCAL_ASSETS = [
@@ -74,37 +74,29 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // 2. Archivos locales de la app -> Stale-While-Revalidate
+  // 2. Archivos locales de la app -> Network-First (siempre toma cambios nuevos al recargar y cae a caché si está offline)
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.open(STATIC_CACHE).then(async cache => {
-        const cached = await cache.match(request);
-        const fetchPromise = fetch(request)
-          .then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              cache.put(request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch(() => null);
-
-        if (cached) {
-          event.waitUntil(fetchPromise);
-          return cached;
+        try {
+          const networkResponse = await fetch(request, { cache: "no-cache" });
+          if (networkResponse && networkResponse.status === 200) {
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch {
+          const cached = await cache.match(request);
+          if (cached) return cached;
+          if (request.mode === "navigate") {
+            const shell = await cache.match("./index.html");
+            if (shell) return shell;
+          }
+          return new Response("Recurso no disponible sin conexión.", {
+            status: 503,
+            statusText: "Offline",
+            headers: { "Content-Type": "text/plain; charset=utf-8" }
+          });
         }
-
-        const networkFallback = await fetchPromise;
-        if (networkFallback) return networkFallback;
-
-        if (request.mode === "navigate") {
-          const shell = await cache.match("./index.html");
-          if (shell) return shell;
-        }
-        return new Response("Recurso no disponible sin conexión.", {
-          status: 503,
-          statusText: "Offline",
-          headers: { "Content-Type": "text/plain; charset=utf-8" }
-        });
       })
     );
   }
