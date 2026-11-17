@@ -1,13 +1,13 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=4";
-import { SegmentationController } from "./segmentation.js?v=4";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=4";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=4";
+import { PaintEngine } from "./paintEngine.js?v=5";
+import { SegmentationController } from "./segmentation.js?v=5";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=5";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=5";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=4";
+} from "./storageAndExport.js?v=5";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -145,7 +145,9 @@ class ElRayoStudioApp {
       imageDataUrl: null,
       vehicleLabel: "Sin fotografía cargada",
       selectedColorName: OEM_SWATCHES[0].name,
-      paintOptions: { ...this.paint.options }
+      scope: "full", // "full" | "piece"
+      paintOptions: { ...this.paint.options },
+      partPaints: new Map() // Map<partId, { hex, finish, contrast, metallic, specular, opacity }>
     };
 
     this.decalManager = new DecalManager(document.getElementById("decalCanvas"), {
@@ -158,7 +160,7 @@ class ElRayoStudioApp {
       width: 1280,
       height: 720,
       onMaskUpdated: (combinedCanvas, coveragePct, computeStats) => {
-        this.paint.updateMask(combinedCanvas);
+        this._refreshPaintRender();
         this.decalManager.render(combinedCanvas);
         this.seg.renderOverlay(ctx => this.decalManager.drawHandles(ctx));
         if (computeStats) {
@@ -167,6 +169,15 @@ class ElRayoStudioApp {
           this._renderQuoteSummary();
           this._scheduleSave();
         }
+      },
+      onPartsDetected: (parts, protectedCount, ms) => {
+        this._renderDetectedParts(parts, protectedCount, ms);
+      },
+      onPartClicked: part => {
+        this._setScope("piece");
+        this.seg.selectedPartId = part.id;
+        this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+        this.showToast(`Pieza seleccionada: ${part.label} (${Math.round(part.confidence * 100)}%)`);
       },
       onStatus: (kind, text) => this._setAiStatus(kind, text),
       onProgress: (visible, text, value) => this._setAiOverlay(visible, text, value),
@@ -247,10 +258,25 @@ class ElRayoStudioApp {
     });
 
     document.getElementById("btnResetMask").addEventListener("click", () => {
+      this.state.partPaints.clear();
+      this.seg.selectedPartId = null;
       this.seg.resetMask(true);
       this.decalManager.render(this.seg.combinedCanvas);
+      this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
       this.showToast("Máscara limpiada");
     });
+
+    document.getElementById("btnScopeFull")?.addEventListener("click", () => this._setScope("full"));
+    document.getElementById("btnScopePiece")?.addEventListener("click", () => this._setScope("piece"));
+    document.getElementById("btnScanCarParts")?.addEventListener("click", () => {
+      if (!this.paint.hasImage) {
+        this.showToast("Primero sube la foto de un vehículo.");
+        return;
+      }
+      this.state.partPaints.clear();
+      this.seg.runCarPartsScan(this.paint.stageCanvas);
+    });
+    document.getElementById("btnSyncAiToQuote")?.addEventListener("click", () => this._syncDetectedPartsToQuote());
 
     const handlePdfExport = () => this._handleExportPDF();
     document.getElementById("btnExportPDF").addEventListener("click", handlePdfExport);
@@ -339,7 +365,7 @@ class ElRayoStudioApp {
           b.setAttribute("aria-pressed", String(active));
         });
         this.state.paintOptions.finish = btn.dataset.finish;
-        this.paint.setOptions({ finish: btn.dataset.finish });
+        this._applyActivePaintUpdate({ finish: btn.dataset.finish });
         this.quoteCalc.setFinish(btn.dataset.finish);
         this._renderQuoteSummary();
         this._scheduleSave();
@@ -347,20 +373,16 @@ class ElRayoStudioApp {
     });
 
     this._bindRange("paintContrast", "paintContrastVal", v => `${v.toFixed(2)}`, v => {
-      this.state.paintOptions.contrast = v;
-      this.paint.setOptions({ contrast: v });
+      this._applyActivePaintUpdate({ contrast: v });
     });
     this._bindRange("paintMetallic", "paintMetallicVal", v => `${Math.round(v)}%`, v => {
-      this.state.paintOptions.metallic = v / 100;
-      this.paint.setOptions({ metallic: v / 100 });
+      this._applyActivePaintUpdate({ metallic: v / 100 });
     });
     this._bindRange("paintSpecular", "paintSpecularVal", v => `${Math.round(v)}%`, v => {
-      this.state.paintOptions.specular = v / 100;
-      this.paint.setOptions({ specular: v / 100 });
+      this._applyActivePaintUpdate({ specular: v / 100 });
     });
     this._bindRange("paintOpacity", "paintOpacityVal", v => `${Math.round(v)}%`, v => {
-      this.state.paintOptions.opacity = v / 100;
-      this.paint.setOptions({ opacity: v / 100 });
+      this._applyActivePaintUpdate({ opacity: v / 100 });
     });
 
     // Piezas (14 partes)
@@ -470,9 +492,104 @@ class ElRayoStudioApp {
     });
   }
 
+  _setScope(mode) {
+    this.state.scope = mode === "piece" ? "piece" : "full";
+    const btnFull = document.getElementById("btnScopeFull");
+    const btnPiece = document.getElementById("btnScopePiece");
+    if (btnFull) {
+      btnFull.classList.toggle("active", this.state.scope === "full");
+      btnFull.setAttribute("aria-pressed", String(this.state.scope === "full"));
+    }
+    if (btnPiece) {
+      btnPiece.classList.toggle("active", this.state.scope === "piece");
+      btnPiece.setAttribute("aria-pressed", String(this.state.scope === "piece"));
+    }
+    if (this.state.scope === "piece" && !this.seg.selectedPartId && this.seg.detectedParts.length) {
+      this.seg.selectedPartId = this.seg.detectedParts[0].id;
+      this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+    }
+  }
+
+  _applyActivePaintUpdate(partial) {
+    if (this.state.scope === "piece" && this.seg.selectedPartId) {
+      const pid = this.seg.selectedPartId;
+      const base = this.state.partPaints.get(pid) || { ...this.state.paintOptions };
+      this.state.partPaints.set(pid, { ...base, ...partial });
+    } else {
+      Object.assign(this.state.paintOptions, partial);
+    }
+    this._refreshPaintRender();
+    this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+  }
+
+  _refreshPaintRender() {
+    this.paint.composePartPaints({
+      fullMaskCanvas: this.seg.combinedCanvas,
+      fullPaint: this.state.paintOptions,
+      partPaintsMap: this.state.partPaints,
+      detectedParts: this.seg.detectedParts
+    });
+  }
+
+  _renderDetectedParts(parts = [], protectedCount = 0, ms = 0) {
+    const grid = document.getElementById("detectedPartsGrid");
+    const summary = document.getElementById("aiProtectedSummary");
+    if (!grid || !summary) return;
+
+    if (!parts.length) {
+      summary.textContent = "Sube un vehículo para separar cofre, puertas, salpicaderas, defensas y proteger rines/vidrios.";
+      grid.innerHTML = "";
+      return;
+    }
+
+    const timing = ms > 0 ? ` en ${ms} ms` : "";
+    summary.textContent = `${parts.length} piezas pintables detectadas${timing} · ${protectedCount} zonas (vidrios/rines/faros) protegidas.`;
+    grid.innerHTML = "";
+
+    for (const part of parts) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      const isSelected = this.seg.selectedPartId === part.id;
+      const customPaint = this.state.partPaints.get(part.id);
+      btn.className = `detected-part-btn${isSelected ? " active" : ""}`;
+      btn.setAttribute("aria-pressed", String(isSelected));
+      btn.innerHTML = `
+        <span>${customPaint ? "🎨 " : ""}${part.label}</span>
+        <small>${Math.round(part.confidence * 100)}% conf · ${part.areaPct}%</small>
+      `;
+      btn.addEventListener("click", () => {
+        this._setScope("piece");
+        this.seg.selectedPartId = part.id;
+        this.seg.renderOverlay(ctx => this.decalManager.drawHandles(ctx));
+        this._renderDetectedParts(parts, protectedCount, 0);
+        this.showToast(`Editando pieza: ${part.label}. Elige un color para personalizarla.`);
+      });
+      grid.appendChild(btn);
+    }
+  }
+
+  _syncDetectedPartsToQuote() {
+    const parts = this.seg.detectedParts || [];
+    if (!parts.length) {
+      this.showToast("Aún no hay piezas detectadas por IA.");
+      return;
+    }
+    this.quoteCalc.clearParts();
+    let matched = 0;
+    for (const p of parts) {
+      if (p.quotePartId) {
+        this.quoteCalc.setPartSelected(p.quotePartId, true);
+        matched++;
+      }
+    }
+    this._syncPartsCheckboxes();
+    this._renderQuoteSummary();
+    this._scheduleSave();
+    this.showToast(`${matched} piezas mapeadas automáticamente al presupuesto.`);
+  }
+
   _applyColor(hex, name) {
     const upper = hex.toUpperCase();
-    this.state.paintOptions.hex = upper;
     this.state.selectedColorName = name;
     document.getElementById("selectedColorName").textContent = name;
     document.getElementById("colorPicker").value = upper;
@@ -484,14 +601,10 @@ class ElRayoStudioApp {
       btn.textContent = match ? "✓" : "";
     });
 
-    this.paint.setOptions({ hex: upper });
+    this._applyActivePaintUpdate({ hex: upper });
     if (this.paint.hasImage && this.seg.lastCoveragePct < 0.2) {
       this.seg.triggerAutoSegment();
-      this.showToast(
-        this.seg.isEncoded
-          ? "Detectando carrocería automática para aplicar color…"
-          : "Analizando vehículo con IA; en un momento se aplicará el tono."
-      );
+      this.showToast("Segmentando vehículo para aplicar el tono…");
     }
     this._scheduleSave();
   }
@@ -709,8 +822,10 @@ class ElRayoStudioApp {
       document.getElementById("emptyDropOverlay").hidden = true;
       document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
 
+      this.state.partPaints.clear();
+      this._renderDetectedParts([], 0, 0);
       const imageData = this.paint.setImage(img);
-      this.seg.encodeImageData(imageData, { autoSegment: !applyDemoMask });
+      this.seg.encodeAndAnalyze(this.paint.stageCanvas, imageData, { autoAnalyze: !applyDemoMask });
 
       if (applyDemoMask) {
         // Permite probar inmediatamente la pintura WebGL2 y recorte de viniles en el demo
@@ -846,11 +961,14 @@ class ElRayoStudioApp {
             document.getElementById("emptyDropOverlay").hidden = true;
             document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
             const imageData = this.paint.setImage(img);
-            this.seg.encodeImageData(imageData, { autoSegment: false });
+            this.seg.encodeAndAnalyze(this.paint.stageCanvas, imageData, { autoAnalyze: false });
             await this.seg.restoreFromDataUrls({
               committedUrl: saved.committedMaskUrl,
               workingUrl: saved.workingMaskUrl
             });
+            if (this.seg.detectedParts.length === 0) {
+              this.seg.runCarPartsScan(this.paint.stageCanvas);
+            }
             resolve();
           };
           img.onerror = resolve;
@@ -888,7 +1006,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=4").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=5").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

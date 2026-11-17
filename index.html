@@ -55,10 +55,23 @@
   <div class="studio-layout">
     <!-- Columna Izquierda: Herramientas de Segmentación y Edición -->
     <nav class="panel panel-tools" aria-label="Herramientas de selección y máscara">
-      <h2 class="panel-heading">Herramientas</h2>
+      <h2 class="panel-heading">Motor IA y Herramientas</h2>
+
+      <div class="scope-switch" role="group" aria-label="Ámbito de pintura">
+        <button type="button" id="btnScopeFull" class="scope-btn active" aria-pressed="true">Todo el Auto</button>
+        <button type="button" id="btnScopePiece" class="scope-btn" aria-pressed="false">Por Pieza</button>
+      </div>
+
+      <button type="button" id="btnScanCarParts" class="btn btn-secondary btn-full">
+        <span>Re-escanear Piezas (IA 33)</span>
+      </button>
 
       <div class="tool-group" role="group" aria-label="Selector de herramienta de máscara">
-        <button type="button" class="tool-btn active" data-tool="ai-add" aria-pressed="true">
+        <button type="button" class="tool-btn active" data-tool="ai-part" aria-pressed="true">
+          <span class="tool-badge badge-blue" aria-hidden="true">🎯</span>
+          <span class="tool-label">Pieza IA</span>
+        </button>
+        <button type="button" class="tool-btn" data-tool="ai-add" aria-pressed="false">
           <span class="tool-badge badge-blue" aria-hidden="true">IA+</span>
           <span class="tool-label">IA + Pieza</span>
         </button>
@@ -227,6 +240,15 @@
       <section id="panel-piezas" class="tab-panel" role="tabpanel" aria-labelledby="tab-piezas" hidden>
         <div class="section-block">
           <div class="section-head">
+            <h2 class="section-title">Piezas Detectadas (IA 33-Clases)</h2>
+            <button type="button" id="btnSyncAiToQuote" class="btn-inline">Pasar a Cotización</button>
+          </div>
+          <p id="aiProtectedSummary" class="muted-note">Sube un vehículo para separar cofre, puertas, salpicaderas, defensas y proteger rines/vidrios.</p>
+          <div id="detectedPartsGrid" class="detected-parts-grid"></div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-head">
             <h2 class="section-title">Nivel de Hojalatería</h2>
             <span id="partsSelectedCount" class="color-name-tag">0 piezas</span>
           </div>
@@ -368,6 +390,7 @@
 
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
-  <script type="module" src="./js/app.js?v=4"></script>
+  <script src="./assets/ort/ort.wasm.min.js"></script>
+  <script type="module" src="./js/app.js?v=5"></script>
 </body>
 </html>

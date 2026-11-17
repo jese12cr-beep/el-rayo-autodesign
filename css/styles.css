@@ -325,7 +325,72 @@
   /* ---------------- Left Tool Column ---------------- */
   .tool-group {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.45rem;
+  }
+
+  .scope-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .scope-btn {
+    min-block-size: 36px;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &.active,
+    &[aria-pressed="true"] {
+      background: var(--accent-blue);
+      color: #ffffff;
+    }
+  }
+
+  .detected-parts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    max-block-size: 210px;
+    overflow-y: auto;
+  }
+
+  .detected-part-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    min-block-size: var(--target-min);
+    padding: 0.4rem 0.55rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+
+    &.active,
+    &[aria-pressed="true"] {
+      border-color: #38bdf8;
+      background: #0c2744;
+    }
+
+    & small {
+      color: #93c5fd;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+    }
   }
 
   .tool-btn {
@@ -880,6 +945,10 @@
   @media (max-width: 780px) {
     .studio-layout {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stage-column {
+      order: -1;
     }
 
     .tool-group {
