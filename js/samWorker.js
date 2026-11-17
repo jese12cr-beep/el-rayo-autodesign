@@ -24,7 +24,7 @@ async function detectComputeDevice() {
   if (typeof navigator !== "undefined" && "gpu" in navigator) {
     try {
       const adapter = await navigator.gpu.requestAdapter();
-      if (adapter && (adapter.limits?.maxStorageBufferBindingSize || 0) >= 512 * 1024 * 1024) {
+      if (adapter && (adapter.limits?.maxStorageBufferBindingSize || 0) >= 900 * 1024 * 1024) {
         return "webgpu";
       }
     } catch {

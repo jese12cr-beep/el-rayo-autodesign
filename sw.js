@@ -1,5 +1,5 @@
 /* El Rayo — Autodesign Studio Service Worker (Offline PWA + Cache IA) */
-const STATIC_CACHE = "el-rayo-static-v3";
+const STATIC_CACHE = "el-rayo-static-v4";
 const MODEL_CACHE = "el-rayo-models-v2";
 
 const LOCAL_ASSETS = [
@@ -85,7 +85,7 @@ self.addEventListener("fetch", event => {
           }
           return networkResponse;
         } catch {
-          const cached = await cache.match(request);
+          const cached = await cache.match(request, { ignoreSearch: true });
           if (cached) return cached;
           if (request.mode === "navigate") {
             const shell = await cache.match("./index.html");

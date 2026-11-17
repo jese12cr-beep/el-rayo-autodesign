@@ -61,7 +61,7 @@ export class SegmentationController {
   }
 
   _initWorker() {
-    this.worker = new Worker("./js/samWorker.js", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=4", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "status") {
