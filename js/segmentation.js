@@ -159,6 +159,142 @@ class CarPartsDetector {
     return out;
   }
 
+  _boxFilterMean(src, w, h, r) {
+    const tmp = new Float32Array(w * h);
+    const out = new Float32Array(w * h);
+    const pref = new Float32Array(Math.max(w, h) + 1);
+
+    // Horizontal pass (O(N) via 1D prefix sums)
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      pref[0] = 0;
+      for (let x = 0; x < w; x++) pref[x + 1] = pref[x] + src[row + x];
+      for (let x = 0; x < w; x++) {
+        const x0 = Math.max(0, x - r);
+        const x1 = Math.min(w - 1, x + r);
+        tmp[row + x] = (pref[x1 + 1] - pref[x0]) / (x1 - x0 + 1);
+      }
+    }
+
+    // Vertical pass
+    for (let x = 0; x < w; x++) {
+      pref[0] = 0;
+      for (let y = 0; y < h; y++) pref[y + 1] = pref[y] + tmp[y * w + x];
+      for (let y = 0; y < h; y++) {
+        const y0 = Math.max(0, y - r);
+        const y1 = Math.min(h - 1, y + r);
+        out[y * w + x] = (pref[y1 + 1] - pref[y0]) / (y1 - y0 + 1);
+      }
+    }
+    return out;
+  }
+
+  _guidedFilterAlpha(boolOrProbArr, lumaArr, w, h, radius = 5, eps = 0.004) {
+    const n = w * h;
+    const I = new Float32Array(n);
+    const P = new Float32Array(n);
+    const II = new Float32Array(n);
+    const IP = new Float32Array(n);
+
+    for (let i = 0; i < n; i++) {
+      const iv = lumaArr[i] / 255.0;
+      const pv = boolOrProbArr[i] > 0 ? 1.0 : 0.0;
+      I[i] = iv;
+      P[i] = pv;
+      II[i] = iv * iv;
+      IP[i] = iv * pv;
+    }
+
+    const meanI = this._boxFilterMean(I, w, h, radius);
+    const meanP = this._boxFilterMean(P, w, h, radius);
+    const corrII = this._boxFilterMean(II, w, h, radius);
+    const corrIP = this._boxFilterMean(IP, w, h, radius);
+
+    const a = new Float32Array(n);
+    const b = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const varI = Math.max(0, corrII[i] - meanI[i] * meanI[i]);
+      const covIP = corrIP[i] - meanI[i] * meanP[i];
+      const ak = covIP / (varI + eps);
+      a[i] = ak;
+      b[i] = meanP[i] - ak * meanI[i];
+    }
+
+    const meanA = this._boxFilterMean(a, w, h, radius);
+    const meanB = this._boxFilterMean(b, w, h, radius);
+    const q = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      // S-curve contrast around edges so interior stays ~1.0 solid and borders follow shutlines cleanly
+      const raw = Math.max(0, Math.min(1, meanA[i] * I[i] + meanB[i]));
+      const crisp = (raw - 0.5) * 1.45 + 0.5;
+      q[i] = Math.max(0, Math.min(1, crisp));
+    }
+    return q;
+  }
+
+  _guidedToMaskCanvas(boolArr, lumaArr, hardZeroArr, w, h, targetW, targetH) {
+    const q = this._guidedFilterAlpha(boolArr, lumaArr, w, h, 5, 0.0038);
+    const sc = document.createElement("canvas");
+    sc.width = w;
+    sc.height = h;
+    const sctx = sc.getContext("2d");
+    const img = sctx.createImageData(w, h);
+    for (let i = 0; i < boolArr.length; i++) {
+      let a = boolArr[i] ? Math.max(0.55, q[i]) : Math.min(0.45, q[i]);
+      if (hardZeroArr && hardZeroArr[i]) a = 0;
+      const v = a > 0.08 ? Math.round(a * 255) : 0;
+      const j = i << 2;
+      img.data[j] = 255;
+      img.data[j + 1] = 255;
+      img.data[j + 2] = 255;
+      img.data[j + 3] = v;
+    }
+    sctx.putImageData(img, 0, 0);
+
+    const out = document.createElement("canvas");
+    out.width = targetW;
+    out.height = targetH;
+    const octx = out.getContext("2d");
+    octx.imageSmoothingEnabled = true;
+    octx.drawImage(sc, 0, 0, targetW, targetH);
+    return out;
+  }
+
+  _buildPartOutlineCanvas(boolArr, w, h, targetW, targetH) {
+    const sc = document.createElement("canvas");
+    sc.width = w;
+    sc.height = h;
+    const sctx = sc.getContext("2d");
+    const img = sctx.createImageData(w, h);
+    for (let y = 1; y < h - 1; y++) {
+      const row = y * w;
+      for (let x = 1; x < w - 1; x++) {
+        const idx = row + x;
+        if (!boolArr[idx]) continue;
+        // 2px interior boundary ring para resaltar limpiamente la pieza
+        const isEdge =
+          !boolArr[idx - 1] || !boolArr[idx + 1] || !boolArr[idx - w] || !boolArr[idx + w] ||
+          (x > 1 && !boolArr[idx - 2]) || (x < w - 2 && !boolArr[idx + 2]) ||
+          (y > 1 && !boolArr[idx - 2 * w]) || (y < h - 2 && !boolArr[idx + 2 * w]);
+        if (isEdge) {
+          const j = idx << 2;
+          img.data[j] = 56;
+          img.data[j + 1] = 189;
+          img.data[j + 2] = 248;
+          img.data[j + 3] = 255;
+        }
+      }
+    }
+    sctx.putImageData(img, 0, 0);
+    const out = document.createElement("canvas");
+    out.width = targetW;
+    out.height = targetH;
+    const octx = out.getContext("2d");
+    octx.imageSmoothingEnabled = true;
+    octx.drawImage(sc, 0, 0, targetW, targetH);
+    return out;
+  }
+
   _boolToMaskCanvas(boolArr, srcW, srcH, targetW, targetH, featherPx = 1.4) {
     const sc = document.createElement("canvas");
     sc.width = srcW;
@@ -762,15 +898,21 @@ class CarPartsDetector {
           quotePartId: meta[2],
           areaPct: apct,
           confidence: Math.round((partConfs[pid] || 0.8) * 100) / 100,
-          maskCanvas: this._boolToMaskCanvas(arr, w, h, targetW, targetH, 1.4)
+          maskCanvas: this._guidedToMaskCanvas(arr, lumaArr, fullExcl, w, h, targetW, targetH),
+          outlineCanvas: this._buildPartOutlineCanvas(arr, w, h, targetW, targetH)
         });
       }
+
+      // Dilatar ligeramente zonas duras protegidas (vidrios/rines/faros) contra sangrado de frontera
+      const strictExclEdge = this._dilateBool(hardExcl, w, h, 1);
+      for (let i = 0; i < nPix; i++) if (fullExcl[i]) strictExclEdge[i] = 1;
 
       let finalBodyCnt = 0;
       for (let i = 0; i < nPix; i++) if (bodyMask[i]) finalBodyCnt++;
 
       return {
-        maskCanvas: this._boolToMaskCanvas(bodyMask, w, h, targetW, targetH, 1.4),
+        maskCanvas: this._guidedToMaskCanvas(bodyMask, lumaArr, strictExclEdge, w, h, targetW, targetH),
+        protectedMaskCanvas: this._boolToMaskCanvas(strictExclEdge, w, h, targetW, targetH, 0.8),
         vehicleDetected: true,
         bodyCoveragePct: Math.round((finalBodyCnt / nPix) * 1000) / 10,
         protectedCount,
@@ -788,7 +930,7 @@ class CarPartsDetector {
 export class SegmentationController {
   constructor(
     overlayCanvas,
-    { width = 1280, height = 720, onMaskUpdated, onPartsDetected, onPartClicked, onStatus, onProgress, onDecalPointer } = {}
+    { width = 1280, height = 720, onMaskUpdated, onPartsDetected, onPartClicked, onSplitDrag, onStatus, onProgress, onDecalPointer } = {}
   ) {
     this.overlayCanvas = overlayCanvas;
     this.overlayCtx = overlayCanvas.getContext("2d");
@@ -800,6 +942,7 @@ export class SegmentationController {
     this.onMaskUpdated = onMaskUpdated || (() => {});
     this.onPartsDetected = onPartsDetected || (() => {});
     this.onPartClicked = onPartClicked || (() => {});
+    this.onSplitDrag = onSplitDrag || (() => {});
     this.onStatus = onStatus || (() => {});
     this.onProgress = onProgress || (() => {});
     this.onDecalPointer = onDecalPointer || (() => false);
@@ -838,11 +981,19 @@ export class SegmentationController {
 
     this.detectedParts = [];
     this.protectedCount = 0;
+    this.protectedMaskCanvas = null;
+    this.hasCarPartsMask = false;
     this.hitGrid = null;
     this.hitW = 320;
     this.hitH = 180;
     this.hoveredPart = null;
     this.selectedPartId = null;
+    this.lastPointer = null;
+
+    this.splitEnabled = false;
+    this.splitPos = 0.5;
+    this.draggingSplit = false;
+    this.pendingSamMode = "replace";
 
     this.points = [];
     this.labels = [];
@@ -858,7 +1009,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=5", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=6", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {
@@ -877,7 +1028,7 @@ export class SegmentationController {
           this._dispatchSegment(this.points.length <= 2);
         }
       } else if (msg.type === "mask") {
-        this._applySamMask(msg.maskBuffer, msg.width, msg.height);
+        this._applySamMask(msg.maskBuffer, msg.width, msg.height, msg.mode || this.pendingSamMode);
         this.onProgress(false, "Refinamiento IA listo", 100);
       } else if (msg.type === "error") {
         console.warn("SlimSAM aviso:", msg.message);
@@ -886,12 +1037,25 @@ export class SegmentationController {
     this.worker.postMessage({ type: "init" });
   }
 
+  setSplitState(enabled, pos = 0.5) {
+    this.splitEnabled = Boolean(enabled);
+    this.splitPos = Math.max(0.05, Math.min(0.95, Number(pos) || 0.5));
+    this.renderOverlay();
+  }
+
   _bindEvents() {
     this.overlayCanvas.addEventListener("contextmenu", e => e.preventDefault());
 
     this.overlayCanvas.addEventListener("pointerdown", e => {
       if (!this.hasImage) return;
       const pt = this._toCanvasPoint(e);
+      this.lastPointer = pt;
+
+      if (this.splitEnabled && Math.abs(pt.x - this.splitPos * this.width) <= 22) {
+        this.draggingSplit = true;
+        try { this.overlayCanvas.setPointerCapture(e.pointerId); } catch {}
+        return;
+      }
 
       if (this.onDecalPointer("down", pt, e, this.decalMode)) {
         try { this.overlayCanvas.setPointerCapture(e.pointerId); } catch {}
@@ -935,13 +1099,31 @@ export class SegmentationController {
     this.overlayCanvas.addEventListener("pointermove", e => {
       if (!this.hasImage) return;
       const pt = this._toCanvasPoint(e);
+      this.lastPointer = pt;
+
+      if (this.draggingSplit) {
+        const nextPos = Math.max(0.05, Math.min(0.95, pt.x / this.width));
+        this.splitPos = nextPos;
+        this.onSplitDrag(nextPos);
+        this.renderOverlay();
+        return;
+      }
+
+      if (this.splitEnabled && Math.abs(pt.x - this.splitPos * this.width) <= 22) {
+        this.overlayCanvas.style.cursor = "ew-resize";
+      } else if (!this.isBrushing && !this.decalMode && this.tool !== "ai-part") {
+        this.overlayCanvas.style.cursor = "crosshair";
+      }
+
       if (this.onDecalPointer("move", pt, e, this.decalMode)) return;
 
       if (!this.isBrushing && !this.decalMode && this.tool === "ai-part") {
         const hit = this._hitTestPart(pt.x, pt.y);
-        if ((hit?.id || null) !== (this.hoveredPart?.id || null)) {
+        if ((hit?.id || null) !== (this.hoveredPart?.id || null) || hit) {
           this.hoveredPart = hit;
-          this.overlayCanvas.style.cursor = hit ? "pointer" : "crosshair";
+          if (!this.splitEnabled || Math.abs(pt.x - this.splitPos * this.width) > 22) {
+            this.overlayCanvas.style.cursor = hit ? "pointer" : "crosshair";
+          }
           this.renderOverlay();
         }
         return;
@@ -955,6 +1137,10 @@ export class SegmentationController {
 
     const endStroke = e => {
       const pt = this._toCanvasPoint(e);
+      if (this.draggingSplit) {
+        this.draggingSplit = false;
+        return;
+      }
       this.onDecalPointer("up", pt, e, this.decalMode);
       if (this.isBrushing) {
         this.isBrushing = false;
@@ -968,6 +1154,7 @@ export class SegmentationController {
     this.overlayCanvas.addEventListener("pointerleave", () => {
       if (this.hoveredPart) {
         this.hoveredPart = null;
+        this.lastPointer = null;
         this.renderOverlay();
       }
     });
@@ -1076,6 +1263,8 @@ export class SegmentationController {
       if (res.vehicleDetected && res.parts.length > 0) {
         this.detectedParts = res.parts;
         this.protectedCount = res.protectedCount;
+        this.protectedMaskCanvas = res.protectedMaskCanvas || null;
+        this.hasCarPartsMask = true;
         this._buildHitGrid(res.parts);
 
         this.workingCtx.clearRect(0, 0, this.width, this.height);
@@ -1087,25 +1276,30 @@ export class SegmentationController {
         this.onPartsDetected(res.parts, res.protectedCount, res.inferenceMs);
         this.onStatus("ready", `IA: ${res.parts.length} piezas · ${res.protectedCount} zonas protegidas`);
       } else {
+        this.hasCarPartsMask = false;
+        this.protectedMaskCanvas = null;
         this.onPartsDetected([], 0, res.inferenceMs);
         this.onStatus("ready", "IA Lista (usa Pincel + o IA + Pieza)");
       }
     } catch (err) {
       console.warn("Error en CarParts ONNX, disponible SlimSAM/Pincel:", err);
+      this.hasCarPartsMask = false;
       this.onStatus("ready", "IA SlimSAM / Pincel listos");
     } finally {
       if (seq === this.analyzeSeq) this.onProgress(false, "Análisis completado", 100);
     }
   }
 
-  _dispatchSegment(preferFullObject = true) {
+  _dispatchSegment(preferFullObject = true, mode = "replace", singlePt = null, singleLabel = 1) {
     this.renderOverlay();
     const requestId = ++this.requestSeq;
-    const lastLabel = this.labels[this.labels.length - 1] ?? 1;
-    this.onProgress(true, lastLabel === 1 ? "Refinando pieza con SlimSAM…" : "Excluyendo zona con IA…", 70);
+    const ptsToSend = singlePt ? [singlePt] : this.points;
+    const lblsToSend = singlePt ? [singleLabel] : this.labels;
+    this.pendingSamMode = mode;
+    this.onProgress(true, mode === "subtract" ? "Excluyendo pieza seleccionada…" : "Refinando zona con SlimSAM…", 70);
     this.worker.postMessage({
       type: "segment",
-      payload: { requestId, points: this.points, labels: this.labels, preferFullObject }
+      payload: { requestId, points: ptsToSend, labels: lblsToSend, preferFullObject }
     });
   }
 
@@ -1120,12 +1314,20 @@ export class SegmentationController {
       return;
     }
     this._pushUndo();
-    this.points.push([Math.round(x), Math.round(y)]);
+    const pt = [Math.round(x), Math.round(y)];
+    this.points.push(pt);
     this.labels.push(label);
-    this._dispatchSegment(this.points.length <= 2);
+
+    if (this.hasCarPartsMask && this.lastCoveragePct > 1.0) {
+      // Refina incrementalmente sobre CarParts 33 sin borrar vidrios ni rines protegidos
+      const mode = label === 0 ? "subtract" : "add";
+      this._dispatchSegment(false, mode, pt, 1);
+    } else {
+      this._dispatchSegment(this.points.length <= 2, "replace");
+    }
   }
 
-  _applySamMask(maskBuffer, w, h) {
+  _applySamMask(maskBuffer, w, h, mode = "replace") {
     const bin = new Uint8Array(maskBuffer);
     const img = this.scratchCtx.createImageData(w, h);
     for (let i = 0; i < bin.length; i++) {
@@ -1135,11 +1337,31 @@ export class SegmentationController {
     }
     this.scratchCtx.putImageData(img, 0, 0);
 
-    this.workingCtx.clearRect(0, 0, this.width, this.height);
-    this.workingCtx.save();
-    this.workingCtx.filter = `blur(${this.featherRadius}px)`;
-    this.workingCtx.drawImage(this.scratchCanvas, 0, 0);
-    this.workingCtx.restore();
+    if (mode === "add") {
+      this.workingCtx.save();
+      this.workingCtx.globalCompositeOperation = "source-over";
+      this.workingCtx.filter = `blur(${this.featherRadius}px)`;
+      this.workingCtx.drawImage(this.scratchCanvas, 0, 0);
+      this.workingCtx.restore();
+    } else if (mode === "subtract") {
+      this.workingCtx.save();
+      this.workingCtx.globalCompositeOperation = "destination-out";
+      this.workingCtx.filter = `blur(${this.featherRadius}px)`;
+      this.workingCtx.drawImage(this.scratchCanvas, 0, 0);
+      this.workingCtx.restore();
+
+      this.committedCtx.save();
+      this.committedCtx.globalCompositeOperation = "destination-out";
+      this.committedCtx.filter = `blur(${this.featherRadius}px)`;
+      this.committedCtx.drawImage(this.scratchCanvas, 0, 0);
+      this.committedCtx.restore();
+    } else {
+      this.workingCtx.clearRect(0, 0, this.width, this.height);
+      this.workingCtx.save();
+      this.workingCtx.filter = `blur(${this.featherRadius}px)`;
+      this.workingCtx.drawImage(this.scratchCanvas, 0, 0);
+      this.workingCtx.restore();
+    }
 
     this._composeCombinedMask(true);
   }
@@ -1238,35 +1460,53 @@ export class SegmentationController {
     const ctx = this.overlayCtx;
     ctx.clearRect(0, 0, this.width, this.height);
 
-    // Resaltado sutil de la pieza bajo el cursor (hover) o pieza activa seleccionada
+    // Resaltado interactivo con relleno suave + contorno brillante alrededor de la pieza enfocada
     const focusPart = this.hoveredPart || this.detectedParts.find(p => p.id === this.selectedPartId);
     if (!this.decalMode && focusPart?.maskCanvas && this.showMaskTint) {
       ctx.save();
-      ctx.globalAlpha = this.hoveredPart ? 0.28 : 0.16;
+      ctx.globalAlpha = this.hoveredPart ? 0.16 : 0.08;
       ctx.fillStyle = this.hoveredPart ? "#38bdf8" : "#60a5fa";
       ctx.fillRect(0, 0, this.width, this.height);
       ctx.globalCompositeOperation = "destination-in";
       ctx.drawImage(focusPart.maskCanvas, 0, 0, this.width, this.height);
       ctx.restore();
+
+      if (focusPart.outlineCanvas) {
+        ctx.save();
+        ctx.shadowColor = this.hoveredPart ? "#38bdf8" : "#22d3ee";
+        ctx.shadowBlur = this.hoveredPart ? 10 : 6;
+        ctx.globalAlpha = this.hoveredPart ? 0.95 : 0.72;
+        ctx.drawImage(focusPart.outlineCanvas, 0, 0, this.width, this.height);
+        ctx.restore();
+      }
     }
 
-    if (focusPart && !this.decalMode) {
-      const label = `${focusPart.label} (${Math.round(focusPart.confidence * 100)}%)`;
+    if (focusPart && !this.decalMode && this.showMaskTint) {
+      const actionHint = this.hoveredPart ? " · Clic para personalizar" : " (Activa)";
+      const label = `${focusPart.label} · ${Math.round(focusPart.confidence * 100)}%${actionHint}`;
       ctx.save();
-      ctx.font = "bold 14px system-ui, sans-serif";
-      const tw = ctx.measureText(label).width + 20;
-      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
-      ctx.fillRect(16, 16, tw, 30);
+      ctx.font = "600 14px system-ui, sans-serif";
+      const tw = ctx.measureText(label).width + 22;
+      let bx = 18;
+      let by = 18;
+      if (this.hoveredPart && this.lastPointer) {
+        bx = Math.max(12, Math.min(this.width - tw - 12, this.lastPointer.x + 16));
+        by = Math.max(12, Math.min(this.height - 42, this.lastPointer.y - 42));
+      }
+      ctx.fillStyle = "rgba(12, 14, 18, 0.92)";
+      ctx.beginPath();
+      ctx.roundRect(bx, by, tw, 32, 8);
+      ctx.fill();
       ctx.strokeStyle = "#38bdf8";
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(16, 16, tw, 30);
+      ctx.stroke();
       ctx.fillStyle = "#f8fafc";
       ctx.textBaseline = "middle";
-      ctx.fillText(label, 26, 31);
+      ctx.fillText(label, bx + 11, by + 16);
       ctx.restore();
     }
 
-    if (!this.decalMode) {
+    if (!this.decalMode && this.showMaskTint) {
       for (let i = 0; i < this.points.length; i++) {
         const [x, y] = this.points[i];
         const isPos = this.labels[i] === 1;
@@ -1289,6 +1529,45 @@ export class SegmentationController {
 
     if (typeof decalDrawFn === "function") {
       decalDrawFn(ctx);
+    }
+
+    // Divisor visual "Antes | Después" cuando el comparador GPU está activo
+    if (this.splitEnabled) {
+      const sx = Math.round(this.splitPos * this.width);
+      ctx.save();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = "rgba(0,0,0,0.75)";
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(sx, 0);
+      ctx.lineTo(sx, this.height);
+      ctx.stroke();
+
+      // Etiquetas Original / El Rayo
+      ctx.fillStyle = "rgba(12, 14, 18, 0.85)";
+      ctx.fillRect(Math.max(8, sx - 86), 14, 74, 26);
+      ctx.fillRect(Math.min(this.width - 82, sx + 12), 14, 74, 26);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("ORIGINAL", Math.max(45, sx - 49), 27);
+      ctx.fillText("PINTADO", Math.min(this.width - 45, sx + 49), 27);
+
+      // Manija central circular
+      const cy = this.height * 0.5;
+      ctx.beginPath();
+      ctx.arc(sx, cy, 18, 0, Math.PI * 2);
+      ctx.fillStyle = "#2563eb";
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#ffffff";
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("↔", sx, cy + 0.5);
+      ctx.restore();
     }
   }
 

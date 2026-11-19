@@ -128,7 +128,7 @@ async function encodeImage({ rgbaBuffer, width, height }) {
   self.postMessage({ type: "encoded", width, height });
 }
 
-async function segmentPoints({ points, labels, requestId, preferFullObject = true }) {
+async function segmentPoints({ points, labels, requestId, preferFullObject = true, mode = "replace" }) {
   if (!model || !processor || !cachedEmbeddings || !cachedImageInputs) {
     throw new Error("La imagen aún no ha sido codificada por MobileSAM.");
   }
@@ -222,6 +222,7 @@ async function segmentPoints({ points, labels, requestId, preferFullObject = tru
     {
       type: "mask",
       requestId,
+      mode,
       maskBuffer: alphaMask.buffer,
       width: origW,
       height: origH,

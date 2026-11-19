@@ -1,13 +1,13 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=5";
-import { SegmentationController } from "./segmentation.js?v=5";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=5";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=5";
+import { PaintEngine } from "./paintEngine.js?v=6";
+import { SegmentationController } from "./segmentation.js?v=6";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=6";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=6";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=5";
+} from "./storageAndExport.js?v=6";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -21,7 +21,11 @@ const OEM_SWATCHES = [
   { name: "Naranja Track", hex: "#EA580C" },
   { name: "Azul Medianoche", hex: "#0F172A" },
   { name: "Vino Cereza", hex: "#7F1D1D" },
-  { name: "Perla Champagne", hex: "#D6C5A3" }
+  { name: "Perla Champagne", hex: "#D6C5A3" },
+  { name: "British Green", hex: "#14532D" },
+  { name: "Azul Laguna Seca", hex: "#0284C7" },
+  { name: "Bronce Titanio", hex: "#78583A" },
+  { name: "Grafito Carbón", hex: "#27272A" }
 ];
 
 const ORDER_FIELD_IDS = [
@@ -147,7 +151,10 @@ class ElRayoStudioApp {
       selectedColorName: OEM_SWATCHES[0].name,
       scope: "full", // "full" | "piece"
       paintOptions: { ...this.paint.options },
-      partPaints: new Map() // Map<partId, { hex, finish, contrast, metallic, specular, opacity }>
+      partPaints: new Map(), // Map<partId, { hex, finish, contrast, metallic, specular, opacity }>
+      zoom: 1,
+      splitEnabled: false,
+      splitPos: 0.5
     };
 
     this.decalManager = new DecalManager(document.getElementById("decalCanvas"), {
@@ -176,8 +183,13 @@ class ElRayoStudioApp {
       onPartClicked: part => {
         this._setScope("piece");
         this.seg.selectedPartId = part.id;
+        this._updateActiveTargetUI();
         this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
         this.showToast(`Pieza seleccionada: ${part.label} (${Math.round(part.confidence * 100)}%)`);
+      },
+      onSplitDrag: pos => {
+        this.state.splitPos = pos;
+        this.paint.setSplitCompare(this.state.splitEnabled, pos);
       },
       onStatus: (kind, text) => this._setAiStatus(kind, text),
       onProgress: (visible, text, value) => this._setAiOverlay(visible, text, value),
@@ -268,6 +280,47 @@ class ElRayoStudioApp {
 
     document.getElementById("btnScopeFull")?.addEventListener("click", () => this._setScope("full"));
     document.getElementById("btnScopePiece")?.addEventListener("click", () => this._setScope("piece"));
+    document.getElementById("btnBackToFull")?.addEventListener("click", () => {
+      this._setScope("full");
+      this.seg.selectedPartId = null;
+      this.seg.renderOverlay(ctx => this.decalManager.drawHandles(ctx));
+      this._updateActiveTargetUI();
+      this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+    });
+
+    document.getElementById("btnSplitCompare")?.addEventListener("click", e => {
+      this.state.splitEnabled = !this.state.splitEnabled;
+      e.currentTarget.setAttribute("aria-pressed", String(this.state.splitEnabled));
+      this.paint.setSplitCompare(this.state.splitEnabled, this.state.splitPos);
+      this.seg.setSplitState(this.state.splitEnabled, this.state.splitPos);
+      if (this.state.splitEnabled) this.showToast("Arrastra la línea central ↔ para comparar Antes / Después");
+    });
+
+    const applyZoom = (nextZoom, originEvent = null) => {
+      this.state.zoom = Math.max(1, Math.min(3.5, Number(nextZoom.toFixed(2))));
+      const stack = document.getElementById("canvasStack");
+      if (stack) {
+        if (this.state.zoom <= 1) {
+          stack.style.transformOrigin = "50% 50%";
+        } else if (originEvent && this.state.zoom > 1) {
+          const rect = document.getElementById("canvasDropZone").getBoundingClientRect();
+          const ox = Math.max(0, Math.min(100, ((originEvent.clientX - rect.left) / Math.max(1, rect.width)) * 100));
+          const oy = Math.max(0, Math.min(100, ((originEvent.clientY - rect.top) / Math.max(1, rect.height)) * 100));
+          stack.style.transformOrigin = `${ox.toFixed(1)}% ${oy.toFixed(1)}%`;
+        }
+        stack.style.transform = `scale(${this.state.zoom})`;
+      }
+      const resetBtn = document.getElementById("btnZoomReset");
+      if (resetBtn) resetBtn.textContent = `${Math.round(this.state.zoom * 100)}%`;
+    };
+    document.getElementById("btnZoomIn")?.addEventListener("click", () => applyZoom(this.state.zoom + 0.35));
+    document.getElementById("btnZoomOut")?.addEventListener("click", () => applyZoom(this.state.zoom - 0.35));
+    document.getElementById("btnZoomReset")?.addEventListener("click", () => applyZoom(1));
+    document.getElementById("canvasDropZone")?.addEventListener("wheel", e => {
+      if (!this.paint.hasImage) return;
+      e.preventDefault();
+      applyZoom(this.state.zoom + (e.deltaY < 0 ? 0.2 : -0.2), e);
+    }, { passive: false });
     document.getElementById("btnScanCarParts")?.addEventListener("click", () => {
       if (!this.paint.hasImage) {
         this.showToast("Primero sube la foto de un vehículo.");
@@ -506,7 +559,22 @@ class ElRayoStudioApp {
     }
     if (this.state.scope === "piece" && !this.seg.selectedPartId && this.seg.detectedParts.length) {
       this.seg.selectedPartId = this.seg.detectedParts[0].id;
-      this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+    }
+    this._updateActiveTargetUI();
+    this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+  }
+
+  _updateActiveTargetUI() {
+    const pill = document.getElementById("activeTargetPill");
+    const backBtn = document.getElementById("btnBackToFull");
+    if (!pill) return;
+    if (this.state.scope === "piece" && this.seg.selectedPartId) {
+      const part = this.seg.detectedParts.find(p => p.id === this.seg.selectedPartId);
+      pill.textContent = `Editando: ${part?.label || this.seg.selectedPartId}`;
+      if (backBtn) backBtn.hidden = false;
+    } else {
+      pill.textContent = "Objetivo: Todo el Auto";
+      if (backBtn) backBtn.hidden = true;
     }
   }
 
@@ -533,12 +601,18 @@ class ElRayoStudioApp {
 
   _renderDetectedParts(parts = [], protectedCount = 0, ms = 0) {
     const grid = document.getElementById("detectedPartsGrid");
+    const strip = document.getElementById("detectedPartsStrip");
     const summary = document.getElementById("aiProtectedSummary");
     if (!grid || !summary) return;
 
     if (!parts.length) {
       summary.textContent = "Sube un vehículo para separar cofre, puertas, salpicaderas, defensas y proteger rines/vidrios.";
       grid.innerHTML = "";
+      if (strip) {
+        strip.innerHTML = "";
+        strip.hidden = true;
+      }
+      this._updateActiveTargetUI();
       return;
     }
 
@@ -546,10 +620,26 @@ class ElRayoStudioApp {
     summary.textContent = `${parts.length} piezas pintables detectadas${timing} · ${protectedCount} zonas (vidrios/rines/faros) protegidas.`;
     grid.innerHTML = "";
 
+    if (strip) {
+      strip.hidden = false;
+      strip.innerHTML = "";
+      const allChip = document.createElement("button");
+      allChip.type = "button";
+      allChip.className = `part-chip${this.state.scope === "full" ? " active" : ""}`;
+      allChip.setAttribute("aria-pressed", String(this.state.scope === "full"));
+      allChip.textContent = "🚗 Todo el Auto";
+      allChip.addEventListener("click", () => {
+        this._setScope("full");
+        this.seg.selectedPartId = null;
+        this.seg.renderOverlay(ctx => this.decalManager.drawHandles(ctx));
+      });
+      strip.appendChild(allChip);
+    }
+
     for (const part of parts) {
       const btn = document.createElement("button");
       btn.type = "button";
-      const isSelected = this.seg.selectedPartId === part.id;
+      const isSelected = this.state.scope === "piece" && this.seg.selectedPartId === part.id;
       const customPaint = this.state.partPaints.get(part.id);
       btn.className = `detected-part-btn${isSelected ? " active" : ""}`;
       btn.setAttribute("aria-pressed", String(isSelected));
@@ -557,15 +647,28 @@ class ElRayoStudioApp {
         <span>${customPaint ? "🎨 " : ""}${part.label}</span>
         <small>${Math.round(part.confidence * 100)}% conf · ${part.areaPct}%</small>
       `;
-      btn.addEventListener("click", () => {
+      const selectPartAction = () => {
         this._setScope("piece");
         this.seg.selectedPartId = part.id;
+        this._updateActiveTargetUI();
         this.seg.renderOverlay(ctx => this.decalManager.drawHandles(ctx));
         this._renderDetectedParts(parts, protectedCount, 0);
         this.showToast(`Editando pieza: ${part.label}. Elige un color para personalizarla.`);
-      });
+      };
+      btn.addEventListener("click", selectPartAction);
       grid.appendChild(btn);
+
+      if (strip) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = `part-chip${isSelected ? " active" : ""}`;
+        chip.setAttribute("aria-pressed", String(isSelected));
+        chip.textContent = `${customPaint ? "🎨 " : ""}${part.label.split(" ")[0]} (${Math.round(part.confidence * 100)}%)`;
+        chip.addEventListener("click", selectPartAction);
+        strip.appendChild(chip);
+      }
     }
+    this._updateActiveTargetUI();
   }
 
   _syncDetectedPartsToQuote() {
@@ -877,8 +980,10 @@ class ElRayoStudioApp {
   }
 
   async _handleExportPDF() {
+    const wasSplit = this.state.splitEnabled;
     try {
       this.showToast("Generando orden de trabajo en PDF…");
+      if (wasSplit) this.paint.setSplitCompare(false, this.state.splitPos);
       this.decalManager.render(this.seg.combinedCanvas);
       const quoteSummary = this.quoteCalc.calculate();
       const filename = await exportOrderQuotePDF({
@@ -895,6 +1000,8 @@ class ElRayoStudioApp {
     } catch (err) {
       console.error("Error exportando PDF:", err);
       this.showToast(`Error al exportar PDF: ${err.message || err}`);
+    } finally {
+      if (wasSplit) this.paint.setSplitCompare(true, this.state.splitPos);
     }
   }
 
@@ -1006,7 +1113,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=5").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=6").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

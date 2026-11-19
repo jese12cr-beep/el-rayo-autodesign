@@ -129,8 +129,16 @@
           <span id="stageVehicleLabel" class="metric-chip">Sin fotografía cargada</span>
           <span id="maskCoverageBadge" class="metric-chip metric-accent">Área IA: 0.0%</span>
           <span id="webglStatusBadge" class="metric-chip">WebGL2: listo</span>
+          <span id="activeTargetPill" class="metric-chip target-chip">Objetivo: Todo el Auto</span>
+          <button type="button" id="btnBackToFull" class="btn-inline" hidden>Volver a Todo el Auto</button>
         </div>
-        <span id="offlineIndicator" class="metric-chip" role="status">Modo Offline listo</span>
+        <div class="stage-view-controls" role="group" aria-label="Controles de comparación y zoom del lienzo">
+          <button type="button" id="btnSplitCompare" class="btn-inline" aria-pressed="false">Antes / Después</button>
+          <button type="button" id="btnZoomOut" class="btn-inline" aria-label="Alejar zoom">−</button>
+          <button type="button" id="btnZoomReset" class="btn-inline" aria-label="Restablecer zoom al 100%">100%</button>
+          <button type="button" id="btnZoomIn" class="btn-inline" aria-label="Acercar zoom">+</button>
+          <span id="offlineIndicator" class="metric-chip" role="status">Modo Offline listo</span>
+        </div>
       </div>
 
       <div class="canvas-stage-frame" id="canvasDropZone">
@@ -144,7 +152,7 @@
           <div class="empty-card">
             <img src="./assets/logo_el_rayo.png" alt="" width="64" height="64" />
             <h2>Sube o arrastra la foto del vehículo</h2>
-            <p>Compatible con autos blancos, negros o de color. Segmentación local con IA sin subir tus fotos a ningún servidor externo.</p>
+            <p>IA Dual (CarParts 33 clases + SlimSAM) con protección automática de vidrios, faros, parrilla y rines.</p>
             <div class="empty-actions">
               <button type="button" id="btnEmptyUpload" class="btn btn-primary">Seleccionar Foto del Taller</button>
               <button type="button" id="btnLoadSampleCar" class="btn btn-secondary">Cargar Auto Demo</button>
@@ -154,11 +162,13 @@
 
         <div id="aiProgressOverlay" class="ai-overlay" hidden>
           <div class="ai-overlay-card" role="status" aria-live="polite">
-            <p id="aiProgressText">Cargando modelo MobileSAM…</p>
+            <p id="aiProgressText">Iniciando IA automotriz…</p>
             <progress id="aiProgressBar" max="100" value="0">0%</progress>
           </div>
         </div>
       </div>
+
+      <div id="detectedPartsStrip" class="parts-strip" role="region" aria-label="Accesos rápidos a piezas detectadas" hidden></div>
     </main>
 
     <!-- Columna Derecha: 4 Pestañas (Pintura, Piezas, Viniles, Cotización) -->
@@ -192,12 +202,13 @@
         </div>
 
         <div class="section-block">
-          <h2 class="section-title">Acabado y Barniz (WebGL2)</h2>
+          <h2 class="section-title">Acabado y Barniz (PBR WebGL2)</h2>
           <div class="finish-grid" role="group" aria-label="Selector de acabado automotriz">
             <button type="button" class="finish-btn" data-finish="gloss" aria-pressed="false">Bicapa Gloss</button>
             <button type="button" class="finish-btn active" data-finish="metallic" aria-pressed="true">Metálico</button>
             <button type="button" class="finish-btn" data-finish="pearl" aria-pressed="false">Perlado Tricapa</button>
-            <button type="button" class="finish-btn" data-finish="matte" aria-pressed="false">Mate Satinado</button>
+            <button type="button" class="finish-btn" data-finish="matte" aria-pressed="false">Mate Stealth</button>
+            <button type="button" class="finish-btn finish-span" data-finish="candy" aria-pressed="false">Candy Profundo (Tricapa)</button>
           </div>
         </div>
 
@@ -391,6 +402,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <script src="./assets/ort/ort.wasm.min.js"></script>
-  <script type="module" src="./js/app.js?v=5"></script>
+  <script type="module" src="./js/app.js?v=6"></script>
 </body>
 </html>
