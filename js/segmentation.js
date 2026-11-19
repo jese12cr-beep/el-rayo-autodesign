@@ -796,8 +796,9 @@ class CarPartsDetector {
         const mFull = new Uint8Array(nPix);
         let count = 0;
         const isExcl = EXCLUDE_PART_CLASSES.has(cname);
-        // Exclusiones ligeramente más amplias (108) para proteger bordes de hule y faros; pintura más nítida (126)
-        const binThresh = isExcl ? 108 : 126;
+        const isLightOrPlate = cname.endsWith("light") || cname === "license-plate";
+        // Faros/placas más ceñidos (128) para no invadir cejas del cofre; vidrios/llantas ligeramente amplios (114/108)
+        const binThresh = !isExcl ? 126 : (isLightOrPlate ? 128 : (cname.endsWith("-wheel") ? 108 : 114));
         for (let i = 0; i < nPix; i++) {
           if (fData[i << 2] > binThresh) {
             mFull[i] = 1;
@@ -967,6 +968,18 @@ class CarPartsDetector {
             if (!(satArr[i] >= Math.max(22, medSat * 0.42) && cd < 58)) fullExcl[i] = 1;
           } else if (lumaArr[i] < grilleLumaLim) {
             fullExcl[i] = 1;
+          }
+        }
+      }
+
+      if (isChromaticCar && paintParts["roof"]) {
+        const rArr = paintParts["roof"];
+        for (let i = 0; i < nPix; i++) {
+          if (rArr[i] && hardBgMask[i]) {
+            const j = i << 2;
+            const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+            const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+            if (satArr[i] < Math.max(26, medSat * 0.42) || cd > 46) rArr[i] = 0;
           }
         }
       }
@@ -1321,7 +1334,14 @@ class CarPartsDetector {
       const glass1 = this._dilateBool(glassMask, w, h, 1);
       const wheel1 = this._dilateBool(wheelMask, w, h, 1);
       for (let i = 0; i < nPix; i++) {
-        if (fullExcl[i] || moldingExcl[i] || plasticTrimExcl[i] || glass1[i] || wheel1[i]) {
+        let g1 = glass1[i] && !glassMask[i];
+        if (g1 && isChromaticCar) {
+          const j = i << 2;
+          const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+          const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+          if (satArr[i] >= Math.max(28, medSat * 0.48) && cd < 40) g1 = false;
+        }
+        if (fullExcl[i] || moldingExcl[i] || plasticTrimExcl[i] || g1 || wheel1[i]) {
           strictExclEdge[i] = 1;
           bodyMask[i] = 0;
         }
@@ -1452,7 +1472,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=7", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=8", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {

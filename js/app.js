@@ -1,13 +1,13 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=7";
-import { SegmentationController } from "./segmentation.js?v=7";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=7";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=7";
+import { PaintEngine } from "./paintEngine.js?v=8";
+import { SegmentationController } from "./segmentation.js?v=8";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=8";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=8";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=7";
+} from "./storageAndExport.js?v=8";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -1113,7 +1113,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=7").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=8").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);
