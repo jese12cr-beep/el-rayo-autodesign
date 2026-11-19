@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="./assets/logo_el_rayo.png" />
   <link rel="apple-touch-icon" href="./assets/logo_el_rayo.png" />
-  <link rel="stylesheet" href="./css/styles.css?v=8" />
+  <link rel="stylesheet" href="./css/styles.css?v=10" />
 </head>
 <body>
   <a class="skip-link" href="#workspace-stage">Saltar al lienzo del vehículo</a>
@@ -122,8 +122,54 @@
       </section>
     </nav>
 
-    <!-- Columna Central: Lienzo 16:9 Apilado (WebGL2 + Viniles + Overlay IA) -->
+    <!-- Columna Central: Asistente IA + Lienzo 16:9 Apilado (WebGL2 + Viniles + Overlay IA) -->
     <main id="workspace-stage" class="stage-column" tabindex="-1">
+      <section class="ai-copilot-bar" aria-label="Asistente IA de diseño automotriz">
+        <div class="ai-copilot-head">
+          <div class="ai-copilot-title-row">
+            <h2 class="ai-copilot-heading">Asistente El Rayo IA</h2>
+            <span id="aiBrainBadge" class="metric-chip">Motor: Pensamiento 3D Local</span>
+          </div>
+          <button type="button" id="btnOpenGeminiConfig" class="btn-inline">Configurar Gemini IA</button>
+        </div>
+
+        <form id="aiPromptForm" class="ai-prompt-form" novalidate>
+          <div class="ai-prompt-field">
+            <label for="aiPromptInput" class="ai-prompt-label">Describe el diseño por texto o voz</label>
+            <p id="aiPromptHint" class="ai-prompt-hint">Ej: “Carro gris, cofre negro y franjas dobles muy delgadas en blanco en las puertas laterales”</p>
+            <div class="ai-prompt-row">
+              <input
+                type="search"
+                id="aiPromptInput"
+                aria-describedby="aiPromptHint"
+                placeholder="Quiero este carro en gris, píntale el cofre negro y franjas dobles blancas en puertas…"
+                autocomplete="off"
+              />
+              <button type="button" id="btnVoicePrompt" class="btn btn-secondary ai-mic-btn" aria-pressed="false" aria-label="Dictar diseño por voz">
+                🎙️ Voz
+              </button>
+              <button type="submit" id="btnRunAiDesign" class="btn btn-primary ai-submit-btn">
+                ✨ 3 Opciones IA
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div id="aiQuickChips" class="ai-quick-chips" role="group" aria-label="Ideas rápidas de diseño">
+          <button type="button" class="btn-inline ai-quick-chip" data-prompt="Quiero este carro en gris, píntale el cofre negro y en las puertas laterales franjas dobles muy delgadas en color blanco">Gris + Cofre Negro + Franjas Puertas</button>
+          <button type="button" class="btn-inline ai-quick-chip" data-prompt="Azul cobalto metálico con franjas racing blancas en cofre">Azul Cobalto + Franjas Cofre</button>
+          <button type="button" class="btn-inline ai-quick-chip" data-prompt="Negro mate satinado con cofre negro brillo y líneas rojas delgadas en puertas">Negro Mate + Líneas Rojas</button>
+        </div>
+
+        <div id="aiProposalsTray" class="ai-proposals-tray" hidden>
+          <details id="aiThinkingDetails" class="ai-thinking-box">
+            <summary>Ver pasos de pensamiento y análisis geométrico 3D</summary>
+            <ol id="aiThinkingSteps" class="ai-thinking-steps"></ol>
+          </details>
+          <div id="aiProposalsGrid" class="ai-proposals-grid" role="radiogroup" aria-label="Propuestas visuales generadas por IA"></div>
+        </div>
+      </section>
+
       <div class="stage-bar">
         <div class="stage-metrics">
           <span id="stageVehicleLabel" class="metric-chip">Sin fotografía cargada</span>
@@ -401,7 +447,33 @@
 
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
+  <dialog id="geminiConfigDialog" class="gemini-dialog" aria-labelledby="geminiDialogTitle" closedby="any">
+    <h2 id="geminiDialogTitle">Motor Gemini Multimodal (Opcional)</h2>
+    <p class="muted-note">
+      Por defecto, el estudio ya funciona <strong>100% gratis y sin conexión</strong> con nuestro motor semántico automotriz + contorno geométrico 3D.
+      Si deseas reconocimiento visual de marca/modelo y razonamiento libre con Google Gemini, ingresa tu clave gratuita de Google AI Studio (se guarda únicamente en este navegador).
+    </p>
+    <div class="order-form">
+      <div class="field-group">
+        <label for="geminiApiKeyInput">Clave API de Google AI Studio (opcional)</label>
+        <input type="password" id="geminiApiKeyInput" placeholder="AIza..." autocomplete="off" />
+      </div>
+      <div class="field-group">
+        <label for="geminiModelSelect">Modelo Gemini</label>
+        <select id="geminiModelSelect" class="dark-select">
+          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Ultra rápido · Recomendado)</option>
+          <option value="gemini-3.8-flash">Gemini 3.8 Flash (Razonamiento multimodal)</option>
+        </select>
+      </div>
+    </div>
+    <form method="dialog" class="dialog-actions">
+      <button type="button" id="btnClearGeminiKey" class="btn btn-ghost btn-danger-outline">Desactivar Clave</button>
+      <button type="submit" value="cancel" class="btn btn-ghost" autofocus>Cerrar</button>
+      <button type="button" id="btnSaveGeminiKey" class="btn btn-primary">Guardar Motor</button>
+    </form>
+  </dialog>
+
   <script src="./assets/ort/ort.wasm.min.js"></script>
-  <script type="module" src="./js/app.js?v=8"></script>
+  <script type="module" src="./js/app.js?v=10"></script>
 </body>
 </html>

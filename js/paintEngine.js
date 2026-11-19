@@ -491,9 +491,16 @@ export class PaintEngine {
       return;
     }
 
-    const drawLayer = (maskC, paintSpec) => {
+    const drawLayer = (maskC, paintSpec, replaceExisting = false) => {
       if (!maskC || !paintSpec) return;
       const alphaOp = Math.max(0, Math.min(1, paintSpec.opacity ?? 0.94));
+
+      if (replaceExisting) {
+        tctx.save();
+        tctx.globalCompositeOperation = "destination-out";
+        tctx.drawImage(maskC, 0, 0, this.width, this.height);
+        tctx.restore();
+      }
 
       sctx.clearRect(0, 0, this.width, this.height);
       sctx.globalCompositeOperation = "source-over";
@@ -512,6 +519,13 @@ export class PaintEngine {
       const fB = Math.round(Math.max(0, Math.min(1, paintSpec.specular ?? 0.88)) * 255);
       const fA = Math.round(Math.max(0.2, Math.min(1, (paintSpec.contrast ?? 1.25) / 2.5)) * 255);
 
+      if (replaceExisting) {
+        fctx.save();
+        fctx.globalCompositeOperation = "destination-out";
+        fctx.drawImage(maskC, 0, 0, this.width, this.height);
+        fctx.restore();
+      }
+
       sctx.clearRect(0, 0, this.width, this.height);
       sctx.fillStyle = `rgba(${fR}, ${fG}, ${fB}, ${(fA / 255).toFixed(3)})`;
       sctx.fillRect(0, 0, this.width, this.height);
@@ -521,10 +535,10 @@ export class PaintEngine {
       fctx.drawImage(this.partScratchCanvas, 0, 0);
     };
 
-    if (fullMaskCanvas && fullPaint) drawLayer(fullMaskCanvas, fullPaint);
+    if (fullMaskCanvas && fullPaint) drawLayer(fullMaskCanvas, fullPaint, false);
     for (const part of detectedParts || []) {
       const customPaint = partPaintsMap.get(part.id);
-      if (customPaint && part.maskCanvas) drawLayer(part.maskCanvas, customPaint);
+      if (customPaint && part.maskCanvas) drawLayer(part.maskCanvas, customPaint, true);
     }
 
     this.usePartMaps = true;

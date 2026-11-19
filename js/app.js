@@ -1,13 +1,14 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=8";
-import { SegmentationController } from "./segmentation.js?v=8";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=8";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=8";
+import { PaintEngine } from "./paintEngine.js?v=10";
+import { SegmentationController } from "./segmentation.js?v=10";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=10";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=10";
+import { AiDesignAssistant } from "./aiAssistant.js?v=10";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=8";
+} from "./storageAndExport.js?v=10";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -144,6 +145,9 @@ class ElRayoStudioApp {
   constructor() {
     this.paint = new PaintEngine(document.getElementById("glPaintCanvas"), 1280, 720);
     this.quoteCalc = new QuoteCalculator();
+    this.aiAssistant = new AiDesignAssistant();
+    this.lastAiProposals = [];
+    this.activeRecognition = null;
 
     this.state = {
       imageDataUrl: null,
@@ -178,6 +182,11 @@ class ElRayoStudioApp {
         }
       },
       onPartsDetected: (parts, protectedCount, ms) => {
+        this.decalManager.setSceneContext({
+          stageCanvas: this.paint.stageCanvas,
+          detectedParts: parts,
+          bodyMaskCanvas: this.seg.combinedCanvas
+        });
         this._renderDetectedParts(parts, protectedCount, ms);
       },
       onPartClicked: part => {
@@ -531,6 +540,333 @@ class ElRayoStudioApp {
     });
 
     this._renderQuoteSummary();
+    this._initAiCopilotUI();
+  }
+
+  _initAiCopilotUI() {
+    const badge = document.getElementById("aiBrainBadge");
+    const updateBadge = () => {
+      if (!badge) return;
+      badge.textContent = this.aiAssistant.hasGeminiKey()
+        ? `Motor: Gemini (${this.aiAssistant.geminiModel}) + 3D`
+        : "Motor: Pensamiento 3D Local";
+    };
+    updateBadge();
+
+    const promptInput = document.getElementById("aiPromptInput");
+    document.getElementById("aiPromptForm")?.addEventListener("submit", e => {
+      e.preventDefault();
+      this._handleAiPrompt(promptInput?.value || "");
+    });
+
+    document.querySelectorAll("#aiQuickChips .ai-quick-chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const text = btn.dataset.prompt || "";
+        if (promptInput) promptInput.value = text;
+        this._handleAiPrompt(text);
+      });
+    });
+
+    const micBtn = document.getElementById("btnVoicePrompt");
+    micBtn?.addEventListener("click", () => {
+      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Rec) {
+        this.showToast("Dictado por voz no disponible en este navegador; escribe tu diseño arriba.");
+        promptInput?.focus();
+        return;
+      }
+      if (this.activeRecognition) {
+        this.activeRecognition.stop();
+        return;
+      }
+      const rec = new Rec();
+      rec.lang = "es-MX";
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      this.activeRecognition = rec;
+      micBtn.setAttribute("aria-pressed", "true");
+      micBtn.textContent = "⏹ Escuchando…";
+
+      rec.onresult = ev => {
+        let txt = "";
+        for (let i = 0; i < ev.results.length; i++) txt += ev.results[i][0].transcript;
+        if (promptInput) promptInput.value = txt.trim();
+      };
+      rec.onerror = err => {
+        this.showToast(`Micrófono: ${err.error || "permiso denegado"}`);
+      };
+      rec.onend = () => {
+        this.activeRecognition = null;
+        micBtn.setAttribute("aria-pressed", "false");
+        micBtn.textContent = "🎙️ Voz";
+        if (promptInput?.value?.trim()) {
+          this._handleAiPrompt(promptInput.value);
+        }
+      };
+      rec.start();
+    });
+
+    // Diálogo nativo de configuración Gemini (opcional)
+    const dialog = document.getElementById("geminiConfigDialog");
+    const openBtn = document.getElementById("btnOpenGeminiConfig");
+    const keyInput = document.getElementById("geminiApiKeyInput");
+    const modelSel = document.getElementById("geminiModelSelect");
+
+    openBtn?.addEventListener("click", () => {
+      if (!dialog) return;
+      if (keyInput) keyInput.value = this.aiAssistant.apiKey || "";
+      if (modelSel) modelSel.value = this.aiAssistant.geminiModel || "gemini-3.5-flash-lite";
+      dialog.showModal();
+    });
+
+    dialog?.addEventListener("close", () => {
+      dialog.returnValue = "";
+    });
+
+    if (dialog && !("closedBy" in HTMLDialogElement.prototype)) {
+      const outside = (e, d) => {
+        const r = d.getBoundingClientRect();
+        return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+      };
+      let pressedOutside = false;
+      dialog.addEventListener("pointerdown", e => { pressedOutside = outside(e, dialog); });
+      dialog.addEventListener("pointerup", e => {
+        if (pressedOutside && outside(e, dialog)) dialog.close();
+      });
+    }
+
+    document.getElementById("btnSaveGeminiKey")?.addEventListener("click", () => {
+      this.aiAssistant.saveSettings({
+        apiKey: keyInput?.value || "",
+        model: modelSel?.value || "gemini-3.5-flash-lite"
+      });
+      updateBadge();
+      dialog?.close();
+      this.showToast(this.aiAssistant.hasGeminiKey()
+        ? "Motor Gemini IA conectado para propuestas y análisis visual."
+        : "Modo local gratuito activo (sin clave Gemini).");
+    });
+
+    document.getElementById("btnClearGeminiKey")?.addEventListener("click", () => {
+      this.aiAssistant.saveSettings({ apiKey: "", model: "gemini-3.5-flash-lite" });
+      if (keyInput) keyInput.value = "";
+      updateBadge();
+      dialog?.close();
+      this.showToast("Clave Gemini eliminada; usando motor 3D local gratuito.");
+    });
+  }
+
+  _syncPaintControlsUI() {
+    const opts = this.state.paintOptions;
+    const upper = (opts.hex || "#DC2626").toUpperCase();
+    document.getElementById("selectedColorName").textContent = this.state.selectedColorName || upper;
+    document.getElementById("colorPicker").value = upper;
+    document.getElementById("hexInput").value = upper;
+
+    document.querySelectorAll(".swatch-btn").forEach(btn => {
+      const match = btn.dataset.hex.toUpperCase() === upper;
+      btn.setAttribute("aria-pressed", String(match));
+      btn.textContent = match ? "✓" : "";
+    });
+
+    document.querySelectorAll(".finish-btn[data-finish]").forEach(b => {
+      const active = b.dataset.finish === opts.finish;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    });
+
+    const syncSlider = (id, outId, val, fmt) => {
+      const el = document.getElementById(id);
+      const out = document.getElementById(outId);
+      if (el) el.value = val;
+      if (out) out.textContent = fmt(val);
+    };
+    syncSlider("paintContrast", "paintContrastVal", opts.contrast, v => `${Number(v).toFixed(2)}`);
+    syncSlider("paintMetallic", "paintMetallicVal", Math.round((opts.metallic ?? 0.6) * 100), v => `${v}%`);
+    syncSlider("paintSpecular", "paintSpecularVal", Math.round((opts.specular ?? 0.85) * 100), v => `${v}%`);
+    syncSlider("paintOpacity", "paintOpacityVal", Math.round((opts.opacity ?? 0.92) * 100), v => `${v}%`);
+  }
+
+  async _applyAiProposal(proposal, persist = true) {
+    if (!proposal) return;
+    this._setScope("full");
+    this.seg.selectedPartId = null;
+
+    Object.assign(this.state.paintOptions, proposal.basePaint);
+    this.state.selectedColorName = proposal.basePaint.name || proposal.basePaint.hex;
+
+    this.state.partPaints.clear();
+    for (const [pid, spec] of Object.entries(proposal.partOverrides || {})) {
+      this.state.partPaints.set(pid, { ...spec });
+    }
+
+    // Asegurar geometría 3D actualizada del auto antes de proyectar franjas contorneadas
+    this.decalManager.setSceneContext({
+      stageCanvas: this.paint.stageCanvas,
+      detectedParts: this.seg.detectedParts,
+      bodyMaskCanvas: this.seg.combinedCanvas
+    });
+
+    this.decalManager.decals = (this.decalManager.decals || []).filter(d => d.kind !== "contour-stripe");
+    for (const st of proposal.stripes || []) {
+      this.decalManager.addContouredStripe({
+        name: st.name || "Franjas Contorneadas 3D",
+        zone: st.zone || "doors",
+        style: st.style || "double-thin",
+        color: st.colorHex || "#FFFFFF",
+        bandPos: st.bandPos ?? 0.56,
+        thicknessPx: st.thicknessPx ?? 6,
+        gapPx: st.gapPx ?? 5,
+        clipToBody: true
+      });
+    }
+    this.decalManager.selectedId = null;
+    this.decalManager.render(this.seg.combinedCanvas);
+    this.seg.renderOverlay(ctx => this.decalManager.drawHandles(ctx));
+
+    this._syncPaintControlsUI();
+    this.quoteCalc.setFinish(this.state.paintOptions.finish);
+    this._refreshPaintRender();
+    this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+    this._renderQuoteSummary();
+
+    if (persist) this._scheduleSave();
+  }
+
+  _captureCurrentThumbnailUrl() {
+    const thumb = document.createElement("canvas");
+    thumb.width = 360;
+    thumb.height = 202;
+    const tctx = thumb.getContext("2d");
+    tctx.drawImage(this.paint.canvas, 0, 0, 360, 202);
+    tctx.drawImage(this.decalManager.canvas, 0, 0, 360, 202);
+    return thumb.toDataURL("image/jpeg", 0.86);
+  }
+
+  async _handleAiPrompt(rawText) {
+    const text = (rawText || "").trim();
+    if (!text) {
+      this.showToast("Escribe o dicta qué colores y franjas quieres aplicar al vehículo.");
+      document.getElementById("aiPromptInput")?.focus();
+      return;
+    }
+
+    if (!this.paint.hasImage) {
+      this.showToast("Primero sube una fotografía del vehículo o carga el Auto Demo.");
+      document.getElementById("btnUpload")?.focus();
+      return;
+    }
+
+    const runBtn = document.getElementById("btnRunAiDesign");
+    if (runBtn) {
+      runBtn.disabled = true;
+      runBtn.textContent = "Pensando…";
+    }
+
+    try {
+      if (this.seg.lastCoveragePct < 0.2 || !this.seg.detectedParts.length) {
+        await this.seg.runCarPartsScan(this.paint.stageCanvas);
+      }
+
+      const result = await this.aiAssistant.generateDesignProposals(text, {
+        paintEngine: this.paint,
+        detectedParts: this.seg.detectedParts,
+        stageCanvas: this.paint.stageCanvas,
+        bodyMaskCanvas: this.seg.combinedCanvas
+      });
+
+      if (result.detectedVehicle) {
+        const brandEl = document.getElementById("vehicleBrand");
+        const modelEl = document.getElementById("vehicleModel");
+        if (brandEl && !brandEl.value && result.detectedVehicle.brand) brandEl.value = result.detectedVehicle.brand;
+        if (modelEl && !modelEl.value && result.detectedVehicle.model) modelEl.value = result.detectedVehicle.model;
+      }
+
+      const tray = document.getElementById("aiProposalsTray");
+      const stepsEl = document.getElementById("aiThinkingSteps");
+      const gridEl = document.getElementById("aiProposalsGrid");
+
+      if (stepsEl) {
+        stepsEl.innerHTML = "";
+        for (const step of result.thinkingSteps || []) {
+          const li = document.createElement("li");
+          li.textContent = step;
+          stepsEl.appendChild(li);
+        }
+      }
+
+      this.lastAiProposals = result.proposals || [];
+      const previews = [];
+      for (const prop of this.lastAiProposals) {
+        await this._applyAiProposal(prop, false);
+        previews.push({ prop, thumbUrl: this._captureCurrentThumbnailUrl() });
+      }
+
+      // Dejar aplicada automáticamente la Opción 1 para el usuario
+      if (this.lastAiProposals[0]) {
+        await this._applyAiProposal(this.lastAiProposals[0], true);
+      }
+
+      if (gridEl) {
+        gridEl.innerHTML = "";
+        previews.forEach(({ prop, thumbUrl }, idx) => {
+          const label = document.createElement("label");
+          label.className = "proposal-card";
+
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = "aiProposalChoice";
+          radio.className = "visually-hidden";
+          radio.value = prop.id;
+          radio.checked = idx === 0;
+          radio.addEventListener("change", async () => {
+            if (radio.checked) {
+              await this._applyAiProposal(prop, true);
+              this.showToast(`Aplicada: ${prop.title}`);
+            }
+          });
+
+          const img = document.createElement("img");
+          img.src = thumbUrl;
+          img.alt = `Vista previa ${prop.title}: ${prop.subtitle}`;
+          img.width = 360;
+          img.height = 202;
+
+          const title = document.createElement("strong");
+          title.textContent = prop.title;
+
+          const sub = document.createElement("p");
+          sub.textContent = prop.subtitle;
+
+          const badge = document.createElement("span");
+          badge.className = "proposal-check";
+          badge.setAttribute("aria-hidden", "true");
+          badge.textContent = idx === 0 ? "✓ Seleccionada" : "Elegir diseño";
+
+          radio.addEventListener("change", () => {
+            gridEl.querySelectorAll(".proposal-card").forEach(card => {
+              const r = card.querySelector("input");
+              const b = card.querySelector(".proposal-check");
+              if (b) b.textContent = r?.checked ? "✓ Seleccionada" : "Elegir diseño";
+            });
+          });
+
+          label.append(radio, img, title, sub, badge);
+          gridEl.appendChild(label);
+        });
+      }
+
+      if (tray) tray.hidden = false;
+      this.showToast("3 opciones visuales contorneadas generadas. Elige tu favorita.");
+    } catch (err) {
+      console.error("Error en Asistente IA:", err);
+      this.showToast(`Error generando propuestas IA: ${err.message || err}`);
+    } finally {
+      if (runBtn) {
+        runBtn.disabled = false;
+        runBtn.textContent = "✨ 3 Opciones IA";
+      }
+    }
   }
 
   _bindRange(inputId, outId, formatter, onVal) {
@@ -926,8 +1262,12 @@ class ElRayoStudioApp {
       document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
 
       this.state.partPaints.clear();
+      this.decalManager.clearByKind?.("contour-stripe");
+      const tray = document.getElementById("aiProposalsTray");
+      if (tray) tray.hidden = true;
       this._renderDetectedParts([], 0, 0);
       const imageData = this.paint.setImage(img);
+      this.decalManager.setSceneContext({ stageCanvas: this.paint.stageCanvas, detectedParts: [], bodyMaskCanvas: this.seg.combinedCanvas });
       this.seg.encodeAndAnalyze(this.paint.stageCanvas, imageData, { autoAnalyze: !applyDemoMask });
 
       if (applyDemoMask) {
@@ -964,6 +1304,11 @@ class ElRayoStudioApp {
         ctx.restore();
 
         this.seg._composeCombinedMask(true);
+        this.decalManager.setSceneContext({
+          stageCanvas: this.paint.stageCanvas,
+          detectedParts: [],
+          bodyMaskCanvas: this.seg.combinedCanvas
+        });
       }
 
       this._scheduleSave();
@@ -1015,6 +1360,7 @@ class ElRayoStudioApp {
           vehicleLabel: this.state.vehicleLabel,
           selectedColorName: this.state.selectedColorName,
           paintOptions: this.state.paintOptions,
+          partPaints: Array.from(this.state.partPaints.entries()),
           committedMaskUrl: masks.committedUrl,
           workingMaskUrl: masks.workingUrl,
           selectedParts: Array.from(this.quoteCalc.selectedIds),
@@ -1049,10 +1395,15 @@ class ElRayoStudioApp {
         document.getElementById("repairTierSelect").value = saved.repairTier;
       }
 
+      if (Array.isArray(saved.partPaints)) {
+        this.state.partPaints = new Map(saved.partPaints);
+      }
+
       if (saved.paintOptions?.hex) {
         this._applyColor(saved.paintOptions.hex, saved.selectedColorName || "Recuperado");
         this.state.paintOptions = { ...this.state.paintOptions, ...saved.paintOptions };
         this.paint.setOptions(this.state.paintOptions);
+        this._syncPaintControlsUI();
       }
 
       if (Array.isArray(saved.decals) && saved.decals.length) {
@@ -1068,6 +1419,11 @@ class ElRayoStudioApp {
             document.getElementById("emptyDropOverlay").hidden = true;
             document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
             const imageData = this.paint.setImage(img);
+            this.decalManager.setSceneContext({
+              stageCanvas: this.paint.stageCanvas,
+              detectedParts: this.seg.detectedParts,
+              bodyMaskCanvas: this.seg.combinedCanvas
+            });
             this.seg.encodeAndAnalyze(this.paint.stageCanvas, imageData, { autoAnalyze: false });
             await this.seg.restoreFromDataUrls({
               committedUrl: saved.committedMaskUrl,
@@ -1076,6 +1432,7 @@ class ElRayoStudioApp {
             if (this.seg.detectedParts.length === 0) {
               this.seg.runCarPartsScan(this.paint.stageCanvas);
             }
+            this._refreshPaintRender();
             resolve();
           };
           img.onerror = resolve;
@@ -1113,7 +1470,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=8").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=10").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);
