@@ -128,7 +128,7 @@ async function encodeImage({ rgbaBuffer, width, height }) {
   self.postMessage({ type: "encoded", width, height });
 }
 
-async function segmentPoints({ points, labels, requestId, preferFullObject = true, mode = "replace" }) {
+async function segmentPoints({ points, labels, requestId, preferFullObject = true, samTask = "full", mode = "replace" }) {
   if (!model || !processor || !cachedEmbeddings || !cachedImageInputs) {
     throw new Error("La imagen aún no ha sido codificada por MobileSAM.");
   }
@@ -177,7 +177,7 @@ async function segmentPoints({ points, labels, requestId, preferFullObject = tru
   }
 
   let bestIdx = 0;
-  let bestScore = -1;
+  let bestScore = -1e9;
   for (let m = 0; m < numMasks; m++) {
     const off = m * planeSize;
     let hits = 0;
@@ -190,8 +190,13 @@ async function segmentPoints({ points, labels, requestId, preferFullObject = tru
     const iou = iouData[m] ?? 0.5;
 
     let rank = iou;
-    if (preferFullObject && iou >= topIou - 0.14 && covRatio >= 0.04 && covRatio <= 0.78) {
-      // Prefiere la silueta completa de carrocería frente a micro-subpiezas (ej. faro o emblema)
+    if (samTask === "refine") {
+      // En refinamiento puntual (añadir zona muerta o excluir moldura/vidrio), preferir máscara local limpia (0.04%..14%) y penalizar explosiones al fondo
+      if (covRatio > 0.22) rank -= 1.2;
+      else if (covRatio > 0.14) rank -= 0.45;
+      else if (covRatio >= 0.0004 && iou >= topIou - 0.35) rank += 0.34;
+    } else if (preferFullObject && iou >= topIou - 0.14 && covRatio >= 0.04 && covRatio <= 0.72) {
+      // Prefiere silueta completa de carrocería cuando se segmenta desde cero
       rank = iou + Math.min(0.45, covRatio * 1.1);
     }
     if (rank > bestScore) {
@@ -204,9 +209,29 @@ async function segmentPoints({ points, labels, requestId, preferFullObject = tru
   const offset = safeBest * planeSize;
 
   const alphaMask = new Uint8Array(planeSize);
+  let minMaskVal = Infinity;
+  let maxMaskVal = -Infinity;
+  for (let i = 0; i < planeSize; i += 32) {
+    const v = rawMaskData[offset + i];
+    if (typeof v === "number") {
+      if (v < minMaskVal) minMaskVal = v;
+      if (v > maxMaskVal) maxMaskVal = v;
+    }
+  }
+  const isContinuousLogit = (rawMaskData instanceof Float32Array) && (minMaskVal < -0.05 || maxMaskVal > 1.05);
+
   for (let i = 0; i < planeSize; i++) {
     const val = rawMaskData[offset + i];
-    alphaMask[i] = val === true || val > 0 ? 255 : 0;
+    if (!isContinuousLogit) {
+      alphaMask[i] = (val === true || val > 0.5) ? 255 : 0;
+    } else if (val > 2.2) {
+      alphaMask[i] = 255;
+    } else if (val <= 0.0) {
+      alphaMask[i] = 0;
+    } else {
+      const prob = 1.0 / (1.0 + Math.exp(-val * 1.8));
+      alphaMask[i] = prob > 0.52 ? Math.min(255, Math.round(prob * 255)) : 0;
+    }
   }
 
   try {

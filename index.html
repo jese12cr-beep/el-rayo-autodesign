@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="./assets/logo_el_rayo.png" />
   <link rel="apple-touch-icon" href="./assets/logo_el_rayo.png" />
-  <link rel="stylesheet" href="./css/styles.css?v=10" />
+  <link rel="stylesheet" href="./css/styles.css?v=11" />
 </head>
 <body>
   <a class="skip-link" href="#workspace-stage">Saltar al lienzo del vehículo</a>
@@ -453,27 +453,29 @@
       Por defecto, el estudio ya funciona <strong>100% gratis y sin conexión</strong> con nuestro motor semántico automotriz + contorno geométrico 3D.
       Si deseas reconocimiento visual de marca/modelo y razonamiento libre con Google Gemini, ingresa tu clave gratuita de Google AI Studio (se guarda únicamente en este navegador).
     </p>
-    <div class="order-form">
-      <div class="field-group">
-        <label for="geminiApiKeyInput">Clave API de Google AI Studio (opcional)</label>
-        <input type="password" id="geminiApiKeyInput" placeholder="AIza..." autocomplete="off" />
+    <form id="geminiConfigForm" method="dialog">
+      <div class="order-form">
+        <div class="field-group">
+          <label for="geminiApiKeyInput">Clave API de Google AI Studio (opcional)</label>
+          <input type="password" id="geminiApiKeyInput" placeholder="AIza..." autocomplete="off" />
+        </div>
+        <div class="field-group">
+          <label for="geminiModelSelect">Modelo Gemini</label>
+          <select id="geminiModelSelect" class="dark-select">
+            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Ultra rápido · Recomendado)</option>
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash (Razonamiento multimodal)</option>
+          </select>
+        </div>
       </div>
-      <div class="field-group">
-        <label for="geminiModelSelect">Modelo Gemini</label>
-        <select id="geminiModelSelect" class="dark-select">
-          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Ultra rápido · Recomendado)</option>
-          <option value="gemini-3.8-flash">Gemini 3.8 Flash (Razonamiento multimodal)</option>
-        </select>
+      <div class="dialog-actions">
+        <button type="button" id="btnClearGeminiKey" class="btn btn-ghost btn-danger-outline">Desactivar Clave</button>
+        <button type="submit" value="cancel" class="btn btn-ghost" autofocus>Cerrar</button>
+        <button type="button" id="btnSaveGeminiKey" class="btn btn-primary">Guardar Motor</button>
       </div>
-    </div>
-    <form method="dialog" class="dialog-actions">
-      <button type="button" id="btnClearGeminiKey" class="btn btn-ghost btn-danger-outline">Desactivar Clave</button>
-      <button type="submit" value="cancel" class="btn btn-ghost" autofocus>Cerrar</button>
-      <button type="button" id="btnSaveGeminiKey" class="btn btn-primary">Guardar Motor</button>
     </form>
   </dialog>
 
   <script src="./assets/ort/ort.wasm.min.js"></script>
-  <script type="module" src="./js/app.js?v=10"></script>
+  <script type="module" src="./js/app.js?v=11"></script>
 </body>
 </html>

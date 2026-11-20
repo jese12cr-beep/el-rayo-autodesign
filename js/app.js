@@ -1,14 +1,14 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=10";
-import { SegmentationController } from "./segmentation.js?v=10";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=10";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=10";
-import { AiDesignAssistant } from "./aiAssistant.js?v=10";
+import { PaintEngine } from "./paintEngine.js?v=11";
+import { SegmentationController } from "./segmentation.js?v=11";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=11";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=11";
+import { AiDesignAssistant } from "./aiAssistant.js?v=11";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=10";
+} from "./storageAndExport.js?v=11";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -1470,7 +1470,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=10").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=11").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

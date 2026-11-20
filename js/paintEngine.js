@@ -85,11 +85,12 @@ void main() {
     vec4 finSample = texture(u_finishMap, v_uv);
     mask = clamp(tintSample.a, 0.0, 1.0);
     if (mask > 0.002) {
-      targetColor = tintSample.rgb;
-      finishVal = floor(finSample.r * 4.0 + 0.5);
-      metallicVal = finSample.g;
-      specularVal = finSample.b;
-      contrastVal = max(0.5, finSample.a * 2.5);
+      // Des-premultiplicar el canal RGB almacenado por Canvas2D para evitar bordes oscuros en fronteras suaves
+      targetColor = clamp(tintSample.rgb / max(tintSample.a, 0.004), 0.0, 1.0);
+      finishVal = floor((finSample.r / max(finSample.a, 0.004)) * 4.0 + 0.5);
+      metallicVal = clamp(finSample.g / max(finSample.a, 0.004), 0.0, 1.0);
+      specularVal = clamp(finSample.b / max(finSample.a, 0.004), 0.0, 1.0);
+      contrastVal = max(0.5, (finSample.a / max(mask, 0.01)) * 2.5);
       opacityVal = 1.0;
     }
   }
@@ -227,17 +228,17 @@ export class PaintEngine {
     this.tintCanvas = document.createElement("canvas");
     this.tintCanvas.width = width;
     this.tintCanvas.height = height;
-    this.tintCtx = this.tintCanvas.getContext("2d");
+    this.tintCtx = this.tintCanvas.getContext("2d", { willReadFrequently: true });
 
     this.finishCanvas = document.createElement("canvas");
     this.finishCanvas.width = width;
     this.finishCanvas.height = height;
-    this.finishCtx = this.finishCanvas.getContext("2d");
+    this.finishCtx = this.finishCanvas.getContext("2d", { willReadFrequently: true });
 
     this.partScratchCanvas = document.createElement("canvas");
     this.partScratchCanvas.width = width;
     this.partScratchCanvas.height = height;
-    this.partScratchCtx = this.partScratchCanvas.getContext("2d");
+    this.partScratchCtx = this.partScratchCanvas.getContext("2d", { willReadFrequently: true });
 
     this.options = {
       hex: "#DC2626",

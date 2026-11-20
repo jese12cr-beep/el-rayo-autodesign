@@ -248,10 +248,10 @@ class CarPartsDetector {
       } else if (solidCore[i]) {
         a = 1;
       } else if (boolArr[i]) {
-        a = Math.max(0.25, Math.min(1, q[i] * 1.15));
+        a = Math.max(0.78, Math.min(1, q[i] * 1.45));
       } else if (edgeRing[i]) {
         // Borde máximo de 1px para suavizado antialiasing sin halo en fondo/árboles
-        a = q[i] > 0.42 ? Math.min(0.65, (q[i] - 0.42) * 1.7) : 0;
+        a = q[i] > 0.45 ? Math.min(0.75, (q[i] - 0.45) * 1.8) : 0;
       }
       const v = a > 0.05 ? Math.round(a * 255) : 0;
       const j = i << 2;
@@ -520,7 +520,7 @@ class CarPartsDetector {
         const fc = document.createElement("canvas");
         fc.width = ow;
         fc.height = oh;
-        const fctx = fc.getContext("2d");
+        const fctx = fc.getContext("2d", { willReadFrequently: true });
         fctx.imageSmoothingEnabled = true;
         fctx.drawImage(lc, 0, 0, ow, oh);
         const fpx = fctx.getImageData(0, 0, ow, oh).data;
@@ -650,7 +650,7 @@ class CarPartsDetector {
     const origC = document.createElement("canvas");
     origC.width = w;
     origC.height = h;
-    const octx = origC.getContext("2d");
+    const octx = origC.getContext("2d", { willReadFrequently: true });
     octx.drawImage(stageCanvas, 0, 0, w, h);
     const origPx = octx.getImageData(0, 0, w, h).data;
 
@@ -668,7 +668,7 @@ class CarPartsDetector {
     const yCanvas = document.createElement("canvas");
     yCanvas.width = sz;
     yCanvas.height = sz;
-    const yctx = yCanvas.getContext("2d");
+    const yctx = yCanvas.getContext("2d", { willReadFrequently: true });
     yctx.fillStyle = "rgb(114,114,114)";
     yctx.fillRect(0, 0, sz, sz);
     yctx.drawImage(stageCanvas, padX, padY, nw, nh);
@@ -756,6 +756,7 @@ class CarPartsDetector {
       const sideBackWin = new Uint8Array(nPix);
       const rearGlassMask = new Uint8Array(nPix);
       const wheelMask = new Uint8Array(nPix);
+      const lightMask = new Uint8Array(nPix);
       const grilleCand = new Uint8Array(nPix);
       const paintParts = {};
       const partConfs = {};
@@ -817,6 +818,7 @@ class CarPartsDetector {
             const isFrontWin = cname === "left_front-window" || cname === "right_front-window";
             const isBackWin = cname === "left_back-window" || cname === "right_back-window";
             const isWheel = cname.endsWith("-wheel");
+            const isLight = cname.endsWith("light");
             for (let i = 0; i < nPix; i++) {
               if (!mFull[i]) continue;
               hardExcl[i] = 1;
@@ -825,6 +827,7 @@ class CarPartsDetector {
               if (isBackWin) sideBackWin[i] = 1;
               if (cname === "back-windshield") rearGlassMask[i] = 1;
               if (isWheel) wheelMask[i] = 1;
+              if (isLight) lightMask[i] = 1;
             }
           }
         } else {
@@ -956,6 +959,33 @@ class CarPartsDetector {
       const medCb = medR - medG, medCy = 0.5 * (medR + medG) - medB;
       const isChromaticCar = (medSat >= 30 && medLuma >= 34) || (medSat >= 48);
 
+      // Reclamación cromática de bordes finos (cejas de cofre sobre faros, postes A y labios de salpicadera invadidos por proto 192x192)
+      const reclaimedRimMask = new Uint8Array(nPix);
+      if (isChromaticCar) {
+        const rimR = Math.max(3, Math.min(4, Math.round(bhEst * 0.011)));
+        const glassInner = this._erodeBool(glassMask, w, h, rimR);
+        const lightInner = this._erodeBool(lightMask, w, h, rimR);
+        const wheelInner = this._erodeBool(wheelMask, w, h, 2);
+        for (let i = 0; i < nPix; i++) {
+          const onGlassRim = glassMask[i] && !glassInner[i];
+          const onLightRim = lightMask[i] && !lightInner[i];
+          const onWheelRim = wheelMask[i] && !wheelInner[i];
+          if (!onGlassRim && !onLightRim && !onWheelRim) continue;
+          const j = i << 2;
+          const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+          const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+          const minSatRim = onGlassRim ? Math.max(18, medSat * 0.34) : (onWheelRim ? Math.max(28, medSat * 0.48) : Math.max(22, medSat * 0.40));
+          const maxCdRim = onWheelRim ? 34 : 44;
+          if (satArr[i] >= minSatRim && cd < maxCdRim && lumaArr[i] >= 20) {
+            hardExcl[i] = 0;
+            reclaimedRimMask[i] = 1;
+            if (onGlassRim) glassMask[i] = 0;
+            if (onLightRim) lightMask[i] = 0;
+            if (onWheelRim) wheelMask[i] = 0;
+          }
+        }
+      }
+
       const fullExcl = new Uint8Array(nPix);
       const grilleLumaLim = medLuma > 95 ? medLuma * 0.72 : 95;
       for (let i = 0; i < nPix; i++) {
@@ -1012,7 +1042,7 @@ class CarPartsDetector {
 
       // Escaneo geométrico por fila del Poste B exacto entre ventana delantera y ventana trasera
       const bPillarZone = new Uint8Array(nPix);
-      let bpTotal = 0, bpNonPaint = 0;
+      let bpTotal = 0, bpNonPaint = 0, bpRows = 0, bpDarkRows = 0;
       const bpYMin = Math.max(0, Math.floor(hy0 + 0.05 * bhEst));
       const bpYMax = Math.min(h - 1, Math.ceil(hy0 + 0.54 * bhEst));
       const maxBpGap = Math.max(24, Math.round(bwEst * 0.075));
@@ -1032,10 +1062,16 @@ class CarPartsDetector {
         const gapW = g1 - g0 + 1;
         if (gapW <= 0 || gapW > maxBpGap) continue;
 
-        for (let x = g0; x <= g1; x++) {
+        bpRows++;
+        let rowHasDarkCore = false;
+        const padX = Math.max(1, Math.min(2, Math.round(gapW * 0.12)));
+        const ex0 = Math.max(0, g0 - padX);
+        const ex1 = Math.min(w - 1, g1 + padX);
+        for (let x = ex0; x <= ex1; x++) {
           const i = row + x;
           if (glassMask[i]) continue;
           bPillarZone[i] = 1;
+          if (x < g0 || x > g1) continue;
           bpTotal++;
           const j = i << 2;
           const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
@@ -1044,9 +1080,12 @@ class CarPartsDetector {
             ? (satArr[i] < Math.max(24, medSat * 0.42) || cd > 45)
             : (medLuma >= 80 ? (lumaArr[i] < Math.max(106, medLuma * 0.70)) : lumaArr[i] < 48);
           if (isTrim) bpNonPaint++;
+          if (lumaArr[i] < 70 && (!isChromaticCar || satArr[i] < 24 || cd > 45)) rowHasDarkCore = true;
         }
+        if (rowHasDarkCore) bpDarkRows++;
       }
-      const blackBPillarWhole = bpTotal > 12 && (bpNonPaint / bpTotal) >= 0.28;
+      const blackBPillarWhole = (bpTotal > 12 && (bpNonPaint / bpTotal) >= 0.28)
+        || (bpRows >= 6 && (!isChromaticCar ? medLuma >= 80 : true) && (bpDarkRows / bpRows) >= 0.45 && (bpNonPaint / Math.max(1, bpTotal)) >= 0.14);
 
       for (let i = 0; i < nPix; i++) {
         if (glassMask[i]) { moldingExcl[i] = 1; continue; }
@@ -1207,7 +1246,7 @@ class CarPartsDetector {
             const j = i << 2;
             const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
             const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
-            if ((lumaArr[i] < 24 && satArr[i] < 24) || (satArr[i] < Math.max(25, medSat * 0.38) && cd > 42 && lumaArr[i] < 148)) {
+            if ((lumaArr[i] < 20 && satArr[i] < 20) || (satArr[i] < Math.max(16, medSat * 0.28) && cd > 48 && lumaArr[i] < 142)) {
               arr[i] = 0; continue;
             }
           } else if (achromTrim && lumaArr[i] < 46 && satArr[i] < 20) {
@@ -1260,7 +1299,8 @@ class CarPartsDetector {
 
           const inPillarBand = heroCarMask[idx] && pillarZone[idx] && y >= pMinY && y <= pMaxY;
           const inRockerBand = heroCarMask[idx] && rockerZone && rockerZone[idx] && y >= rMinY && y <= by1;
-          if (!inPillarBand && !inRockerBand) continue;
+          const inReclaimedRim = heroCarMask[idx] && reclaimedRimMask[idx];
+          if (!inPillarBand && !inRockerBand && !inReclaimedRim) continue;
 
           const j = idx << 2;
           const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
@@ -1347,6 +1387,36 @@ class CarPartsDetector {
         }
       }
 
+      // 4. CIERRE MORFOLÓGICO SENSIBLE AL COLOR + RELLENO DE MICRO-HUECOS ENCERRADOS (ELIMINA PÍXELES MUERTOS EN MANIJAS, JUNTAS Y REFLEJOS)
+      const healBlocked = new Uint8Array(nPix);
+      for (let i = 0; i < nPix; i++) {
+        if (strictExclEdge[i] || hardBgMask[i] || (bPillarZone[i] && blackBPillarWhole)) {
+          healBlocked[i] = 1;
+        }
+      }
+      this._healDeadPixelsAndAssignParts({
+        bodyMask,
+        paintParts,
+        partConfs,
+        origPx,
+        lumaArr,
+        satArr,
+        blockedMask: healBlocked,
+        heroCarMask,
+        reclaimedRimMask,
+        isChromaticCar,
+        medCb,
+        medCy,
+        medSat,
+        medLuma,
+        bx0,
+        by0,
+        bx1,
+        by1,
+        w,
+        h
+      });
+
       const sortedIds = Object.keys(paintParts).sort((a, b) => (PART_LABELS_ES[a]?.[1] ?? 99) - (PART_LABELS_ES[b]?.[1] ?? 99));
       const mappedParts = [];
       for (const pid of sortedIds) {
@@ -1386,6 +1456,169 @@ class CarPartsDetector {
     } finally {
       yTensor.dispose?.();
       if (yOut) Object.values(yOut).forEach(t => t?.dispose?.());
+    }
+  }
+
+  /**
+   * Cierra grietas finas de 1-3px sensibles al color y rellena micro-huecos encerrados
+   * dentro de la carrocería sin invadir molduras ni vidrios, propagando cada píxel
+   * curado a la pieza adyacente en paintParts.
+   */
+  _healDeadPixelsAndAssignParts({
+    bodyMask,
+    paintParts,
+    partConfs,
+    origPx,
+    lumaArr,
+    satArr,
+    blockedMask,
+    heroCarMask,
+    reclaimedRimMask,
+    isChromaticCar,
+    medCb,
+    medCy,
+    medSat,
+    medLuma,
+    bx0,
+    by0,
+    bx1,
+    by1,
+    w,
+    h
+  }) {
+    const nPix = w * h;
+    const minLumaClose = isChromaticCar ? 18 : (medLuma >= 90 ? Math.max(36, medLuma * 0.34) : 22);
+    const satFloorClose = Math.max(16, medSat * 0.28);
+
+    // 1. Cierre morfológico direccional 1..3px en huecos acotados de carrocería y bordes reclamados
+    const bodySnap = new Uint8Array(bodyMask);
+    const rimReach = this._dilateBool(bodySnap, w, h, 3);
+    for (let y = Math.max(1, by0); y <= Math.min(h - 2, by1); y++) {
+      const row = y * w;
+      for (let x = Math.max(1, bx0); x <= Math.min(w - 2, bx1); x++) {
+        const i = row + x;
+        if (bodySnap[i] || blockedMask[i] || !heroCarMask[i] || !rimReach[i]) continue;
+
+        let hasL = false, hasR = false, hasU = false, hasD = false;
+        for (let d = 1; d <= 3; d++) {
+          if (!hasL && x - d >= bx0 && bodySnap[row + x - d]) hasL = true;
+          if (!hasR && x + d <= bx1 && bodySnap[row + x + d]) hasR = true;
+          if (!hasU && y - d >= by0 && bodySnap[(y - d) * w + x]) hasU = true;
+          if (!hasD && y + d <= by1 && bodySnap[(y + d) * w + x]) hasD = true;
+        }
+        const bridged = (hasL && hasR) || (hasU && hasD);
+        const onReclaimed = Boolean(reclaimedRimMask && reclaimedRimMask[i]);
+        if (!bridged && !onReclaimed) continue;
+
+        const j = i << 2;
+        const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+        const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+        const lum = lumaArr[i], sat = satArr[i];
+        const colorOk = isChromaticCar
+          ? ((sat >= satFloorClose && cd < 58 && lum >= minLumaClose) || (bridged && lum >= 24 && sat < 45 && cd < 72))
+          : (lum >= minLumaClose && cd < 52);
+        if (colorOk || onReclaimed) bodyMask[i] = 1;
+      }
+    }
+
+    // 2. Relleno de micro-huecos encerrados (<= 320px: manijas, emblemas, reflejos especulares en puertas/cofre)
+    const maxHolePx = Math.max(180, Math.min(420, Math.round(nPix * 0.0007)));
+    const visited = new Uint8Array(nPix);
+    const bfsQ = new Int32Array(nPix);
+    const comp = [];
+
+    for (let y = by0 + 1; y < by1; y++) {
+      const row = y * w;
+      for (let x = bx0 + 1; x < bx1; x++) {
+        const start = row + x;
+        if (bodyMask[start] || blockedMask[start] || visited[start] || !heroCarMask[start]) continue;
+
+        let qh = 0, qt = 0;
+        let touchesBorder = false;
+        let blockedAdj = 0;
+        comp.length = 0;
+
+        visited[start] = 1;
+        bfsQ[qt++] = start;
+
+        while (qh < qt) {
+          const cur = bfsQ[qh++];
+          comp.push(cur);
+          const cx = cur % w, cy = (cur / w) | 0;
+          if (cx <= bx0 || cx >= bx1 || cy <= by0 || cy >= by1) touchesBorder = true;
+
+          const n4 = [cur - 1, cur + 1, cur - w, cur + w];
+          for (let ni = 0; ni < 4; ni++) {
+            const nb = n4[ni];
+            if (nb < 0 || nb >= nPix) { touchesBorder = true; continue; }
+            if (bodyMask[nb]) continue;
+            if (blockedMask[nb]) { blockedAdj++; continue; }
+            if (visited[nb] || !heroCarMask[nb]) continue;
+            visited[nb] = 1;
+            bfsQ[qt++] = nb;
+          }
+          if (comp.length > maxHolePx * 3) break;
+        }
+
+        if (!touchesBorder && comp.length > 0 && comp.length <= maxHolePx && blockedAdj <= comp.length * 0.8) {
+          for (let k = 0; k < comp.length; k++) {
+            const idx = comp[k];
+            if (!blockedMask[idx]) bodyMask[idx] = 1;
+          }
+        }
+      }
+    }
+
+    // 3. Asignar píxeles recién curados a su panel adyacente más cercano en paintParts
+    const sortedKeys = Object.keys(paintParts).sort((a, b) => (PART_LABELS_ES[a]?.[1] ?? 99) - (PART_LABELS_ES[b]?.[1] ?? 99));
+    if (sortedKeys.length === 0) return;
+
+    const owner = new Int16Array(nPix).fill(-1);
+    for (let pi = 0; pi < sortedKeys.length; pi++) {
+      const arr = paintParts[sortedKeys[pi]];
+      for (let i = 0; i < nPix; i++) {
+        if (arr[i] && bodyMask[i] && owner[i] === -1) owner[i] = pi;
+      }
+    }
+
+    let missing = [];
+    for (let i = 0; i < nPix; i++) {
+      if (bodyMask[i] && owner[i] === -1) missing.push(i);
+    }
+    if (missing.length === 0) return;
+
+    for (let pass = 0; pass < 8 && missing.length > 0; pass++) {
+      const nextMissing = [];
+      const toAssign = [];
+      for (let k = 0; k < missing.length; k++) {
+        const idx = missing[k];
+        const x = idx % w, y = (idx / w) | 0;
+        let foundOwner = -1;
+        if (x > 0 && owner[idx - 1] >= 0) foundOwner = owner[idx - 1];
+        else if (x + 1 < w && owner[idx + 1] >= 0) foundOwner = owner[idx + 1];
+        else if (y > 0 && owner[idx - w] >= 0) foundOwner = owner[idx - w];
+        else if (y + 1 < h && owner[idx + w] >= 0) foundOwner = owner[idx + w];
+        if (foundOwner >= 0) toAssign.push(idx, foundOwner);
+        else nextMissing.push(idx);
+      }
+      if (toAssign.length === 0) break;
+      for (let k = 0; k < toAssign.length; k += 2) {
+        const idx = toAssign[k], pi = toAssign[k + 1];
+        owner[idx] = pi;
+        paintParts[sortedKeys[pi]][idx] = 1;
+      }
+      missing = nextMissing;
+    }
+
+    if (missing.length > 0) {
+      let fallbackKey = paintParts["pillars"] ? "pillars" : null;
+      if (!fallbackKey) {
+        fallbackKey = "pillars";
+        paintParts[fallbackKey] = new Uint8Array(nPix);
+        partConfs[fallbackKey] = 0.8;
+      }
+      const fbArr = paintParts[fallbackKey];
+      for (let k = 0; k < missing.length; k++) fbArr[missing[k]] = 1;
     }
   }
 }
@@ -1430,7 +1663,7 @@ export class SegmentationController {
     this.scratchCanvas = document.createElement("canvas");
     this.scratchCanvas.width = width;
     this.scratchCanvas.height = height;
-    this.scratchCtx = this.scratchCanvas.getContext("2d");
+    this.scratchCtx = this.scratchCanvas.getContext("2d", { willReadFrequently: true });
 
     this.tool = "ai-part"; // ai-part | ai-add | ai-sub | brush-add | brush-sub
     this.brushRadius = 24;
@@ -1445,6 +1678,7 @@ export class SegmentationController {
     this.detectedParts = [];
     this.protectedCount = 0;
     this.protectedMaskCanvas = null;
+    this._protectedAlpha = null;
     this.hasCarPartsMask = false;
     this.hitGrid = null;
     this.hitW = 320;
@@ -1457,6 +1691,7 @@ export class SegmentationController {
     this.splitPos = 0.5;
     this.draggingSplit = false;
     this.pendingSamMode = "replace";
+    this.lastSamClickPt = null;
 
     this.points = [];
     this.labels = [];
@@ -1472,7 +1707,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=10", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=11", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {
@@ -1727,6 +1962,7 @@ export class SegmentationController {
         this.detectedParts = res.parts;
         this.protectedCount = res.protectedCount;
         this.protectedMaskCanvas = res.protectedMaskCanvas || null;
+        this._cacheProtectedAlpha();
         this.hasCarPartsMask = true;
         this._buildHitGrid(res.parts);
 
@@ -1734,6 +1970,7 @@ export class SegmentationController {
         this.workingCtx.drawImage(res.maskCanvas, 0, 0, this.width, this.height);
         this.points = [];
         this.labels = [];
+        this.lastSamClickPt = null;
 
         this._composeCombinedMask(true);
         this.onPartsDetected(res.parts, res.protectedCount, res.inferenceMs);
@@ -1741,6 +1978,7 @@ export class SegmentationController {
       } else {
         this.hasCarPartsMask = false;
         this.protectedMaskCanvas = null;
+        this._protectedAlpha = null;
         this.onPartsDetected([], 0, res.inferenceMs);
         this.onStatus("ready", "IA Lista (usa Pincel + o IA + Pieza)");
       }
@@ -1753,20 +1991,149 @@ export class SegmentationController {
     }
   }
 
+  _cacheProtectedAlpha() {
+    if (!this.protectedMaskCanvas) {
+      this._protectedAlpha = null;
+      return;
+    }
+    const w = this.width, h = this.height;
+    this.scratchCtx.clearRect(0, 0, w, h);
+    this.scratchCtx.drawImage(this.protectedMaskCanvas, 0, 0, w, h);
+    const data = this.scratchCtx.getImageData(0, 0, w, h).data;
+    const alpha = new Uint8Array(w * h);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = data[(i << 2) + 3];
+    this._protectedAlpha = alpha;
+  }
+
+  _sampleSamGuardPoints(cx, cy, mode) {
+    const w = this.width, h = this.height;
+    const combData = this.combinedCtx.getImageData(0, 0, w, h).data;
+    const protAlpha = this._protectedAlpha;
+    const guards = [];
+    const minDim = Math.min(w, h);
+    const radii = [
+      Math.max(26, Math.round(minDim * 0.085)),
+      Math.max(52, Math.round(minDim * 0.17)),
+      Math.max(96, Math.round(minDim * 0.30))
+    ];
+    const dirs = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [0.707, 0.707], [-0.707, 0.707], [0.707, -0.707], [-0.707, -0.707]
+    ];
+
+    const protGuards = [];
+    const emptyGuards = [];
+    const bodyGuards = [];
+
+    for (let ri = 0; ri < radii.length; ri++) {
+      const r = radii[ri];
+      for (let di = 0; di < dirs.length; di++) {
+        const px = Math.round(cx + dirs[di][0] * r);
+        const py = Math.round(cy + dirs[di][1] * r);
+        if (px < 4 || px >= w - 4 || py < 4 || py >= h - 4) continue;
+        const idx = py * w + px;
+        const ca = combData[(idx << 2) + 3];
+        const pa = protAlpha ? protAlpha[idx] : 0;
+
+        if (pa > 155 && r >= 24 && protGuards.length < 2) {
+          protGuards.push([px, py]);
+        } else if (ca < 10 && pa < 40 && r >= radii[1] && emptyGuards.length < 2) {
+          emptyGuards.push([px, py]);
+        } else if (ca > 200 && pa < 40 && r >= 34 && bodyGuards.length < 3) {
+          bodyGuards.push([px, py]);
+        }
+      }
+    }
+
+    if (emptyGuards.length === 0) {
+      const corners = [[14, 14], [w - 15, 14], [14, h - 15], [w - 15, h - 15]];
+      for (const [qx, qy] of corners) {
+        if (Math.hypot(qx - cx, qy - cy) < 60) continue;
+        const idx = qy * w + qx;
+        if (combData[(idx << 2) + 3] < 10 && (!protAlpha || protAlpha[idx] < 40)) {
+          emptyGuards.push([qx, qy]);
+          break;
+        }
+      }
+    }
+
+    if (mode === "subtract") {
+      // Para excluir un defecto/moldura/cielo sin borrar toda la carrocería, anclamos negativos en la pintura ya válida
+      for (const p of bodyGuards.slice(0, 2)) guards.push(p);
+      if (protGuards.length > 0 && guards.length < 3) guards.push(protGuards[0]);
+      if (guards.length < 3 && emptyGuards.length > 0) guards.push(emptyGuards[0]);
+    } else {
+      // Para añadir pieza/grieta, anclamos negativos en vidrios/rines protegidos y en el fondo vacío
+      for (const p of protGuards.slice(0, 2)) guards.push(p);
+      for (const p of emptyGuards.slice(0, Math.max(1, 3 - guards.length))) guards.push(p);
+    }
+    return guards;
+  }
+
+  _isolateConnectedComponent(bin, w, h, cx, cy, maxSeedDist = 20) {
+    let seed = -1;
+    let bestDist2 = maxSeedDist * maxSeedDist + 1;
+    const x0 = Math.max(0, Math.floor(cx - maxSeedDist));
+    const x1 = Math.min(w - 1, Math.ceil(cx + maxSeedDist));
+    const y0 = Math.max(0, Math.floor(cy - maxSeedDist));
+    const y1 = Math.min(h - 1, Math.ceil(cy + maxSeedDist));
+
+    for (let y = y0; y <= y1; y++) {
+      const row = y * w;
+      for (let x = x0; x <= x1; x++) {
+        const idx = row + x;
+        if (bin[idx] <= 24) continue;
+        const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+        if (d2 < bestDist2) {
+          bestDist2 = d2;
+          seed = idx;
+        }
+      }
+    }
+    if (seed < 0) return false;
+
+    const keep = new Uint8Array(bin.length);
+    const q = new Int32Array(bin.length);
+    let qh = 0, qt = 0;
+    keep[seed] = 1;
+    q[qt++] = seed;
+
+    while (qh < qt) {
+      const cur = q[qh++];
+      const x = cur % w, y = (cur / w) | 0;
+      if (x > 0 && bin[cur - 1] > 20 && !keep[cur - 1]) { keep[cur - 1] = 1; q[qt++] = cur - 1; }
+      if (x + 1 < w && bin[cur + 1] > 20 && !keep[cur + 1]) { keep[cur + 1] = 1; q[qt++] = cur + 1; }
+      if (y > 0 && bin[cur - w] > 20 && !keep[cur - w]) { keep[cur - w] = 1; q[qt++] = cur - w; }
+      if (y + 1 < h && bin[cur + w] > 20 && !keep[cur + w]) { keep[cur + w] = 1; q[qt++] = cur + w; }
+    }
+    for (let i = 0; i < bin.length; i++) if (!keep[i]) bin[i] = 0;
+    return true;
+  }
+
   _dispatchSegment(preferFullObject = true, mode = "replace", singlePt = null, singleLabel = 1) {
     this.renderOverlay();
     const requestId = ++this.requestSeq;
-    const ptsToSend = singlePt ? [singlePt] : this.points;
-    const lblsToSend = singlePt ? [singleLabel] : this.labels;
+    let ptsToSend = this.points;
+    let lblsToSend = this.labels;
+    let samTask = "full";
+
+    if (singlePt && (mode === "add" || mode === "subtract")) {
+      const guards = this._sampleSamGuardPoints(singlePt[0], singlePt[1], mode);
+      ptsToSend = [singlePt, ...guards];
+      lblsToSend = [singleLabel, ...guards.map(() => 0)];
+      samTask = "refine";
+    }
+
     this.pendingSamMode = mode;
     this.onProgress(true, mode === "subtract" ? "Excluyendo pieza seleccionada…" : "Refinando zona con SlimSAM…", 70);
     this.worker.postMessage({
       type: "segment",
-      payload: { requestId, points: ptsToSend, labels: lblsToSend, preferFullObject }
+      payload: { requestId, points: ptsToSend, labels: lblsToSend, preferFullObject, samTask, mode }
     });
   }
 
   triggerAutoSegment() {
+    this.lastSamClickPt = null;
     this._addAiPoint(this.width * 0.50, this.height * 0.54, 1);
   }
 
@@ -1782,16 +2149,39 @@ export class SegmentationController {
     this.labels.push(label);
 
     if (this.hasCarPartsMask && this.lastCoveragePct > 1.0) {
-      // Refina incrementalmente sobre CarParts 33 sin borrar vidrios ni rines protegidos
+      // Refina incrementalmente sobre CarParts 33 manteniendo anclas negativas locales y sin invadir vidrios/rines
       const mode = label === 0 ? "subtract" : "add";
+      this.lastSamClickPt = pt;
       this._dispatchSegment(false, mode, pt, 1);
     } else {
+      this.lastSamClickPt = null;
       this._dispatchSegment(this.points.length <= 2, "replace");
     }
   }
 
   _applySamMask(maskBuffer, w, h, mode = "replace") {
     const bin = new Uint8Array(maskBuffer);
+    if ((mode === "add" || mode === "subtract") && this.lastSamClickPt) {
+      const [cx, cy] = this.lastSamClickPt;
+      const isolated = this._isolateConnectedComponent(bin, w, h, cx, cy, 22);
+      if (!isolated) bin.fill(0);
+
+      if (mode === "add" && this._protectedAlpha && this._protectedAlpha.length === bin.length) {
+        const scx = Math.max(0, Math.min(w - 1, Math.round(cx)));
+        const scy = Math.max(0, Math.min(h - 1, Math.round(cy)));
+        const clickedProtected = this._protectedAlpha[scy * w + scx] > 160;
+        const guardR = clickedProtected ? 34 : 12;
+        const guardR2 = guardR * guardR;
+        for (let i = 0; i < bin.length; i++) {
+          if (bin[i] === 0 || this._protectedAlpha[i] <= 160) continue;
+          const px = i % w, py = (i / w) | 0;
+          if ((px - scx) * (px - scx) + (py - scy) * (py - scy) > guardR2) {
+            bin[i] = 0;
+          }
+        }
+      }
+    }
+
     const img = this.scratchCtx.createImageData(w, h);
     for (let i = 0; i < bin.length; i++) {
       const j = i << 2;
@@ -1875,6 +2265,7 @@ export class SegmentationController {
     this.combinedCtx.clearRect(0, 0, this.width, this.height);
     this.points = [];
     this.labels = [];
+    this.lastSamClickPt = null;
     this.lastCoveragePct = 0;
     this.renderOverlay();
     this.onMaskUpdated(this.combinedCanvas, 0, true);
