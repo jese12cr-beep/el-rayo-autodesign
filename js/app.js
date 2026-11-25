@@ -1,14 +1,14 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=11";
-import { SegmentationController } from "./segmentation.js?v=11";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=11";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=11";
-import { AiDesignAssistant } from "./aiAssistant.js?v=11";
+import { PaintEngine } from "./paintEngine.js?v=12";
+import { SegmentationController } from "./segmentation.js?v=12";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=12";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=12";
+import { AiDesignAssistant } from "./aiAssistant.js?v=12";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=11";
+} from "./storageAndExport.js?v=12";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -206,11 +206,13 @@ class ElRayoStudioApp {
     });
 
     this.saveTimer = null;
+    this._tolRafId = 0;
     this.deferredPrompt = null;
 
     this._initUI();
     this._registerServiceWorker();
     this._restoreSavedSession();
+    setTimeout(() => this.seg.preloadModels(), 150);
   }
 
   _initUI() {
@@ -366,6 +368,38 @@ class ElRayoStudioApp {
       brushVal.textContent = `${val} px`;
       this.seg.setBrushRadius(val);
     });
+
+    const tolInput = document.getElementById("aiToleranceSlider");
+    const tolVal = document.getElementById("aiToleranceVal");
+    if (tolInput && tolVal) {
+      const formatTolLabel = pct => {
+        const tier = pct >= 75 ? "Máxima" : (pct >= 40 ? "Balanceada" : "Precisa");
+        return `${pct}% · ${tier}`;
+      };
+      const applyTolerance = pct => {
+        if (this.seg.recomputeWithTolerance(pct / 100)) {
+          this.decalManager.setSceneContext({
+            stageCanvas: this.paint.stageCanvas,
+            detectedParts: this.seg.detectedParts,
+            bodyMaskCanvas: this.seg.combinedCanvas
+          });
+          this.decalManager.render(this.seg.combinedCanvas);
+          this._refreshPaintRender();
+          this._scheduleSave();
+        }
+      };
+      tolVal.textContent = formatTolLabel(Number(tolInput.value));
+      tolInput.addEventListener("input", () => {
+        const pct = Number(tolInput.value);
+        tolVal.textContent = formatTolLabel(pct);
+        clearTimeout(this._tolRafId);
+        this._tolRafId = setTimeout(() => applyTolerance(pct), 160);
+      });
+      tolInput.addEventListener("change", () => {
+        clearTimeout(this._tolRafId);
+        applyTolerance(Number(tolInput.value));
+      });
+    }
 
     document.getElementById("btnToggleDecalMode").addEventListener("click", () => {
       this._setDecalMode(!this.seg.decalMode);
@@ -1470,7 +1504,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=11").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=12").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

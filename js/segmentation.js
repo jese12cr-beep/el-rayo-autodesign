@@ -47,6 +47,7 @@ class CarPartsDetector {
     this.yoloSess = null;
     this.segSess = null;
     this.loadingPromise = null;
+    this.lastCache = null;
   }
 
   _modelsBaseUrl() {
@@ -638,7 +639,7 @@ class CarPartsDetector {
     return kept;
   }
 
-  async analyzeStageCanvas(stageCanvas, targetW, targetH, onProgress) {
+  async analyzeStageCanvas(stageCanvas, targetW, targetH, onProgress, tolerance = 0.88) {
     const t0 = performance.now();
     await this.ensureLoaded(onProgress);
 
@@ -702,7 +703,11 @@ class CarPartsDetector {
           const v = predData[(4 + c) * numAnch + a];
           if (v > bestConf) { bestConf = v; bestC = c; }
         }
-        if (bestConf >= 0.20) {
+        const candName = CARPART_NAMES[bestC];
+        const minAnchorConf = EXCLUDE_PART_CLASSES.has(candName)
+          ? (candName === "grille" ? 0.20 : 0.15)
+          : 0.16;
+        if (bestConf >= minAnchorConf) {
           const cx = predData[0 * numAnch + a];
           const cy = predData[1 * numAnch + a];
           const bw = predData[2 * numAnch + a];
@@ -742,12 +747,12 @@ class CarPartsDetector {
 
       const tmpMC = document.createElement("canvas");
       tmpMC.width = mw; tmpMC.height = mh;
-      const tmpMctx = tmpMC.getContext("2d");
+      const tmpMctx = tmpMC.getContext("2d", { willReadFrequently: true });
       const tmpImg = tmpMctx.createImageData(mw, mh);
 
       const fullScaleC = document.createElement("canvas");
       fullScaleC.width = w; fullScaleC.height = h;
-      const fullScaleCtx = fullScaleC.getContext("2d");
+      const fullScaleCtx = fullScaleC.getContext("2d", { willReadFrequently: true });
       fullScaleCtx.imageSmoothingEnabled = true;
 
       const hardExcl = new Uint8Array(nPix);
@@ -757,6 +762,7 @@ class CarPartsDetector {
       const rearGlassMask = new Uint8Array(nPix);
       const wheelMask = new Uint8Array(nPix);
       const lightMask = new Uint8Array(nPix);
+      const plateMask = new Uint8Array(nPix);
       const grilleCand = new Uint8Array(nPix);
       const paintParts = {};
       const partConfs = {};
@@ -828,6 +834,7 @@ class CarPartsDetector {
               if (cname === "back-windshield") rearGlassMask[i] = 1;
               if (isWheel) wheelMask[i] = 1;
               if (isLight) lightMask[i] = 1;
+              if (cname === "license-plate") plateMask[i] = 1;
             }
           }
         } else {
@@ -1277,186 +1284,282 @@ class CarPartsDetector {
       const bh = Math.max(1, by1 - by0), bw = Math.max(1, bx1 - bx0);
       const origBodyMask = new Uint8Array(bodyMask);
 
-      // 3. RECUPERACIÓN ACOTADA DE POSTES A/C (Y ESTRIBO SI FALTA) ESTRICTAMENTE DENTRO DEL HÉROE
+      // 3. CACHÉ INTERMEDIA PARA DETECCIÓN EN TIEMPO REAL CON TOLERANCIA MÁXIMA DE CARROCERÍA
       const hasRocker = Boolean(paintParts["left_rocker-panel"] || paintParts["right_rocker-panel"]);
       const pillarZone = this._dilateBool(glassMask, w, h, Math.max(42, Math.round(bh * 0.175)));
       const rockerZone = !hasRocker ? this._dilateBool(bodyMask, w, h, 14) : null;
 
-      const allowedGrow = new Uint8Array(nPix);
-      const q = new Int32Array(nPix);
-      const qDist = new Uint8Array(nPix);
-      let qHead = 0, qTail = 0;
-      const pMinY = by0 + 0.03 * bh, pMaxY = by0 + 0.64 * bh;
-      const rMinY = by0 + 0.60 * bh;
-      const minAchromL = medLuma < 65 ? 32 : Math.max(60, medLuma * 0.52);
+      const basePaintParts = {};
+      for (const [k, arr] of Object.entries(paintParts)) basePaintParts[k] = new Uint8Array(arr);
 
-      for (let y = by0; y <= by1; y++) {
-        const row = y * w;
-        for (let x = bx0; x <= bx1; x++) {
-          const idx = row + x;
-          if (bodyMask[idx]) { q[qTail++] = idx; qDist[idx] = 1; continue; }
-          if (hardBgMask[idx] || fullExcl[idx] || moldingExcl[idx] || plasticTrimExcl[idx] || bPillarZone[idx]) continue;
+      this.lastCache = {
+        origBodyMask,
+        basePaintParts,
+        basePartConfs: { ...partConfs },
+        origPx,
+        lumaArr,
+        satArr,
+        heroCarMask,
+        heroCarEroded,
+        hardBgMask,
+        fullExcl,
+        moldingExcl,
+        plasticTrimExcl,
+        bPillarZone,
+        blackBPillarWhole,
+        glassMask,
+        wheelMask,
+        lightMask,
+        plateMask,
+        reclaimedRimMask,
+        pillarZone,
+        rockerZone,
+        medCb,
+        medCy,
+        medSat,
+        medLuma,
+        isChromaticCar,
+        bx0,
+        by0,
+        bx1,
+        by1,
+        bh,
+        bw,
+        w,
+        h,
+        targetW,
+        targetH,
+        protectedCount
+      };
 
-          const inPillarBand = heroCarMask[idx] && pillarZone[idx] && y >= pMinY && y <= pMaxY;
-          const inRockerBand = heroCarMask[idx] && rockerZone && rockerZone[idx] && y >= rMinY && y <= by1;
-          const inReclaimedRim = heroCarMask[idx] && reclaimedRimMask[idx];
-          if (!inPillarBand && !inRockerBand && !inReclaimedRim) continue;
+      return this._solveBodyFromCache(this.lastCache, tolerance, Math.round(performance.now() - t0));
+    } finally {
+      yTensor.dispose?.();
+      if (yOut) Object.values(yOut).forEach(t => t?.dispose?.());
+    }
+  }
 
-          const j = idx << 2;
-          const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
-          const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
-          if (isChromaticCar) {
-            if (cd < 46 && satArr[idx] >= Math.max(24, medSat * 0.42) && lumaArr[idx] >= 24) {
-              allowedGrow[idx] = 1;
-            }
-          } else {
-            const dHi = lumaArr[idx] - medLuma;
-            const dLo = medLuma - lumaArr[idx];
-            const tolHi = inRockerBand ? 105 : 85;
-            const tolLo = medLuma >= 90 ? 74 : 48;
-            // En autos plata/blancos, los postes A/C reflejan cielo azulado frío (B >= G >= R) con saturación 45-75
-            const coolSkyOnSilver = medLuma >= 100 && b >= g - 4 && g >= r - 8 && (r - b) <= 18 && (g - Math.max(r, b)) <= 12 && (b - r) <= 82;
-            const colorOk = (satArr[idx] < 46 && cd < 42) || coolSkyOnSilver;
-            if (colorOk && dHi <= tolHi && dLo <= tolLo && lumaArr[idx] >= minAchromL) {
-              allowedGrow[idx] = 1;
-              // Si falta estribo y hay línea de sombra de puerta (1-3px), sembrar estribo limpio directamente debajo de carrocería
-              if (inRockerBand && lumaArr[idx] >= Math.max(82, medLuma * 0.56)) {
-                let hasBodyAbove = false;
-                for (let dy = 1; dy <= 5 && y - dy >= by0; dy++) {
-                  if (bodyMask[(y - dy) * w + x]) { hasBodyAbove = true; break; }
-                }
-                if (hasBodyAbove) {
-                  bodyMask[idx] = 1; q[qTail++] = idx; qDist[idx] = 1;
-                }
+  recomputeFromCache(tolerance = 0.88) {
+    if (!this.lastCache) return null;
+    const t0 = performance.now();
+    return this._solveBodyFromCache(this.lastCache, tolerance, Math.round(performance.now() - t0));
+  }
+
+  _solveBodyFromCache(cache, tolerance = 0.88, inferenceMs = 0) {
+    const t = Math.max(0, Math.min(1, Number(tolerance) || 0));
+    const {
+      origBodyMask, basePaintParts, basePartConfs, origPx, lumaArr, satArr,
+      heroCarMask, heroCarEroded, hardBgMask, fullExcl, moldingExcl, plasticTrimExcl,
+      bPillarZone, blackBPillarWhole, glassMask, wheelMask, plateMask, reclaimedRimMask,
+      pillarZone, rockerZone, medCb, medCy, medSat, medLuma, isChromaticCar,
+      bx0, by0, bx1, by1, bh, w, h, targetW, targetH, protectedCount
+    } = cache;
+
+    const nPix = w * h;
+    const bodyMask = new Uint8Array(origBodyMask);
+    const paintParts = {};
+    for (const [k, arr] of Object.entries(basePaintParts)) paintParts[k] = new Uint8Array(arr);
+    const partConfs = { ...basePartConfs };
+
+    // Escudo estricto de exclusión: ventanas, faros, calaveras, rines, llantas, placas, parrilla, molduras y entorno
+    const strictExclEdge = new Uint8Array(nPix);
+    const glass1 = this._dilateBool(glassMask, w, h, 1);
+    const wheel1 = this._dilateBool(wheelMask, w, h, 1);
+    const plate1 = plateMask ? this._dilateBool(plateMask, w, h, 1) : null;
+    for (let i = 0; i < nPix; i++) {
+      let g1 = glass1[i] && !glassMask[i];
+      if (g1 && isChromaticCar) {
+        const j = i << 2;
+        const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+        const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+        if (satArr[i] >= Math.max(28, medSat * 0.48) && cd < 40) g1 = false;
+      }
+      if (
+        fullExcl[i] || moldingExcl[i] || plasticTrimExcl[i] ||
+        g1 || wheel1[i] || (plate1 && plate1[i]) ||
+        (bPillarZone[i] && blackBPillarWhole)
+      ) {
+        strictExclEdge[i] = 1;
+        bodyMask[i] = 0;
+      }
+    }
+
+    // FASE A + B: Expansión guiada por tolerancia dentro de la silueta del vehículo héroe (heroCarMask)
+    const allowedGrow = new Uint8Array(nPix);
+    const q = new Int32Array(nPix);
+    const qDist = new Uint16Array(nPix);
+    let qHead = 0, qTail = 0;
+    const pMinY = by0 + 0.03 * bh, pMaxY = by0 + 0.64 * bh;
+    const rMinY = by0 + 0.60 * bh;
+
+    const chromCdMax = 44 + t * 26;
+    const chromSatMin = Math.max(14, medSat * (0.42 - t * 0.16));
+    const minAchromL = medLuma < 65
+      ? Math.max(18, Math.round(32 - t * 10))
+      : Math.max(46, medLuma * (0.52 - t * 0.12));
+    const achromSatMax = 44 + t * 18;
+    const fullHeroMode = t >= 0.35;
+    // Acotar la expansión de tolerancia máxima a la envolvente real del vehículo (nunca trepa al entorno/letreros/autos de fondo)
+    const bodyGrowHalo = fullHeroMode
+      ? this._dilateBool(origBodyMask, w, h, Math.max(12, Math.round(bh * 0.055)))
+      : null;
+    const heroFloorY = by0 + Math.round(bh * 0.04);
+
+    for (let y = by0; y <= by1; y++) {
+      const row = y * w;
+      for (let x = bx0; x <= bx1; x++) {
+        const idx = row + x;
+        if (bodyMask[idx]) { q[qTail++] = idx; qDist[idx] = 1; continue; }
+        if (!heroCarMask[idx] || hardBgMask[idx] || strictExclEdge[idx] || bPillarZone[idx]) continue;
+
+        const inPillarBand = pillarZone[idx] && y >= pMinY && y <= pMaxY;
+        const inRockerBand = rockerZone && rockerZone[idx] && y >= rMinY && y <= by1;
+        const inReclaimedRim = reclaimedRimMask[idx];
+        const inSafeHeroBody = fullHeroMode && heroCarEroded[idx] && bodyGrowHalo[idx] && y >= heroFloorY;
+        if (!inSafeHeroBody && !inPillarBand && !inRockerBand && !inReclaimedRim) continue;
+
+        const j = idx << 2;
+        const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
+        const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
+        if (isChromaticCar) {
+          const strongSpecularPaint = inSafeHeroBody &&
+            lumaArr[idx] >= Math.max(175, medLuma * 1.18) && lumaArr[idx] < 248 && satArr[idx] < 48;
+          if ((cd < chromCdMax && satArr[idx] >= chromSatMin && lumaArr[idx] >= 20) || strongSpecularPaint || inReclaimedRim) {
+            allowedGrow[idx] = 1;
+          }
+        } else {
+          const dHi = lumaArr[idx] - medLuma;
+          const dLo = medLuma - lumaArr[idx];
+          const tolHi = (inRockerBand ? 105 : 85) + t * 32;
+          const tolLo = (medLuma >= 90 ? 74 : 48) + t * 20;
+          const coolSkyOnSilver = medLuma >= 100 && b >= g - 4 && g >= r - 8 && (r - b) <= 18 && (g - Math.max(r, b)) <= 12 && (b - r) <= 82;
+          const colorOk = (satArr[idx] < achromSatMax && cd < (42 + t * 14)) || coolSkyOnSilver;
+          if (colorOk && dHi <= tolHi && dLo <= tolLo && lumaArr[idx] >= minAchromL) {
+            allowedGrow[idx] = 1;
+            if (inRockerBand && lumaArr[idx] >= Math.max(78, medLuma * 0.54)) {
+              let hasBodyAbove = false;
+              for (let dy = 1; dy <= 5 && y - dy >= by0; dy++) {
+                if (bodyMask[(y - dy) * w + x]) { hasBodyAbove = true; break; }
+              }
+              if (hasBodyAbove) {
+                bodyMask[idx] = 1; q[qTail++] = idx; qDist[idx] = 1;
               }
             }
           }
         }
       }
-
-      const stepTol = 52;
-      // Permitir cruzar líneas de corte/unión finas (1-3px) entre toldo/costado y poste C
-      const allowedBridge = this._dilateBool(bodyMask, w, h, 3);
-      for (let i = 0; i < nPix; i++) {
-        if (!bodyMask[i] && allowedGrow[i] && allowedBridge[i]) {
-          bodyMask[i] = 1; qDist[i] = 1; q[qTail++] = i;
-        }
-      }
-      while (qHead < qTail) {
-        const cur = q[qHead++];
-        const d = qDist[cur];
-        if (d >= 110) continue;
-        const lC = lumaArr[cur];
-        const cx = cur % w, cy = (cur / w) | 0;
-        const nbrs = [cy > 0 ? cur - w : -1, cy < h - 1 ? cur + w : -1, cx > 0 ? cur - 1 : -1, cx < w - 1 ? cur + 1 : -1];
-        for (let ni = 0; ni < 4; ni++) {
-          const nb = nbrs[ni];
-          if (nb < 0 || bodyMask[nb] || !allowedGrow[nb]) continue;
-          if (Math.abs(lumaArr[nb] - lC) <= stepTol) {
-            bodyMask[nb] = 1; qDist[nb] = d + 1; q[qTail++] = nb;
-          }
-        }
-      }
-
-      const recovered = new Uint8Array(nPix);
-      let recCnt = 0;
-      for (let i = 0; i < nPix; i++) if (bodyMask[i] && !origBodyMask[i]) { recovered[i] = 1; recCnt++; }
-      if ((recCnt / nPix) * 100.0 >= 0.20) {
-        paintParts["pillars"] = recovered;
-        partConfs["pillars"] = 0.85;
-      }
-
-      // Filtrado final por componentes conectadas (elimina motas o islas sueltas en fondo/reflejos)
-      const cleanBodyMask = this._filterLargeComponents(bodyMask, w, h, 0.015);
-      for (let i = 0; i < nPix; i++) bodyMask[i] = cleanBodyMask[i];
-
-      const strictExclEdge = new Uint8Array(nPix);
-      const glass1 = this._dilateBool(glassMask, w, h, 1);
-      const wheel1 = this._dilateBool(wheelMask, w, h, 1);
-      for (let i = 0; i < nPix; i++) {
-        let g1 = glass1[i] && !glassMask[i];
-        if (g1 && isChromaticCar) {
-          const j = i << 2;
-          const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
-          const cd = Math.hypot((r - g) - medCb, (0.5 * (r + g) - b) - medCy);
-          if (satArr[i] >= Math.max(28, medSat * 0.48) && cd < 40) g1 = false;
-        }
-        if (fullExcl[i] || moldingExcl[i] || plasticTrimExcl[i] || g1 || wheel1[i]) {
-          strictExclEdge[i] = 1;
-          bodyMask[i] = 0;
-        }
-      }
-
-      // 4. CIERRE MORFOLÓGICO SENSIBLE AL COLOR + RELLENO DE MICRO-HUECOS ENCERRADOS (ELIMINA PÍXELES MUERTOS EN MANIJAS, JUNTAS Y REFLEJOS)
-      const healBlocked = new Uint8Array(nPix);
-      for (let i = 0; i < nPix; i++) {
-        if (strictExclEdge[i] || hardBgMask[i] || (bPillarZone[i] && blackBPillarWhole)) {
-          healBlocked[i] = 1;
-        }
-      }
-      this._healDeadPixelsAndAssignParts({
-        bodyMask,
-        paintParts,
-        partConfs,
-        origPx,
-        lumaArr,
-        satArr,
-        blockedMask: healBlocked,
-        heroCarMask,
-        reclaimedRimMask,
-        isChromaticCar,
-        medCb,
-        medCy,
-        medSat,
-        medLuma,
-        bx0,
-        by0,
-        bx1,
-        by1,
-        w,
-        h
-      });
-
-      const sortedIds = Object.keys(paintParts).sort((a, b) => (PART_LABELS_ES[a]?.[1] ?? 99) - (PART_LABELS_ES[b]?.[1] ?? 99));
-      const mappedParts = [];
-      for (const pid of sortedIds) {
-        const arr = paintParts[pid];
-        let cnt = 0;
-        for (let i = 0; i < nPix; i++) {
-          if (arr[i] && (!bodyMask[i] || strictExclEdge[i])) arr[i] = 0;
-          if (arr[i]) cnt++;
-        }
-        const apct = Math.round((cnt / nPix) * 1000) / 10;
-        if (apct < 0.2) continue;
-        const meta = PART_LABELS_ES[pid] || [pid, 99, null];
-        mappedParts.push({
-          id: pid,
-          label: meta[0],
-          quotePartId: meta[2],
-          areaPct: apct,
-          confidence: Math.round((partConfs[pid] || 0.8) * 100) / 100,
-          maskCanvas: this._guidedToMaskCanvas(arr, lumaArr, strictExclEdge, w, h, targetW, targetH),
-          outlineCanvas: this._buildPartOutlineCanvas(arr, w, h, targetW, targetH)
-        });
-      }
-
-      let finalBodyCnt = 0;
-      for (let i = 0; i < nPix; i++) if (bodyMask[i]) finalBodyCnt++;
-
-      return {
-        maskCanvas: this._guidedToMaskCanvas(bodyMask, lumaArr, strictExclEdge, w, h, targetW, targetH),
-        protectedMaskCanvas: this._boolToMaskCanvas(strictExclEdge, w, h, targetW, targetH, 0.8),
-        vehicleDetected: true,
-        bodyCoveragePct: Math.round((finalBodyCnt / nPix) * 1000) / 10,
-        protectedCount,
-        parts: mappedParts,
-        inferenceMs: Math.round(performance.now() - t0),
-        method: "wasm_yolo26_carparts"
-      };
-    } finally {
-      yTensor.dispose?.();
-      if (yOut) Object.values(yOut).forEach(t => t?.dispose?.());
     }
+
+    const stepTol = 50 + Math.round(t * 26);
+    const maxBfsDist = 110 + Math.round(t * 95);
+    const bridgeR = t >= 0.72 ? 4 : 3;
+    const allowedBridge = this._dilateBool(bodyMask, w, h, bridgeR);
+    for (let i = 0; i < nPix; i++) {
+      if (!bodyMask[i] && allowedGrow[i] && allowedBridge[i]) {
+        bodyMask[i] = 1; qDist[i] = 1; q[qTail++] = i;
+      }
+    }
+    while (qHead < qTail) {
+      const cur = q[qHead++];
+      const d = qDist[cur];
+      if (d >= maxBfsDist) continue;
+      const lC = lumaArr[cur];
+      const cx = cur % w, cy = (cur / w) | 0;
+      const nbrs = [cy > 0 ? cur - w : -1, cy < h - 1 ? cur + w : -1, cx > 0 ? cur - 1 : -1, cx < w - 1 ? cur + 1 : -1];
+      for (let ni = 0; ni < 4; ni++) {
+        const nb = nbrs[ni];
+        if (nb < 0 || bodyMask[nb] || !allowedGrow[nb]) continue;
+        if (Math.abs(lumaArr[nb] - lC) <= stepTol) {
+          bodyMask[nb] = 1; qDist[nb] = d + 1; q[qTail++] = nb;
+        }
+      }
+    }
+
+    // Asignar recuperación en zona de postes a "pillars" (el resto se propagará al panel adyacente en _healDeadPixelsAndAssignParts)
+    const recoveredPillars = new Uint8Array(nPix);
+    let recPillarCnt = 0;
+    for (let i = 0; i < nPix; i++) {
+      if (bodyMask[i] && !origBodyMask[i] && pillarZone[i]) {
+        recoveredPillars[i] = 1;
+        recPillarCnt++;
+      }
+    }
+    if ((recPillarCnt / nPix) * 100.0 >= 0.20) {
+      paintParts["pillars"] = recoveredPillars;
+      partConfs["pillars"] = 0.85;
+    }
+
+    // Filtrado final por componentes conectadas (elimina motas o islas sueltas en fondo/reflejos)
+    const cleanBodyMask = this._filterLargeComponents(bodyMask, w, h, 0.015);
+    for (let i = 0; i < nPix; i++) bodyMask[i] = cleanBodyMask[i] && !strictExclEdge[i] ? 1 : 0;
+
+    // FASE C: Cierre morfológico sensible al color + relleno de micro-huecos encerrados + asignación por panel
+    const healBlocked = new Uint8Array(nPix);
+    for (let i = 0; i < nPix; i++) {
+      if (strictExclEdge[i] || hardBgMask[i] || (bPillarZone[i] && blackBPillarWhole)) {
+        healBlocked[i] = 1;
+      }
+    }
+    this._healDeadPixelsAndAssignParts({
+      bodyMask,
+      paintParts,
+      partConfs,
+      origPx,
+      lumaArr,
+      satArr,
+      blockedMask: healBlocked,
+      heroCarMask,
+      reclaimedRimMask,
+      isChromaticCar,
+      medCb,
+      medCy,
+      medSat,
+      medLuma,
+      bx0: Math.max(0, bx0 - 8),
+      by0: Math.max(0, by0 - 8),
+      bx1: Math.min(w - 1, bx1 + 8),
+      by1: Math.min(h - 1, by1 + 8),
+      w,
+      h,
+      tolerance: t
+    });
+
+    const sortedIds = Object.keys(paintParts).sort((a, b) => (PART_LABELS_ES[a]?.[1] ?? 99) - (PART_LABELS_ES[b]?.[1] ?? 99));
+    const mappedParts = [];
+    for (const pid of sortedIds) {
+      const arr = paintParts[pid];
+      let cnt = 0;
+      for (let i = 0; i < nPix; i++) {
+        if (arr[i] && (!bodyMask[i] || strictExclEdge[i])) arr[i] = 0;
+        if (arr[i]) cnt++;
+      }
+      const apct = Math.round((cnt / nPix) * 1000) / 10;
+      if (apct < 0.2) continue;
+      const meta = PART_LABELS_ES[pid] || [pid, 99, null];
+      mappedParts.push({
+        id: pid,
+        label: meta[0],
+        quotePartId: meta[2],
+        areaPct: apct,
+        confidence: Math.round((partConfs[pid] || 0.8) * 100) / 100,
+        maskCanvas: this._guidedToMaskCanvas(arr, lumaArr, strictExclEdge, w, h, targetW, targetH),
+        outlineCanvas: this._buildPartOutlineCanvas(arr, w, h, targetW, targetH)
+      });
+    }
+
+    let finalBodyCnt = 0;
+    for (let i = 0; i < nPix; i++) if (bodyMask[i]) finalBodyCnt++;
+
+    return {
+      maskCanvas: this._guidedToMaskCanvas(bodyMask, lumaArr, strictExclEdge, w, h, targetW, targetH),
+      protectedMaskCanvas: this._boolToMaskCanvas(strictExclEdge, w, h, targetW, targetH, 0.8),
+      vehicleDetected: true,
+      bodyCoveragePct: Math.round((finalBodyCnt / nPix) * 1000) / 10,
+      protectedCount,
+      parts: mappedParts,
+      inferenceMs,
+      method: "wasm_yolo26_carparts"
+    };
   }
 
   /**
@@ -1484,11 +1587,12 @@ class CarPartsDetector {
     bx1,
     by1,
     w,
-    h
+    h,
+    tolerance = 0.88
   }) {
     const nPix = w * h;
     const minLumaClose = isChromaticCar ? 18 : (medLuma >= 90 ? Math.max(36, medLuma * 0.34) : 22);
-    const satFloorClose = Math.max(16, medSat * 0.28);
+    const satFloorClose = Math.max(14, medSat * (0.30 - tolerance * 0.08));
 
     // 1. Cierre morfológico direccional 1..3px en huecos acotados de carrocería y bordes reclamados
     const bodySnap = new Uint8Array(bodyMask);
@@ -1521,8 +1625,8 @@ class CarPartsDetector {
       }
     }
 
-    // 2. Relleno de micro-huecos encerrados (<= 320px: manijas, emblemas, reflejos especulares en puertas/cofre)
-    const maxHolePx = Math.max(180, Math.min(420, Math.round(nPix * 0.0007)));
+    // 2. Relleno de micro-huecos encerrados (manijas, emblemas, reflejos especulares en puertas/cofre) escalado por tolerancia
+    const maxHolePx = Math.max(160, Math.min(540, Math.round(nPix * (0.0005 + tolerance * 0.00065))));
     const visited = new Uint8Array(nPix);
     const bfsQ = new Int32Array(nPix);
     const comp = [];
@@ -1668,6 +1772,7 @@ export class SegmentationController {
     this.tool = "ai-part"; // ai-part | ai-add | ai-sub | brush-add | brush-sub
     this.brushRadius = 24;
     this.featherRadius = 1.6;
+    this.detectionTolerance = 0.88;
     this.decalMode = false;
     this.showMaskTint = true;
     this.hasImage = false;
@@ -1707,7 +1812,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=11", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=12", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {
@@ -1947,6 +2052,36 @@ export class SegmentationController {
     await this.runCarPartsScan(stageCanvas);
   }
 
+  async preloadModels() {
+    try {
+      if (!this.hasImage) this.onStatus("loading", "Precargando IA 33 (detección instantánea)…");
+      await this.carPartsAI.ensureLoaded();
+      if (!this.hasImage) this.onStatus("ready", "IA Dual Lista (Detección Instantánea)");
+    } catch {
+      // Se reintentará al cargar el vehículo
+    }
+  }
+
+  recomputeWithTolerance(tolerance01) {
+    this.detectionTolerance = Math.max(0, Math.min(1, Number(tolerance01) || 0));
+    const res = this.carPartsAI.recomputeFromCache(this.detectionTolerance);
+    if (!res || !res.vehicleDetected || !res.parts.length) return false;
+
+    this.detectedParts = res.parts;
+    this.protectedCount = res.protectedCount;
+    this.protectedMaskCanvas = res.protectedMaskCanvas || null;
+    this._cacheProtectedAlpha();
+    this.hasCarPartsMask = true;
+    this._buildHitGrid(res.parts);
+
+    this.workingCtx.clearRect(0, 0, this.width, this.height);
+    this.workingCtx.drawImage(res.maskCanvas, 0, 0, this.width, this.height);
+    this._composeCombinedMask(true);
+    this.onPartsDetected(res.parts, res.protectedCount, res.inferenceMs);
+    this.onStatus("ready", `IA: ${res.parts.length} piezas · ${res.protectedCount} zonas protegidas`);
+    return true;
+  }
+
   async runCarPartsScan(stageCanvas) {
     const seq = ++this.analyzeSeq;
     this.onProgress(true, "Analizando vehículo con IA de 33 clases…", 20);
@@ -1955,7 +2090,7 @@ export class SegmentationController {
     try {
       const res = await this.carPartsAI.analyzeStageCanvas(stageCanvas, this.width, this.height, (msg, pct) => {
         if (seq === this.analyzeSeq) this.onProgress(true, msg, pct);
-      });
+      }, this.detectionTolerance);
       if (seq !== this.analyzeSeq) return;
 
       if (res.vehicleDetected && res.parts.length > 0) {
