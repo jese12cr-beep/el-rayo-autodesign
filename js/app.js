@@ -1,14 +1,15 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=13";
-import { SegmentationController } from "./segmentation.js?v=13";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=13";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=13";
-import { AiDesignAssistant } from "./aiAssistant.js?v=13";
+import { PaintEngine } from "./paintEngine.js?v=14";
+import { SegmentationController } from "./segmentation.js?v=14";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=14";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=14";
+import { AiDesignAssistant } from "./aiAssistant.js?v=14";
+import { AIWorkshopAssistant } from "./aiWorkshopAssistant.js?v=14";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=13";
+} from "./storageAndExport.js?v=14";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -216,6 +217,8 @@ class ElRayoStudioApp {
     this.saveTimer = null;
     this._tolRafId = 0;
     this.deferredPrompt = null;
+    this.workshopAssistant = new AIWorkshopAssistant();
+    this._lastWorkshopSuggestedParts = [];
 
     this._initUI();
     this._registerServiceWorker();
@@ -411,6 +414,70 @@ class ElRayoStudioApp {
 
     document.getElementById("btnToggleDecalMode").addEventListener("click", () => {
       this._setDecalMode(!this.seg.decalMode);
+    });
+
+    document.getElementById("btnAddPerspectiveStripe")?.addEventListener("click", () => {
+      const hasHood = (this.seg.detectedParts || []).some(p => p.id === "hood");
+      this.decalManager.addPerspectiveStripe(hasHood ? "hood" : "side");
+      this._setDecalMode(true);
+      this.showToast("Franja 3D en perspectiva agregada — arrástrala o ajusta escala/rotación en Viniles.");
+    });
+
+    // Pestaña 4: Asistente IA de Taller (Diagnóstico + Ficha Técnica de Mezcla)
+    document.getElementById("btnAnalyzeWorkshop")?.addEventListener("click", () => {
+      const notesEl = document.getElementById("workshopDiagnosticNotes");
+      const orderNotesEl = document.getElementById("paintNotes");
+      const notesText = (notesEl?.value || orderNotesEl?.value || "").trim();
+      const diag = this.workshopAssistant.analyzeDamageAndNotes({
+        notesText,
+        maskCoverage: this.seg.lastCoveragePct,
+        currentParts: Array.from(this.quoteCalc.selectedIds)
+      });
+      this._lastWorkshopSuggestedParts = diag.suggestedParts;
+
+      const listEl = document.getElementById("workshopRecommendationsList");
+      const applyBtn = document.getElementById("btnApplySuggestedParts");
+      if (listEl) {
+        listEl.innerHTML = "";
+        for (const rec of diag.recommendations) {
+          const li = document.createElement("li");
+          li.textContent = rec;
+          listEl.appendChild(li);
+        }
+      }
+      if (applyBtn) {
+        applyBtn.hidden = diag.suggestedParts.length === 0;
+        applyBtn.textContent = `Marcar ${diag.suggestedParts.length} Piezas`;
+      }
+      this._renderPainterMixFormula();
+      this.showToast(`Diagnóstico listo: ${diag.suggestedParts.length} piezas sugeridas.`);
+    });
+
+    document.getElementById("btnApplySuggestedParts")?.addEventListener("click", () => {
+      for (const pid of this._lastWorkshopSuggestedParts || []) {
+        this.quoteCalc.setPartSelected(pid, true);
+      }
+      this._syncPartsCheckboxes();
+      this._renderQuoteSummary();
+      this._scheduleSave();
+      this.showToast(`${this._lastWorkshopSuggestedParts.length} piezas aplicadas al cotizador.`);
+    });
+
+    document.getElementById("btnAppendMixToOrder")?.addEventListener("click", () => {
+      const q = this.quoteCalc.calculate();
+      const formula = this.workshopAssistant.generatePainterMixFormula({
+        colorHex: this.state.paintOptions.hex,
+        colorName: this.state.selectedColorName,
+        finish: this.state.paintOptions.finish,
+        quote: q
+      });
+      const notesEl = document.getElementById("paintNotes");
+      if (notesEl) {
+        const block = `${formula.title} | ${formula.mixBreakdown.join(" | ")} | ${formula.applicationSpec} | ${formula.bakeSpec}`;
+        notesEl.value = notesEl.value ? `${notesEl.value.trim()}\n${block}` : block;
+        this._scheduleSave();
+      }
+      this.showToast("Ficha técnica de mezcla anexada a las observaciones de la orden / PDF.");
     });
 
     document.getElementById("chkShowMaskTint").addEventListener("change", e => {
@@ -1349,6 +1416,27 @@ class ElRayoStudioApp {
         <td>${formatCurrency(q.total)}</td>
       </tr>
     `;
+    this._renderPainterMixFormula(q);
+  }
+
+  _renderPainterMixFormula(quoteSummary = null) {
+    const box = document.getElementById("painterMixFormulaBox");
+    if (!box || !this.workshopAssistant) return;
+    const q = quoteSummary || this.quoteCalc.calculate();
+    const f = this.workshopAssistant.generatePainterMixFormula({
+      colorHex: this.state.paintOptions.hex,
+      colorName: this.state.selectedColorName || this.state.paintOptions.hex,
+      finish: this.state.paintOptions.finish,
+      quote: q
+    });
+    box.innerHTML = `
+      <h3 class="tips-title">${f.title}</h3>
+      <ul class="tips-list">
+        ${f.mixBreakdown.map(line => `<li>${line}</li>`).join("")}
+        <li><strong>Aplicación:</strong> ${f.applicationSpec}</li>
+        <li><strong>Cabina:</strong> ${f.bakeSpec}</li>
+      </ul>
+    `;
   }
 
   _loadVehicleFile(file) {
@@ -1578,7 +1666,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=13").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=14").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

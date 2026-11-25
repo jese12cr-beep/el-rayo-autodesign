@@ -1812,7 +1812,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=13", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=14", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {

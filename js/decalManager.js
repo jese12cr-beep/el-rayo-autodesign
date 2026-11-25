@@ -494,6 +494,114 @@ export class DecalManager {
     return decal;
   }
 
+  /**
+   * Proyección en perspectiva 3D por 4 vértices subdivididos para franjas deportivas
+   * en cofre/toldo o laterales, recortadas automáticamente contra la máscara del vehículo.
+   */
+  addPerspectiveStripe(preset = "hood") {
+    const isHood = preset === "hood";
+    const corners = isHood
+      ? [
+          { x: this.width * 0.44, y: this.height * 0.34 },
+          { x: this.width * 0.62, y: this.height * 0.34 },
+          { x: this.width * 0.72, y: this.height * 0.60 },
+          { x: this.width * 0.38, y: this.height * 0.60 }
+        ]
+      : [
+          { x: this.width * 0.24, y: this.height * 0.48 },
+          { x: this.width * 0.76, y: this.height * 0.44 },
+          { x: this.width * 0.76, y: this.height * 0.56 },
+          { x: this.width * 0.24, y: this.height * 0.60 }
+        ];
+
+    const decal = {
+      id: `dec_${Date.now()}_${Math.floor(Math.random() * 999)}`,
+      kind: "perspective-stripe",
+      templateId: `persp-${preset}`,
+      name: isHood ? "Franja 3D Cofre (Perspectiva)" : "Franja 3D Lateral (Perspectiva)",
+      tintable: true,
+      svgTemplate: null,
+      rawSrc: null,
+      corners,
+      stripeCount: 2,
+      color: "#ffffff",
+      x: this.width * 0.52,
+      y: this.height * 0.50,
+      scale: 1.0,
+      rotationDeg: 0,
+      opacity: 0.94,
+      clipToBody: true,
+      lastBounds: null,
+      img: null
+    };
+
+    this.decals.push(decal);
+    this.selectedId = decal.id;
+    this.render();
+    this.onChange();
+    return decal;
+  }
+
+  drawPerspectiveStripes(ctx, d) {
+    const c = d.corners;
+    if (!Array.isArray(c) || c.length !== 4) return;
+
+    const cx0 = (c[0].x + c[1].x + c[2].x + c[3].x) * 0.25;
+    const cy0 = (c[0].y + c[1].y + c[2].y + c[3].y) * 0.25;
+    const rad = ((d.rotationDeg || 0) * Math.PI) / 180;
+    const cosR = Math.cos(rad), sinR = Math.sin(rad);
+    const sc = d.scale || 1.0;
+
+    const xf = pt => {
+      const lx = (pt.x - cx0) * sc;
+      const ly = (pt.y - cy0) * sc;
+      return {
+        x: d.x + lx * cosR - ly * sinR,
+        y: d.y + lx * sinR + ly * cosR
+      };
+    };
+
+    const p0 = xf(c[0]), p1 = xf(c[1]), p2 = xf(c[2]), p3 = xf(c[3]);
+    const bilerp = (u, v) => ({
+      x: (1 - u) * (1 - v) * p0.x + u * (1 - v) * p1.x + u * v * p2.x + (1 - u) * v * p3.x,
+      y: (1 - u) * (1 - v) * p0.y + u * (1 - v) * p1.y + u * v * p2.y + (1 - u) * v * p3.y
+    });
+
+    const bands = d.stripeCount === 1
+      ? [[0.30, 0.70]]
+      : [[0.14, 0.44], [0.56, 0.86]];
+    const steps = 16;
+
+    ctx.save();
+    ctx.globalAlpha = d.opacity ?? 0.94;
+    ctx.fillStyle = d.color || "#ffffff";
+
+    for (const [uA, uB] of bands) {
+      for (let s = 0; s < steps; s++) {
+        const v0 = s / steps;
+        const v1 = (s + 1) / steps;
+        const q0 = bilerp(uA, v0);
+        const q1 = bilerp(uB, v0);
+        const q2 = bilerp(uB, v1);
+        const q3 = bilerp(uA, v1);
+        ctx.beginPath();
+        ctx.moveTo(q0.x, q0.y);
+        ctx.lineTo(q1.x, q1.y);
+        ctx.lineTo(q2.x, q2.y);
+        ctx.lineTo(q3.x, q3.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    const xs = [p0.x, p1.x, p2.x, p3.x];
+    const ys = [p0.y, p1.y, p2.y, p3.y];
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    d.lastBounds = { cx: (minX + maxX) * 0.5, cy: (minY + maxY) * 0.5, w: Math.max(40, maxX - minX), h: Math.max(32, maxY - minY) };
+  }
+
   clearByKind(kind) {
     this.decals = this.decals.filter(d => d.kind !== kind);
     if (this.selectedId && !this.decals.some(d => d.id === this.selectedId)) {
@@ -815,13 +923,15 @@ export class DecalManager {
       if (d.clipToBody) continue;
       if (d.kind === "contour-stripe") {
         this._drawContouredStripeDecal(ctx, d, maskCanvas);
+      } else if (d.kind === "perspective-stripe") {
+        this.drawPerspectiveStripes(ctx, d);
       } else if (d.img) {
         this._drawSingleDecal(ctx, d);
       }
     }
 
     // 2. Viniles recortados al contorno exacto del vehículo / pieza
-    const clippedDecals = this.decals.filter(d => d.clipToBody && (d.kind === "contour-stripe" || d.img));
+    const clippedDecals = this.decals.filter(d => d.clipToBody && (d.kind === "contour-stripe" || d.kind === "perspective-stripe" || d.img));
     if (clippedDecals.length) {
       const wctx = this.workCtx;
       wctx.clearRect(0, 0, this.width, this.height);
@@ -829,6 +939,8 @@ export class DecalManager {
       for (const d of clippedDecals) {
         if (d.kind === "contour-stripe") {
           this._drawContouredStripeDecal(wctx, d, maskCanvas);
+        } else if (d.kind === "perspective-stripe") {
+          this.drawPerspectiveStripes(wctx, d);
         } else {
           this._drawSingleDecal(wctx, d);
         }
@@ -857,7 +969,7 @@ export class DecalManager {
 
   drawHandles(overlayCtx) {
     const d = this.getSelected();
-    if (!d || (d.kind !== "contour-stripe" && !d.img)) {
+    if (!d || (d.kind !== "contour-stripe" && d.kind !== "perspective-stripe" && !d.img)) {
       this.handleCoords = null;
       return;
     }

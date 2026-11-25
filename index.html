@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="./assets/logo_el_rayo.png" />
   <link rel="apple-touch-icon" href="./assets/logo_el_rayo.png" />
-  <link rel="stylesheet" href="./css/styles.css?v=13" />
+  <link rel="stylesheet" href="./css/styles.css?v=14" />
 </head>
 <body>
   <a class="skip-link" href="#workspace-stage">Saltar al lienzo del vehículo</a>
@@ -109,6 +109,12 @@
         <button type="button" id="btnToggleDecalMode" class="btn btn-toggle" aria-pressed="false">
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
           <span>Mover Viniles</span>
+        </button>
+      </div>
+
+      <div class="control-block">
+        <button type="button" id="btnAddPerspectiveStripe" class="btn btn-secondary btn-full">
+          <span>Franja 3D Cofre/Lateral</span>
         </button>
       </div>
 
@@ -228,12 +234,13 @@
       <div id="detectedPartsStrip" class="parts-strip" role="region" aria-label="Accesos rápidos a piezas detectadas" hidden></div>
     </main>
 
-    <!-- Columna Derecha: 4 Pestañas (Pintura, Piezas, Viniles, Cotización) -->
-    <aside class="panel panel-inspector" aria-label="Configuración de pintura, piezas, viniles y cotización">
+    <!-- Columna Derecha: 5 Pestañas (Pintura, Piezas, Viniles, Asistente IA, Cotización) -->
+    <aside class="panel panel-inspector" aria-label="Configuración de pintura, piezas, viniles, asistente IA y cotización">
       <div class="tab-bar" role="tablist" aria-label="Módulos del proyecto">
         <button type="button" class="tab-btn active" role="tab" id="tab-pintura" aria-selected="true" aria-controls="panel-pintura" data-tab="pintura">Pintura</button>
         <button type="button" class="tab-btn" role="tab" id="tab-piezas" aria-selected="false" aria-controls="panel-piezas" data-tab="piezas">Piezas</button>
         <button type="button" class="tab-btn" role="tab" id="tab-viniles" aria-selected="false" aria-controls="panel-viniles" data-tab="viniles">Viniles</button>
+        <button type="button" class="tab-btn" role="tab" id="tab-asistente" aria-selected="false" aria-controls="panel-asistente" data-tab="asistente">Asistente IA</button>
         <button type="button" class="tab-btn" role="tab" id="tab-cotizacion" aria-selected="false" aria-controls="panel-cotizacion" data-tab="cotizacion">Cotización</button>
       </div>
 
@@ -396,7 +403,44 @@
         </div>
       </section>
 
-      <!-- Pestaña 4: Cotización -->
+      <!-- Pestaña 4: Asistente IA de Taller (Diagnóstico y Ficha de Mezcla) -->
+      <section id="panel-asistente" class="tab-panel" role="tabpanel" aria-labelledby="tab-asistente" hidden>
+        <div class="section-block">
+          <h2 class="section-title">Diagnóstico IA en Recepción</h2>
+          <p class="muted-note">
+            Escribe las notas del cliente o daños observados (ej. <em>golpe en cofre, abolladura en puerta piloto, oxidación en facia delantera, perlado</em>). El asistente sugerirá las piezas a cotizar y los insumos de hojalatería.
+          </p>
+          <div class="field">
+            <label for="workshopDiagnosticNotes">Notas de recepción / daños</label>
+            <textarea id="workshopDiagnosticNotes" rows="3" placeholder="Ej. Golpe en cofre y facia delantera, baño completo en azul metálico…"></textarea>
+          </div>
+          <button type="button" id="btnAnalyzeWorkshop" class="btn btn-primary btn-full">
+            Analizar Diagnóstico y Sugerir Piezas
+          </button>
+        </div>
+
+        <div class="section-block">
+          <div class="section-head">
+            <h2 class="section-title">Recomendaciones de Taller</h2>
+            <button type="button" id="btnApplySuggestedParts" class="btn-inline" hidden>Marcar Sugeridas</button>
+          </div>
+          <ul id="workshopRecommendationsList" class="tips-list">
+            <li>Sube un vehículo o escribe las notas de recepción y presiona <strong>Analizar Diagnóstico</strong>.</li>
+          </ul>
+        </div>
+
+        <div class="section-block">
+          <div class="section-head">
+            <h2 class="section-title">Ficha Técnica de Mezcla (Cabina)</h2>
+            <button type="button" id="btnAppendMixToOrder" class="btn-inline">Anexar a Orden</button>
+          </div>
+          <div id="painterMixFormulaBox" class="tips-box">
+            <p class="muted-note">Se actualiza automáticamente según color, acabado y litros cotizados.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pestaña 5: Cotización -->
       <section id="panel-cotizacion" class="tab-panel" role="tabpanel" aria-labelledby="tab-cotizacion" hidden>
         <form id="quoteOrderForm" class="order-form" autocomplete="on" novalidate>
           <h2 class="section-title">Datos del Cliente y Vehículo</h2>
@@ -495,6 +539,6 @@
   </dialog>
 
   <script src="./assets/ort/ort.wasm.min.js"></script>
-  <script type="module" src="./js/app.js?v=13"></script>
+  <script type="module" src="./js/app.js?v=14"></script>
 </body>
 </html>

@@ -17,6 +17,16 @@ export const BODY_PARTS_CATALOG = [
   { id: "espejos", name: "Par de Espejos / Carcasas", baseLiters: 0.12, clearLiters: 0.10, laborHours: 1.2, basePrice: 950 }
 ];
 
+export const PARTS_CATALOG = Object.fromEntries(BODY_PARTS_CATALOG.map(p => [p.id, p]));
+
+export const FINISH_PROFILES = {
+  gloss: { label: "Bicapa Gloss", mult: 1.0 },
+  metallic: { label: "Metálico", mult: 1.15 },
+  pearl: { label: "Perlado Tricapa", mult: 1.35 },
+  matte: { label: "Mate Stealth", mult: 1.25 },
+  candy: { label: "Candy Profundo (Tricapa)", mult: 1.4 }
+};
+
 const REPAIR_TIERS = {
   repintado: { label: "Repintado Estándar", laborMult: 1.0 },
   hojalateria: { label: "Hojalatería Media y Plasteo", laborMult: 1.35 },
@@ -27,7 +37,8 @@ const FINISH_MULT = {
   gloss: 1.0,
   metallic: 1.15,
   pearl: 1.35,
-  matte: 1.25
+  matte: 1.25,
+  candy: 1.4
 };
 
 const MATERIAL_UNIT_COSTS = {
@@ -46,8 +57,9 @@ export class QuoteCalculator {
   }
 
   setPartSelected(id, checked) {
-    if (checked) this.selectedIds.add(id);
-    else this.selectedIds.delete(id);
+    const normId = String(id || "").replace(/_/g, "-");
+    if (checked) this.selectedIds.add(normId);
+    else this.selectedIds.delete(normId);
   }
 
   selectAllParts() {

@@ -2,7 +2,7 @@
   "name": "El Rayo — Autodesign Studio",
   "short_name": "El Rayo Studio",
   "description": "Estudio profesional de hojalatería, pintura automotriz WebGL2, segmentación MobileSAM y cotizador PDF offline.",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
