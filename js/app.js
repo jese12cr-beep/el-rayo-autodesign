@@ -1,14 +1,14 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=12";
-import { SegmentationController } from "./segmentation.js?v=12";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=12";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=12";
-import { AiDesignAssistant } from "./aiAssistant.js?v=12";
+import { PaintEngine } from "./paintEngine.js?v=13";
+import { SegmentationController } from "./segmentation.js?v=13";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=13";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=13";
+import { AiDesignAssistant } from "./aiAssistant.js?v=13";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=12";
+} from "./storageAndExport.js?v=13";
 
 const OEM_SWATCHES = [
   { name: "Rojo El Rayo", hex: "#DC2626" },
@@ -190,6 +190,14 @@ class ElRayoStudioApp {
         this._renderDetectedParts(parts, protectedCount, ms);
       },
       onPartClicked: part => {
+        if (!part) {
+          this._setScope("full");
+          this.seg.selectedPartId = null;
+          this._updateActiveTargetUI();
+          this._renderDetectedParts(this.seg.detectedParts, this.seg.protectedCount, 0);
+          this.showToast("Zona protegida (vidrios/rines/faros) · Objetivo: Todo el Auto");
+          return;
+        }
         this._setScope("piece");
         this.seg.selectedPartId = part.id;
         this._updateActiveTargetUI();
@@ -645,12 +653,18 @@ class ElRayoStudioApp {
     const openBtn = document.getElementById("btnOpenGeminiConfig");
     const keyInput = document.getElementById("geminiApiKeyInput");
     const modelSel = document.getElementById("geminiModelSelect");
+    const imgModelSel = document.getElementById("geminiImageModelSelect");
 
     openBtn?.addEventListener("click", () => {
       if (!dialog) return;
       if (keyInput) keyInput.value = this.aiAssistant.apiKey || "";
       if (modelSel) modelSel.value = this.aiAssistant.geminiModel || "gemini-3.5-flash-lite";
+      if (imgModelSel) imgModelSel.value = this.aiAssistant.imageModel || "gemini-nano-banana-2.1";
       dialog.showModal();
+    });
+
+    document.getElementById("btnRunNanoBanana")?.addEventListener("click", () => {
+      this._handleNanoBananaRender(promptInput?.value || "");
     });
 
     dialog?.addEventListener("close", () => {
@@ -672,17 +686,19 @@ class ElRayoStudioApp {
     document.getElementById("btnSaveGeminiKey")?.addEventListener("click", () => {
       this.aiAssistant.saveSettings({
         apiKey: keyInput?.value || "",
-        model: modelSel?.value || "gemini-3.5-flash-lite"
+        model: modelSel?.value || "gemini-3.5-flash-lite",
+        imageModel: imgModelSel?.value || "gemini-nano-banana-2.1"
       });
       updateBadge();
       dialog?.close();
       this.showToast(this.aiAssistant.hasGeminiKey()
-        ? "Motor Gemini IA conectado para propuestas y análisis visual."
+        ? "Motor Gemini + Nano Banana 2.1 conectado para edición fotorealista."
         : "Modo local gratuito activo (sin clave Gemini).");
     });
 
     document.getElementById("btnClearGeminiKey")?.addEventListener("click", () => {
-      this.aiAssistant.saveSettings({ apiKey: "", model: "gemini-3.5-flash-lite" });
+      this.aiAssistant.saveSettings({ apiKey: "", model: "gemini-3.5-flash-lite", imageModel: "gemini-nano-banana-2.1" });
+      this.aiAssistant.resetNanoBananaSession();
       if (keyInput) keyInput.value = "";
       updateBadge();
       dialog?.close();
@@ -723,6 +739,7 @@ class ElRayoStudioApp {
 
   async _applyAiProposal(proposal, persist = true) {
     if (!proposal) return;
+    this.paint.clearAiEditedImage();
     this._setScope("full");
     this.seg.selectedPartId = null;
 
@@ -775,6 +792,58 @@ class ElRayoStudioApp {
     tctx.drawImage(this.paint.canvas, 0, 0, 360, 202);
     tctx.drawImage(this.decalManager.canvas, 0, 0, 360, 202);
     return thumb.toDataURL("image/jpeg", 0.86);
+  }
+
+  async _handleNanoBananaRender(rawText) {
+    if (!this.paint.hasImage) {
+      this.showToast("Primero sube una fotografía del vehículo.");
+      document.getElementById("btnUpload")?.focus();
+      return;
+    }
+
+    if (!this.aiAssistant.hasGeminiKey()) {
+      this.showToast("Ingresa tu clave de Google AI Studio para activar la edición fotorealista con Nano Banana 2.1.");
+      document.getElementById("btnOpenGeminiConfig")?.click();
+      return;
+    }
+
+    const btn = document.getElementById("btnRunNanoBanana");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "🍌 Renderizando…";
+    }
+    this._setAiOverlay(true, "Editando vehículo con Nano Banana 2.1 (conservando vidrios, faros y entorno)…", 65);
+
+    try {
+      const res = await this.aiAssistant.editVehicleWithNanoBanana(rawText, {
+        stageCanvas: this.paint.stageCanvas,
+        paintOptions: {
+          ...this.state.paintOptions,
+          name: this.state.selectedColorName
+        }
+      });
+
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          this.paint.setAiEditedImage(img);
+          resolve();
+        };
+        img.onerror = () => reject(new Error("No se pudo decodificar la imagen devuelta por Nano Banana."));
+        img.src = res.dataUrl;
+      });
+
+      this.showToast(`Render fotorealista listo (${res.modelUsed}). Usa Antes / Después o Exportar PDF.`);
+    } catch (err) {
+      console.error("Error Nano Banana:", err);
+      this.showToast(`Nano Banana: ${err.message || err}`);
+    } finally {
+      this._setAiOverlay(false, "Listo", 100);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "🍌 Nano Banana IA";
+      }
+    }
   }
 
   async _handleAiPrompt(rawText) {
@@ -949,11 +1018,15 @@ class ElRayoStudioApp {
   }
 
   _applyActivePaintUpdate(partial) {
+    this.paint.clearAiEditedImage();
     if (this.state.scope === "piece" && this.seg.selectedPartId) {
       const pid = this.seg.selectedPartId;
       const base = this.state.partPaints.get(pid) || { ...this.state.paintOptions };
       this.state.partPaints.set(pid, { ...base, ...partial });
     } else {
+      if (partial.hex && this.state.partPaints.size > 0) {
+        this.state.partPaints.clear();
+      }
       Object.assign(this.state.paintOptions, partial);
     }
     this._refreshPaintRender();
@@ -1296,6 +1369,7 @@ class ElRayoStudioApp {
       document.getElementById("stageVehicleLabel").textContent = this.state.vehicleLabel;
 
       this.state.partPaints.clear();
+      this.aiAssistant.resetNanoBananaSession?.();
       this.decalManager.clearByKind?.("contour-stripe");
       const tray = document.getElementById("aiProposalsTray");
       if (tray) tray.hidden = true;
@@ -1464,7 +1538,7 @@ class ElRayoStudioApp {
               workingUrl: saved.workingMaskUrl
             });
             if (this.seg.detectedParts.length === 0) {
-              this.seg.runCarPartsScan(this.paint.stageCanvas);
+              await this.seg.runCarPartsScan(this.paint.stageCanvas);
             }
             this._refreshPaintRender();
             resolve();
@@ -1504,7 +1578,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=12").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=13").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

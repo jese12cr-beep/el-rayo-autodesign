@@ -2,6 +2,7 @@
 
 const STORAGE_KEY_API = "elRayoGeminiApiKey";
 const STORAGE_KEY_MODEL = "elRayoGeminiModel";
+const STORAGE_KEY_IMG_MODEL = "elRayoGeminiImageModel";
 
 const COLOR_DICTIONARY = [
   { keys: ["gris nardo", "nardo"], hex: "#64748B", name: "Gris Nardo", finish: "gloss" },
@@ -166,18 +167,26 @@ export class AiDesignAssistant {
   constructor() {
     this.apiKey = localStorage.getItem(STORAGE_KEY_API) || "";
     this.geminiModel = localStorage.getItem(STORAGE_KEY_MODEL) || "gemini-3.5-flash-lite";
+    this.imageModel = localStorage.getItem(STORAGE_KEY_IMG_MODEL) || "gemini-nano-banana-2.1";
+    this.lastNanoBananaInteractionId = null;
   }
 
   hasGeminiKey() {
     return Boolean(this.apiKey && this.apiKey.trim().length > 10);
   }
 
-  saveSettings({ apiKey, model }) {
+  resetNanoBananaSession() {
+    this.lastNanoBananaInteractionId = null;
+  }
+
+  saveSettings({ apiKey, model, imageModel }) {
     this.apiKey = (apiKey || "").trim();
     this.geminiModel = (model || "gemini-3.5-flash-lite").trim();
+    this.imageModel = (imageModel || "gemini-nano-banana-2.1").trim();
     if (this.apiKey) localStorage.setItem(STORAGE_KEY_API, this.apiKey);
     else localStorage.removeItem(STORAGE_KEY_API);
     localStorage.setItem(STORAGE_KEY_MODEL, this.geminiModel);
+    localStorage.setItem(STORAGE_KEY_IMG_MODEL, this.imageModel);
   }
 
   parseDesignPromptLocal(rawPrompt, vehicleInfo) {
@@ -530,5 +539,80 @@ Responde ÚNICAMENTE con un JSON válido siguiendo el esquema solicitado.`;
       }
     }
     return this.parseDesignPromptLocal(rawPrompt, vehicleInfo);
+  }
+
+  /**
+   * Edición fotorealista directa con Gemini Nano Banana 2.1 / Nano Banana Pro
+   * usando la API oficial de Interactions (`@google/genai`) con conservación estricta
+   * de entorno, vidrios, faros, calaveras, rines, llantas y reflejos naturales.
+   */
+  async editVehicleWithNanoBanana(rawPrompt, { stageCanvas, paintOptions, resetConversation = false } = {}) {
+    if (!this.hasGeminiKey()) {
+      throw new Error("Agrega tu clave API de Google AI Studio en 'Configurar Gemini IA' para activar Nano Banana.");
+    }
+    const { GoogleGenAI } = await import("https://cdn.jsdelivr.net/npm/@google/genai/+esm");
+    const ai = new GoogleGenAI({ apiKey: this.apiKey });
+
+    const tmp = document.createElement("canvas");
+    tmp.width = 1280;
+    tmp.height = 720;
+    const tctx = tmp.getContext("2d");
+    tctx.drawImage(stageCanvas, 0, 0, 1280, 720);
+    const base64Jpg = tmp.toDataURL("image/jpeg", 0.90).split(",")[1];
+
+    const requestedInstruction = (rawPrompt || "").trim() ||
+      `Repaint ONLY the painted metal body panels of this vehicle to ${paintOptions?.name || paintOptions?.hex || "Metallic Cobalt Blue"} (${paintOptions?.finish || "metallic"} finish).`;
+
+    const masterPrompt = `You are a master automotive paint & body-shop visual editor for El Rayo Autodesign Studio.
+Edit the provided vehicle photo strictly following the client's request:
+"${requestedInstruction}"
+
+STRICT PRESERVATION RULES (DO NOT VIOLATE):
+1. Keep the EXACT same vehicle, exact camera angle, exact framing, and 100% identical background/environment (sky, trees, buildings, ground, shadows).
+2. DO NOT paint or alter ANY windows, windshield, rear glass, chrome/black window moldings, black B-pillars, headlights, taillights, turn signals, front grille mesh, emblems, license plate, wheels, rims, tires, brake calipers, or lower unpainted black plastic chin/diffuser trim.
+3. Apply realistic automotive OEM paint ONLY to the requested painted body panels, preserving true sheet-metal panel shutlines, specular sky reflections, natural ambient occlusion, and real clearcoat depth.
+4. If stripes/decals are requested, contour them naturally along the 3D curvature and perspective of the metal panels, clipped cleanly at panel seams and never overlapping windows or wheel wells.`;
+
+    const modelToUse = this.imageModel || "gemini-nano-banana-2.1";
+    const usePrev = !resetConversation && Boolean(this.lastNanoBananaInteractionId);
+
+    const payload = {
+      model: modelToUse,
+      input: usePrev
+        ? masterPrompt
+        : [
+            { type: "image", data: base64Jpg, mime_type: "image/jpeg" },
+            { type: "text", text: masterPrompt }
+          ]
+    };
+    if (usePrev) payload.previous_interaction_id = this.lastNanoBananaInteractionId;
+
+    const interaction = await ai.interactions.create(payload);
+    if (interaction?.id) this.lastNanoBananaInteractionId = interaction.id;
+
+    // Extraer imagen generada desde outputImage / output_image o steps
+    let imgObj = interaction?.outputImage || interaction?.output_image || null;
+    if (!imgObj && Array.isArray(interaction?.steps)) {
+      for (let i = interaction.steps.length - 1; i >= 0; i--) {
+        const step = interaction.steps[i];
+        if (step?.type === "model_output" && Array.isArray(step.content)) {
+          const found = step.content.find(c => c?.type === "image" && c?.data);
+          if (found) { imgObj = found; break; }
+        }
+      }
+    }
+
+    if (!imgObj?.data) {
+      throw new Error("Nano Banana no devolvió una imagen editada. Revisa tu clave API o el modelo seleccionado.");
+    }
+
+    const mimeType = imgObj.mimeType || imgObj.mime_type || "image/png";
+    return {
+      dataUrl: `data:${mimeType};base64,${imgObj.data}`,
+      mimeType,
+      interactionId: interaction?.id || null,
+      modelUsed: modelToUse,
+      noteText: interaction?.outputText || interaction?.output_text || ""
+    };
   }
 }

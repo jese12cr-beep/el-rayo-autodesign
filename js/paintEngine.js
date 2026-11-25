@@ -21,7 +21,9 @@ uniform sampler2D u_image;
 uniform sampler2D u_mask;
 uniform sampler2D u_tintMap;
 uniform sampler2D u_finishMap;
+uniform sampler2D u_aiImage;
 uniform float u_usePartMaps;
+uniform float u_useAiRender;
 
 uniform vec3 u_color;
 uniform float u_contrast;
@@ -68,6 +70,12 @@ void main() {
   // Comparador en tiempo real Antes / Después (Antes a la izquierda de u_splitPos)
   if (u_splitEnabled > 0.5 && v_uv.x < u_splitPos) {
     outColor = origSample;
+    return;
+  }
+
+  // Modo Render Fotorealista Nano Banana IA (preserva comparador Antes / Después y exportación PDF)
+  if (u_useAiRender > 0.5) {
+    outColor = texture(u_aiImage, v_uv);
     return;
   }
 
@@ -240,6 +248,11 @@ export class PaintEngine {
     this.partScratchCanvas.height = height;
     this.partScratchCtx = this.partScratchCanvas.getContext("2d", { willReadFrequently: true });
 
+    this.aiEditedCanvas = document.createElement("canvas");
+    this.aiEditedCanvas.width = width;
+    this.aiEditedCanvas.height = height;
+    this.aiEditedCtx = this.aiEditedCanvas.getContext("2d", { willReadFrequently: true });
+
     this.options = {
       hex: "#DC2626",
       finish: "metallic",
@@ -251,6 +264,7 @@ export class PaintEngine {
 
     this.hasImage = false;
     this.usePartMaps = false;
+    this.hasAiEditedImage = false;
     this.meanLum = 0.48;
     this.p15Lum = 0.18;
     this.p85Lum = 0.78;
@@ -328,9 +342,10 @@ export class PaintEngine {
     this.maskTex = this._createTexture(gl);
     this.tintTex = this._createTexture(gl);
     this.finishTex = this._createTexture(gl);
+    this.aiTex = this._createTexture(gl);
 
     const blank = new Uint8Array(4);
-    [this.imageTex, this.maskTex, this.tintTex, this.finishTex].forEach(tex => {
+    [this.imageTex, this.maskTex, this.tintTex, this.finishTex, this.aiTex].forEach(tex => {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, blank);
     });
@@ -340,7 +355,9 @@ export class PaintEngine {
       mask: gl.getUniformLocation(program, "u_mask"),
       tintMap: gl.getUniformLocation(program, "u_tintMap"),
       finishMap: gl.getUniformLocation(program, "u_finishMap"),
+      aiImage: gl.getUniformLocation(program, "u_aiImage"),
       usePartMaps: gl.getUniformLocation(program, "u_usePartMaps"),
+      useAiRender: gl.getUniformLocation(program, "u_useAiRender"),
       color: gl.getUniformLocation(program, "u_color"),
       contrast: gl.getUniformLocation(program, "u_contrast"),
       metallic: gl.getUniformLocation(program, "u_metallic"),
@@ -422,6 +439,7 @@ export class PaintEngine {
     ctx.drawImage(img, dx, dy, dw, dh);
     this.lastDrawRect = { x: dx, y: dy, w: dw, h: dh };
     this.hasImage = true;
+    this.hasAiEditedImage = false;
 
     const imgData = this.stageCtx.getImageData(0, 0, this.width, this.height);
     const px = imgData.data;
@@ -557,6 +575,30 @@ export class PaintEngine {
     this.render();
   }
 
+  setAiEditedImage(img) {
+    if (!img) return;
+    const ctx = this.aiEditedCtx;
+    ctx.fillStyle = "#0c0e12";
+    ctx.fillRect(0, 0, this.width, this.height);
+    const { x, y, w, h } = this.lastDrawRect || { x: 0, y: 0, w: this.width, h: this.height };
+    ctx.drawImage(img, x, y, w, h);
+    this.hasAiEditedImage = true;
+
+    if (this.isWebGL2 && this.gl && this.aiTex) {
+      const gl = this.gl;
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.bindTexture(gl.TEXTURE_2D, this.aiTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.aiEditedCanvas);
+    }
+    this.render();
+  }
+
+  clearAiEditedImage() {
+    if (!this.hasAiEditedImage) return;
+    this.hasAiEditedImage = false;
+    this.render();
+  }
+
   setOptions(partial) {
     Object.assign(this.options, partial);
     this.render();
@@ -602,8 +644,13 @@ export class PaintEngine {
     gl.bindTexture(gl.TEXTURE_2D, this.finishTex);
     gl.uniform1i(this.uniforms.finishMap, 3);
 
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.aiTex);
+    gl.uniform1i(this.uniforms.aiImage, 4);
+
     const [r, g, b] = hexToRgbNorm(this.options.hex);
     gl.uniform1f(this.uniforms.usePartMaps, this.usePartMaps ? 1.0 : 0.0);
+    gl.uniform1f(this.uniforms.useAiRender, this.hasAiEditedImage ? 1.0 : 0.0);
     gl.uniform3f(this.uniforms.color, r, g, b);
     gl.uniform1f(this.uniforms.contrast, this.options.contrast);
     gl.uniform1f(this.uniforms.metallic, this.options.metallic);

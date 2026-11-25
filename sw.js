@@ -1,5 +1,5 @@
 /* El Rayo — Autodesign Studio Service Worker (Offline PWA + Cache IA) */
-const STATIC_CACHE = "el-rayo-static-v12";
+const STATIC_CACHE = "el-rayo-static-v13";
 const MODEL_CACHE = "el-rayo-models-v3";
 
 const LOCAL_ASSETS = [

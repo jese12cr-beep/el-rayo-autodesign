@@ -1812,7 +1812,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=12", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=13", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {
@@ -1877,6 +1877,11 @@ export class SegmentationController {
         if (hit) {
           this.selectedPartId = hit.id;
           this.onPartClicked(hit);
+          this.renderOverlay();
+        } else if (this.detectedParts.length > 0) {
+          // Clic en zona protegida (vidrio, faro, llanta o fondo): nunca sobrescribir la máscara de carrocería
+          this.selectedPartId = null;
+          this.onPartClicked(null);
           this.renderOverlay();
         } else {
           this._addAiPoint(pt.x, pt.y, 1);
@@ -2302,18 +2307,17 @@ export class SegmentationController {
       if (!isolated) bin.fill(0);
 
       if (mode === "add" && this._protectedAlpha && this._protectedAlpha.length === bin.length) {
-        const scx = Math.max(0, Math.min(w - 1, Math.round(cx)));
-        const scy = Math.max(0, Math.min(h - 1, Math.round(cy)));
-        const clickedProtected = this._protectedAlpha[scy * w + scx] > 160;
-        const guardR = clickedProtected ? 34 : 12;
-        const guardR2 = guardR * guardR;
+        let keptPix = 0;
         for (let i = 0; i < bin.length; i++) {
-          if (bin[i] === 0 || this._protectedAlpha[i] <= 160) continue;
-          const px = i % w, py = (i / w) | 0;
-          if ((px - scx) * (px - scx) + (py - scy) * (py - scy) > guardR2) {
+          if (bin[i] === 0) continue;
+          if (this._protectedAlpha[i] > 120) {
             bin[i] = 0;
+          } else {
+            keptPix++;
           }
         }
+        // Evitar que un clic puntual de SlimSAM se desborde sobre todo el vehículo o el fondo
+        if (keptPix > bin.length * 0.12) bin.fill(0);
       }
     }
 
