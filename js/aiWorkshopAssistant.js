@@ -1,5 +1,5 @@
 /* El Rayo — Asistente IA de Taller (Diagnóstico de Recepción y Ficha Técnica de Cabina) */
-import { PARTS_CATALOG, FINISH_PROFILES } from "./quoteCalculator.js?v=14";
+import { PARTS_CATALOG, FINISH_PROFILES } from "./quoteCalculator.js?v=15";
 
 const KEYWORD_PART_MAP = [
   { regex: /\b(cofre|capo|capó)\b/i, partId: "cofre" },

@@ -1,33 +1,56 @@
 /* El Rayo — Autodesign Studio | Orquestador Principal */
-import { PaintEngine } from "./paintEngine.js?v=14";
-import { SegmentationController } from "./segmentation.js?v=14";
-import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=14";
-import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=14";
-import { AiDesignAssistant } from "./aiAssistant.js?v=14";
-import { AIWorkshopAssistant } from "./aiWorkshopAssistant.js?v=14";
+import { PaintEngine } from "./paintEngine.js?v=15";
+import { SegmentationController } from "./segmentation.js?v=15";
+import { DecalManager, DECAL_CATALOG } from "./decalManager.js?v=15";
+import { BODY_PARTS_CATALOG, QuoteCalculator } from "./quoteCalculator.js?v=15";
+import { AiDesignAssistant } from "./aiAssistant.js?v=15";
+import { AIWorkshopAssistant } from "./aiWorkshopAssistant.js?v=15";
 import {
   saveSessionToIndexedDB,
   loadSessionFromIndexedDB,
   exportOrderQuotePDF
-} from "./storageAndExport.js?v=14";
+} from "./storageAndExport.js?v=15";
 
 const OEM_SWATCHES = [
-  { name: "Rojo El Rayo", hex: "#DC2626" },
-  { name: "Azul Cobalto", hex: "#2563EB" },
-  { name: "Negro Obsidiana", hex: "#14171D" },
-  { name: "Blanco Ártico", hex: "#F1F5F9" },
-  { name: "Gris Nardo", hex: "#64748B" },
-  { name: "Plata Tungsteno", hex: "#94A3B8" },
-  { name: "Verde Militar", hex: "#3B4D3C" },
-  { name: "Amarillo Daytona", hex: "#EAB308" },
-  { name: "Naranja Track", hex: "#EA580C" },
-  { name: "Azul Medianoche", hex: "#0F172A" },
-  { name: "Vino Cereza", hex: "#7F1D1D" },
-  { name: "Perla Champagne", hex: "#D6C5A3" },
-  { name: "British Green", hex: "#14532D" },
-  { name: "Azul Laguna Seca", hex: "#0284C7" },
-  { name: "Bronce Titanio", hex: "#78583A" },
-  { name: "Grafito Carbón", hex: "#27272A" }
+  // Básicos Taller & Chevrolet
+  { name: "Rojo El Rayo (Torch Red)", hex: "#DC2626", finish: "gloss" },
+  { name: "Azul Cobalto (Ford/OEM)", hex: "#2563EB", finish: "metallic" },
+  { name: "Negro Mosaic (Chevrolet)", hex: "#14171D", finish: "gloss" },
+  { name: "Blanco Summit (Chevrolet)", hex: "#F1F5F9", finish: "gloss" },
+  { name: "Rapid Blue (Chevrolet)", hex: "#0EA5E9", finish: "gloss" },
+  { name: "Amarillo Shock (Camaro)", hex: "#D4E115", finish: "metallic" },
+  { name: "Naranja Crush (Chevrolet)", hex: "#EA580C", finish: "metallic" },
+  { name: "Shadow Gray (Chevrolet)", hex: "#475569", finish: "metallic" },
+
+  // Ford Performance & Clásicos
+  { name: "Grabber Blue (Ford)", hex: "#0284C7", finish: "gloss" },
+  { name: "Race Red (Ford)", hex: "#E11D48", finish: "gloss" },
+  { name: "Amarillo Cyber (Ford)", hex: "#EAB308", finish: "metallic" },
+  { name: "Eruption Green (Ford)", hex: "#14532D", finish: "metallic" },
+  { name: "Plata Iconic (Ford)", hex: "#94A3B8", finish: "metallic" },
+  { name: "Carbonized Gray (Ford)", hex: "#3F3F46", finish: "metallic" },
+
+  // BMW M & Exclusivos
+  { name: "BMW Marina Bay Blue", hex: "#1D4ED8", finish: "metallic" },
+  { name: "BMW Isle of Man Green", hex: "#065F46", finish: "metallic" },
+  { name: "BMW Brooklyn Gray", hex: "#64748B", finish: "gloss" },
+  { name: "BMW Yas Marina Blue", hex: "#38BDF8", finish: "metallic" },
+  { name: "BMW Tanzanite Blue", hex: "#1E3A8A", finish: "metallic" },
+  { name: "BMW Melbourne Red", hex: "#991B1B", finish: "metallic" },
+  { name: "BMW Frozen Portimao (Mate)", hex: "#1E40AF", finish: "matte" },
+  { name: "BMW Sao Paulo Yellow", hex: "#CA8A04", finish: "gloss" },
+
+  // Perlados Tricapa (Pearlescent)
+  { name: "Blanco Perla Tricapa", hex: "#F8FAFC", finish: "pearl" },
+  { name: "Perla Champagne", hex: "#D6C5A3", finish: "pearl" },
+  { name: "Azul Zafiro Perlado", hex: "#0369A1", finish: "pearl" },
+  { name: "Violeta Camaleón Perla", hex: "#7C3AED", finish: "pearl" },
+
+  // Candy Profundo (Tricapa)
+  { name: "Candy Apple Red", hex: "#B91C1C", finish: "candy" },
+  { name: "Candy Vino Cereza", hex: "#7F1D1D", finish: "candy" },
+  { name: "Candy Mandarina", hex: "#C2410C", finish: "candy" },
+  { name: "Candy Esmeralda", hex: "#15803D", finish: "candy" }
 ];
 
 const ORDER_FIELD_IDS = [
@@ -242,10 +265,23 @@ class ElRayoStudioApp {
       btn.style.color = isLightColor(sw.hex) ? "#0f172a" : "#ffffff";
       btn.dataset.hex = sw.hex;
       btn.dataset.name = sw.name;
+      if (sw.finish) btn.dataset.finish = sw.finish;
+      btn.title = sw.name;
       btn.setAttribute("aria-label", sw.name);
       btn.setAttribute("aria-pressed", String(sw.hex === this.state.paintOptions.hex));
       btn.textContent = sw.hex === this.state.paintOptions.hex ? "✓" : "";
-      btn.addEventListener("click", () => this._applyColor(sw.hex, sw.name));
+      btn.addEventListener("click", () => {
+        if (sw.finish) {
+          this.state.paintOptions.finish = sw.finish;
+          this.quoteCalc?.setFinish(sw.finish);
+          document.querySelectorAll(".finish-btn").forEach(fb => {
+            const act = fb.dataset.finish === sw.finish;
+            fb.classList.toggle("active", act);
+            fb.setAttribute("aria-pressed", String(act));
+          });
+        }
+        this._applyColor(sw.hex, sw.name);
+      });
       swatchGrid.appendChild(btn);
     }
 
@@ -1666,7 +1702,7 @@ class ElRayoStudioApp {
   _registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js?v=14").then(reg => {
+      navigator.serviceWorker.register("./sw.js?v=15").then(reg => {
         reg.update?.().catch(() => {});
       }).catch(err => {
         console.warn("Registro de Service Worker omitido:", err);

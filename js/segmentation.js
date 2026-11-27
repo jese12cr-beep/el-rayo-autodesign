@@ -913,15 +913,8 @@ class CarPartsDetector {
           if (!isRoofPart) {
             if (!heroCarRegion[i] || hardBgMask[i]) { arr[i] = 0; continue; }
           } else {
-            // YOLO 'roof' ya delimita el arco superior del vehículo; podar si queda lejos del vehículo o parece follaje/cielo
-            if (!heroCarRoofRegion[i]) { arr[i] = 0; continue; }
-            if (hardBgMask[i]) {
-              const j = i << 2;
-              const r = origPx[j], g = origPx[j + 1], b = origPx[j + 2];
-              const lum = lumaArr[i], sat = satArr[i];
-              const isPureBg = (g - Math.max(r, b) > 24) || (r - b > 34 && sat > 22 && lum < 75) || lum > 224 || lum < 45;
-              if (isPureBg) { arr[i] = 0; continue; }
-            }
+            // Podar estrictamente cualquier píxel del toldo que salga de la silueta real o toque cielo/letreros/árboles
+            if (!heroCarMask[i] || hardBgMask[i]) { arr[i] = 0; continue; }
           }
           kCnt++;
           const yy = (i / w) | 0, xx = i % w;
@@ -1392,18 +1385,18 @@ class CarPartsDetector {
     const pMinY = by0 + 0.03 * bh, pMaxY = by0 + 0.64 * bh;
     const rMinY = by0 + 0.60 * bh;
 
-    const chromCdMax = 44 + t * 26;
-    const chromSatMin = Math.max(14, medSat * (0.42 - t * 0.16));
+    const chromCdMax = 36 + t * 18;
+    const chromSatMin = Math.max(18, medSat * (0.44 - t * 0.14));
     const minAchromL = medLuma < 65
-      ? Math.max(18, Math.round(32 - t * 10))
-      : Math.max(46, medLuma * (0.52 - t * 0.12));
-    const achromSatMax = 44 + t * 18;
+      ? Math.max(20, Math.round(32 - t * 8))
+      : Math.max(48, medLuma * (0.54 - t * 0.10));
+    const achromSatMax = 38 + t * 14;
     const fullHeroMode = t >= 0.35;
-    // Acotar la expansión de tolerancia máxima a la envolvente real del vehículo (nunca trepa al entorno/letreros/autos de fondo)
+    // Acotar estrictamente la expansión al halo cercano del cuerpo detectado (nunca trepa al entorno/letreros/autos de fondo)
     const bodyGrowHalo = fullHeroMode
-      ? this._dilateBool(origBodyMask, w, h, Math.max(12, Math.round(bh * 0.055)))
+      ? this._dilateBool(origBodyMask, w, h, Math.max(5, Math.round(bh * 0.020)))
       : null;
-    const heroFloorY = by0 + Math.round(bh * 0.04);
+    const heroFloorY = by0 + Math.round(bh * 0.03);
 
     for (let y = by0; y <= by1; y++) {
       const row = y * w;
@@ -1489,9 +1482,11 @@ class CarPartsDetector {
       partConfs["pillars"] = 0.85;
     }
 
-    // Filtrado final por componentes conectadas (elimina motas o islas sueltas en fondo/reflejos)
+    // Filtrado final por componentes conectadas dentro de heroCarMask (elimina motas o islas sueltas en fondo/reflejos)
     const cleanBodyMask = this._filterLargeComponents(bodyMask, w, h, 0.015);
-    for (let i = 0; i < nPix; i++) bodyMask[i] = cleanBodyMask[i] && !strictExclEdge[i] ? 1 : 0;
+    for (let i = 0; i < nPix; i++) {
+      bodyMask[i] = (cleanBodyMask[i] && heroCarMask[i] && !hardBgMask[i] && !strictExclEdge[i]) ? 1 : 0;
+    }
 
     // FASE C: Cierre morfológico sensible al color + relleno de micro-huecos encerrados + asignación por panel
     const healBlocked = new Uint8Array(nPix);
@@ -1812,7 +1807,7 @@ export class SegmentationController {
   }
 
   _initSamWorker() {
-    this.worker = new Worker("./js/samWorker.js?v=14", { type: "module" });
+    this.worker = new Worker("./js/samWorker.js?v=15", { type: "module" });
     this.worker.onmessage = event => {
       const msg = event.data || {};
       if (msg.type === "ready") {

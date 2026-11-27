@@ -54,14 +54,47 @@ vec2 sampleLumaGrad(vec2 uv) {
   return vec2(lR - lL, lD - lU);
 }
 
-// Curva fílmica suave que conserva juntas de lámina y sombras profundas sin lavar tonos medios
-float automotiveToneCurve(float lum, float p15, float p85, float contrast) {
-  float span = max(0.22, p85 - p15);
-  float rel = (lum - u_meanLum) / (span * 1.15);
-  float curved = 0.52 + (rel * contrast) * 0.34;
-  // Compresión suave en extremos evitando corte plano en autos muy oscuros o blancos
-  float s = clamp(curved, 0.04, 1.18);
-  return mix(s, s * s * (3.0 - 2.0 * min(s, 1.0)), 0.25);
+// Conversión RGB <-> HSL en GLSL para reemplazo cromático real (sin efecto multiplicador)
+vec3 rgb2hsl(vec3 c) {
+  float maxC = max(c.r, max(c.g, c.b));
+  float minC = min(c.r, min(c.g, c.b));
+  float l = 0.5 * (maxC + minC);
+  float d = maxC - minC;
+  if (d < 1e-4) return vec3(0.0, 0.0, l);
+  float s = l > 0.5 ? d / max(1e-4, 2.0 - maxC - minC) : d / max(1e-4, maxC + minC);
+  float h = 0.0;
+  if (maxC == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+  else if (maxC == c.g) h = (c.b - c.r) / d + 2.0;
+  else h = (c.r - c.g) / d + 4.0;
+  return vec3(h / 6.0, clamp(s, 0.0, 1.0), clamp(l, 0.0, 1.0));
+}
+
+float hue2rgb(float p, float q, float t) {
+  if (t < 0.0) t += 1.0;
+  if (t > 1.0) t -= 1.0;
+  if (t < 1.0 / 6.0) return p + (q - p) * 6.0 * t;
+  if (t < 0.5) return q;
+  if (t < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t) * 6.0;
+  return p;
+}
+
+vec3 hsl2rgb(vec3 hsl) {
+  float h = hsl.x, s = hsl.y, l = hsl.z;
+  if (s < 1e-4) return vec3(l);
+  float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+  float p = 2.0 * l - q;
+  return vec3(
+    hue2rgb(p, q, h + 1.0 / 3.0),
+    hue2rgb(p, q, h),
+    hue2rgb(p, q, h - 1.0 / 3.0)
+  );
+}
+
+// Curva de sombreado perceptual centrada en la luminancia real del vehículo
+float surfaceShadeFactor(float lum, float p15, float p85, float contrast) {
+  float span = max(0.20, p85 - p15);
+  float rel = (lum - u_meanLum) / (span * 0.85);
+  return clamp(rel * (0.72 + contrast * 0.28), -1.0, 1.0);
 }
 
 void main() {
@@ -117,46 +150,43 @@ void main() {
   vec2 grad = sampleLumaGrad(v_uv);
   float edgeEnergy = clamp(length(grad) * 6.5, 0.0, 1.0);
 
-  // Iluminación normalizada adaptada al vehículo
-  float toneLum = clamp(automotiveToneCurve(lum, u_p15Lum, u_p85Lum, contrastVal), 0.07, 1.08);
-  // Conserva sombras de juntas de cofres/puertas (ambient occlusion natural)
-  float panelCreaseAO = smoothstep(0.01, 0.16, lum);
-  float targetLum = dot(targetColor, vec3(0.2126, 0.7152, 0.0722));
+  // Sombreado superficial relativo (-1 sombras profundas .. 0 tono medio .. +1 cara iluminada)
+  float shade = surfaceShadeFactor(lum, u_p15Lum, u_p85Lum, contrastVal);
+  float panelCreaseAO = smoothstep(0.01, 0.14, lum);
 
-  // Flop cromático automotriz real: sombras ricas + tono medio OEM + cara iluminada limpia
-  vec3 shadowFlop = pow(max(targetColor, vec3(0.015)), vec3(1.32)) * 0.72;
-  vec3 facingHighlight = mix(targetColor, sqrt(max(targetColor, vec3(0.001))), 0.28);
+  // Reemplazo cromático real en espacio HSL preservando sombras, volumen y luces del vehículo
+  vec3 targetHsl = rgb2hsl(clamp(targetColor, 0.0, 1.0));
+  float tH = targetHsl.x;
+  float tS = targetHsl.y;
+  float tL = targetHsl.z;
 
-  float midWeight = smoothstep(0.10, 0.62, toneLum);
-  float highWeight = smoothstep(0.58, 1.04, toneLum);
-  vec3 flopAlbedo = mix(shadowFlop, targetColor, midWeight);
-  flopAlbedo = mix(flopAlbedo, facingHighlight, highWeight * 0.55);
+  // Mapear luminancia objetivo alrededor de tL sin efecto multiplicador oscuro
+  float shadowL = tL * mix(0.26, 0.44, tL);
+  float highL = mix(tL, min(0.95, max(tL + 0.22, tL * 1.38)), 0.78);
+  float outL = shade < 0.0
+    ? mix(tL, shadowL, clamp(-shade * 0.92, 0.0, 1.0))
+    : mix(tL, highL, clamp(shade * 0.88, 0.0, 1.0));
+  outL *= mix(0.62, 1.0, panelCreaseAO);
 
-  // Intensidad física según iluminación del estudio
-  float lightMul = mix(0.32, 1.48, clamp(toneLum, 0.0, 1.0));
-  vec3 basePaint = flopAlbedo * lightMul;
+  // Flop de saturación: más rica en tonos medios/sombras y más limpia en reflejos intensos
+  float specRoll = smoothstep(0.45, 1.0, shade);
+  float outS = clamp(tS * mix(1.06, 0.78, specRoll), 0.0, 1.0);
 
-  // Protección especial de definición para blancos/claros y negros profundos
-  vec3 deepDark = targetColor * (0.28 + clamp(toneLum, 0.0, 1.0) * 1.15);
-  basePaint = mix(deepDark, basePaint, smoothstep(0.03, 0.35, targetLum));
-  basePaint *= mix(0.68, 1.0, panelCreaseAO);
-
-  // Acabado Candy Profundo (u_finish == 4): base metálica luminosa + barniz hiper-saturado
+  // Acabado Candy Profundo (u_finish == 4): mayor saturación y profundidad luminosa
   if (abs(finishVal - 4.0) < 0.25) {
-    vec3 candyBoost = pow(max(targetColor, vec3(0.02)), vec3(0.82)) * 1.18;
-    float innerGlow = smoothstep(0.30, 0.85, toneLum);
-    basePaint = mix(shadowFlop * 0.65, candyBoost * (0.55 + toneLum * 0.95), innerGlow);
+    outS = clamp(tS * 1.18, 0.0, 1.0);
+    outL = clamp(outL * mix(0.84, 1.16, smoothstep(-0.3, 0.8, shade)), 0.03, 0.90);
   }
 
-  // Acabado Perlado Tricapa (u_finish == 2): cambio iridiscente guiado por normal/curvatura
+  // Acabado Perlado Tricapa (u_finish == 2): desplazamiento cromático iridiscente según curvatura
   if (abs(finishVal - 2.0) < 0.25) {
     float slopeFactor = clamp(grad.x * 4.0 - grad.y * 3.5 + (v_uv.x - 0.5) * 0.6, -1.0, 1.0);
-    vec3 pearlWarm = vec3(1.09, 0.98, 0.86);
-    vec3 pearlCool = vec3(0.88, 0.97, 1.12);
-    vec3 pearlTint = mix(pearlCool, pearlWarm, slopeFactor * 0.5 + 0.5);
-    float fresnelBand = smoothstep(0.24, 0.86, toneLum) * (0.35 + 0.65 * edgeEnergy);
-    basePaint = mix(basePaint, basePaint * pearlTint + vec3(0.045 * fresnelBand), 0.48);
+    tH = fract(tH + slopeFactor * 0.035);
+    outL = clamp(outL + 0.04 * smoothstep(0.1, 0.9, shade), 0.04, 0.96);
   }
+
+  vec3 basePaint = hsl2rgb(vec3(tH, outS, clamp(outL, 0.02, 0.96)));
+  vec3 facingHighlight = hsl2rgb(vec3(tH, clamp(tS * 0.72, 0.0, 1.0), min(0.95, tL + 0.24)));
 
   // Micro-partículas metálicas bicapa (dos escalas rotadas en zonas iluminadas)
   if (abs(finishVal - 1.0) < 0.25 || abs(finishVal - 2.0) < 0.25 || abs(finishVal - 4.0) < 0.25) {
@@ -165,23 +195,22 @@ void main() {
     float f1 = hash12(floor(p1)) - 0.5;
     float f2 = hash12(floor(p2)) - 0.5;
     float glint = smoothstep(0.28, 0.49, abs(f1)) * sign(f1) * 0.65 + f2 * 0.35;
-    float lightGate = smoothstep(0.26, 0.86, toneLum) * (1.0 - edgeEnergy * 0.45);
+    float lightGate = smoothstep(-0.35, 0.75, shade) * (1.0 - edgeEnergy * 0.45);
     float metWeight = abs(finishVal - 1.0) < 0.25 ? 0.19 : 0.12;
     basePaint += mix(vec3(1.0), targetColor, 0.25) * glint * metWeight * metallicVal * lightGate;
   }
 
-  // Laca / Barniz especular dual-lobe (conserva reflejos de cielo/estudio y suprime en Mate Stealth)
+  // Laca / Barniz especular dual-lobe (conserva reflejos blancos del cielo/estudio y suprime en Mate Stealth)
   float neutMask = 1.0 - smoothstep(0.14, 0.52, origChroma);
   float realWorldGlare = smoothstep(0.66, 0.97, lum) * mix(0.42, 1.0, neutMask);
-  float curveSpecular = smoothstep(0.78, 0.99, toneLum) * (0.35 + 0.65 * edgeEnergy);
+  float curveSpecular = smoothstep(0.55, 0.98, shade) * (0.35 + 0.65 * edgeEnergy);
   float combinedSpec = max(realWorldGlare, curveSpecular * 0.55);
 
   float finishSpecScale = 1.05;
   if (abs(finishVal - 3.0) < 0.25) {
-    // Mate Satinado / Stealth PPF: suprime brillos duros y resalta biseles satinados
     finishSpecScale = 0.16;
     float grayBase = dot(basePaint, vec3(0.299, 0.587, 0.114));
-    basePaint = mix(basePaint, vec3(grayBase), 0.05) + vec3(edgeEnergy * 0.045 * toneLum);
+    basePaint = mix(basePaint, vec3(grayBase), 0.05) + vec3(edgeEnergy * 0.04 * max(0.0, shade + 0.4));
   } else if (abs(finishVal - 0.0) < 0.25 || abs(finishVal - 4.0) < 0.25) {
     finishSpecScale = 1.25;
   }

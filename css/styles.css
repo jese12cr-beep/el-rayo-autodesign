@@ -739,13 +739,13 @@
   /* ---------------- Color Swatches ---------------- */
   .swatch-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.35rem;
   }
 
   .swatch-btn {
     position: relative;
-    min-block-size: var(--target-min);
+    min-block-size: 36px;
     border-radius: var(--radius-sm);
     border: 2px solid var(--border-strong);
     cursor: pointer;
